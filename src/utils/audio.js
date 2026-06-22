@@ -174,19 +174,19 @@ class AudioService {
     this.init();
     if (!this.ctx) return;
 
-    // BGMの音量ノード（効果音の邪魔にならないよう、かなり小さめにミックス）
+    // BGMのメイン音量ノード (他の効果音を邪魔しない適度な音量)
     this.bgmGain = this.ctx.createGain();
-    this.bgmGain.gain.setValueAtTime(this.enabled ? 0.025 : 0, this.ctx.currentTime);
+    this.bgmGain.gain.setValueAtTime(this.enabled ? 0.15 : 0, this.ctx.currentTime);
     this.bgmGain.connect(this.ctx.destination);
 
-    // ドラム用の少し強めな低音を通す用のゲイン
+    // ドラム用の音量調整
     const drumGain = this.ctx.createGain();
-    drumGain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+    drumGain.gain.setValueAtTime(0.4, this.ctx.currentTime);
     drumGain.connect(this.bgmGain);
 
-    // メロディ・ベース用のゲイン
+    // メロディ・ベース用の音量調整
     const synthGain = this.ctx.createGain();
-    synthGain.gain.setValueAtTime(0.02, this.ctx.currentTime);
+    synthGain.gain.setValueAtTime(0.3, this.ctx.currentTime);
     synthGain.connect(this.bgmGain);
 
     // BPM115（8分音符 = 260ms）
@@ -206,8 +206,13 @@ class AudioService {
     const melodyPattern = [0, 1, 2, 1, 3, 2, 1, 2, 0, 1, 2, 3, 2, 1, 3, 0];
 
     const playStep = () => {
-      // ミュート中の場合は処理をスキップ（CPU負荷軽減）
-      if (!this.enabled || !this.ctx || this.ctx.state === 'suspended') return;
+      // ミュート中の場合は処理をスキップ
+      if (!this.enabled || !this.ctx) return;
+
+      // サスペンド状態ならその場で解除を試みる
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
 
       const now = this.ctx.currentTime;
       const bar = Math.floor(step / 16) % 4; // 4小節パターン
@@ -215,7 +220,7 @@ class AudioService {
       const rootFreq = roots[bar];
       const chordNotes = scale[bar];
 
-      // --- 1. ベースライン (「ドッドッドッドッ」と弾む三角波ベース) ---
+      // --- 1. ベースライン ---
       if (stepInBar % 2 === 0) {
         const oscBase = this.ctx.createOscillator();
         const gainBase = this.ctx.createGain();
@@ -226,7 +231,6 @@ class AudioService {
         oscBase.type = 'triangle';
         oscBase.frequency.setValueAtTime(rootFreq, now);
 
-        // 歯切れのいいベース
         gainBase.gain.setValueAtTime(0.7, now);
         gainBase.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
 
@@ -234,9 +238,9 @@ class AudioService {
         oscBase.stop(now + 0.2);
       }
 
-      // --- 2. ピコピコアルペジオメロディ (8分音符で弾むファミコン風メロディ) ---
+      // --- 2. ピコピコアルペジオメロディ ---
       const noteIdx = melodyPattern[stepInBar];
-      const noteFreq = chordNotes[noteIdx] * 2; // 1オクターブ上でキラキラ鳴らす
+      const noteFreq = chordNotes[noteIdx] * 2; // 1オクターブ上
 
       const oscMelody = this.ctx.createOscillator();
       const gainMelody = this.ctx.createGain();
@@ -244,17 +248,16 @@ class AudioService {
       oscMelody.connect(gainMelody);
       gainMelody.connect(synthGain);
 
-      oscMelody.type = 'sine'; // まろやかなピコピコ音
+      oscMelody.type = 'sine';
       oscMelody.frequency.setValueAtTime(noteFreq, now);
 
-      // メロディの音量エンベロープ
       gainMelody.gain.setValueAtTime(0.25, now);
       gainMelody.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
       oscMelody.start(now);
       oscMelody.stop(now + 0.15);
 
-      // --- 3. 電子ドラム（キック：1拍目＆3拍目） ---
+      // --- 3. 電子ドラム（キック） ---
       if (stepInBar === 0 || stepInBar === 8) {
         const oscKick = this.ctx.createOscillator();
         const gainKick = this.ctx.createGain();
@@ -263,7 +266,6 @@ class AudioService {
         gainKick.connect(drumGain);
 
         oscKick.type = 'sine';
-        // ドンというピッチスイープ（150Hzから40Hzへ瞬時に落とす）
         oscKick.frequency.setValueAtTime(150, now);
         oscKick.frequency.exponentialRampToValueAtTime(35, now + 0.12);
 
