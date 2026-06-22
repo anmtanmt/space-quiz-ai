@@ -168,72 +168,143 @@ class AudioService {
     document.addEventListener('touchstart', startOnInteraction);
   }
 
-  // 宇宙的なアンビエントBGMを動的に合成して再生し続ける
+  // 宇宙的でワクワクするゲーム風8bitBGM（ピコピコ音楽）を合成してループ再生する
   startSynthBgm() {
     if (this.bgmTimer) return;
     this.init();
     if (!this.ctx) return;
 
-    // ボリュームノードを作成
+    // BGMの音量ノード（効果音の邪魔にならないよう、かなり小さめにミックス）
     this.bgmGain = this.ctx.createGain();
     this.bgmGain.gain.setValueAtTime(this.enabled ? 0.025 : 0, this.ctx.currentTime);
     this.bgmGain.connect(this.ctx.destination);
 
-    // ディレイノード（宇宙の残響感・エコー）
-    const delay = this.ctx.createDelay(2.0);
-    const delayFeedback = this.ctx.createGain();
-    delay.delayTime.value = 0.8; // 0.8秒遅れて音が反響
-    delayFeedback.gain.value = 0.35; // 響きの強さ（フィードバック）
+    // ドラム用の少し強めな低音を通す用のゲイン
+    const drumGain = this.ctx.createGain();
+    drumGain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+    drumGain.connect(this.bgmGain);
 
-    // ディレイのループ接続
-    delay.connect(delayFeedback);
-    delayFeedback.connect(delay);
-    delayFeedback.connect(this.bgmGain);
+    // メロディ・ベース用のゲイン
+    const synthGain = this.ctx.createGain();
+    synthGain.gain.setValueAtTime(0.02, this.ctx.currentTime);
+    synthGain.connect(this.bgmGain);
 
-    // 宇宙を漂うコード進行 (Cmaj7 -> Fmaj7 -> G6 -> Em7)
-    const chords = [
-      [261.63, 329.63, 392.00, 493.88], // Cmaj7 (ド, ミ, ソ, シ)
-      [349.23, 440.00, 523.25, 659.25], // Fmaj7 (ファ, ラ, ド, ミ)
-      [392.00, 493.88, 587.33, 659.25], // G6 (ソ, シ, レ, ミ)
-      [329.63, 392.00, 493.88, 587.33]  // Em7 (ミ, ソ, シ, レ)
+    // BPM115（8分音符 = 260ms）
+    const stepTime = 0.26;
+    let step = 0;
+
+    // ワクワクするコード進行 (C -> G -> Am -> F)
+    const roots = [130.81, 98.00, 110.00, 87.31]; // C2, G1, A1, F1 (ベース)
+    const scale = [
+      [261.63, 329.63, 392.00, 523.25], // Cメジャー (ドミソド)
+      [196.00, 246.94, 293.66, 392.00], // G
+      [220.00, 261.63, 329.63, 440.00], // Am
+      [174.61, 220.00, 261.63, 349.23]  // F
     ];
 
-    let chordIdx = 0;
+    // メロディの8ビートアルペジオパターン
+    const melodyPattern = [0, 1, 2, 1, 3, 2, 1, 2, 0, 1, 2, 3, 2, 1, 3, 0];
 
-    const playNextChord = () => {
-      if (!this.ctx || (this.bgmGain && this.bgmGain.gain.value === 0)) return;
+    const playStep = () => {
+      // ミュート中の場合は処理をスキップ（CPU負荷軽減）
+      if (!this.enabled || !this.ctx || this.ctx.state === 'suspended') return;
 
       const now = this.ctx.currentTime;
-      const notes = chords[chordIdx];
-      chordIdx = (chordIdx + 1) % chords.length;
+      const bar = Math.floor(step / 16) % 4; // 4小節パターン
+      const stepInBar = step % 16;
+      const rootFreq = roots[bar];
+      const chordNotes = scale[bar];
 
-      // 各ノートをゆったりと鳴らす
-      notes.forEach((freq, idx) => {
-        const osc = this.ctx.createOscillator();
-        const noteGain = this.ctx.createGain();
+      // --- 1. ベースライン (「ドッドッドッドッ」と弾む三角波ベース) ---
+      if (stepInBar % 2 === 0) {
+        const oscBase = this.ctx.createOscillator();
+        const gainBase = this.ctx.createGain();
         
-        osc.connect(noteGain);
-        noteGain.connect(this.bgmGain);
-        noteGain.connect(delay); // ディレイエフェクトにも送る
+        oscBase.connect(gainBase);
+        gainBase.connect(synthGain);
 
-        osc.type = 'triangle'; // やさしい三角波
-        osc.frequency.setValueAtTime(freq, now);
+        oscBase.type = 'triangle';
+        oscBase.frequency.setValueAtTime(rootFreq, now);
 
-        // 宇宙の浮遊感を出すためのアタック(フェードイン)とリリース(フェードアウト)
-        noteGain.gain.setValueAtTime(0, now);
-        // 音が同時に鳴り始めないようにわずかにずらす（アルペジオ風）
-        const noteStartDelay = idx * 0.15;
-        noteGain.gain.linearRampToValueAtTime(0.05, now + 1.5 + noteStartDelay);
-        noteGain.gain.exponentialRampToValueAtTime(0.001, now + 4.8);
+        // 歯切れのいいベース
+        gainBase.gain.setValueAtTime(0.7, now);
+        gainBase.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
 
-        osc.start(now + noteStartDelay);
-        osc.stop(now + 5.0);
-      });
+        oscBase.start(now);
+        oscBase.stop(now + 0.2);
+      }
+
+      // --- 2. ピコピコアルペジオメロディ (8分音符で弾むファミコン風メロディ) ---
+      const noteIdx = melodyPattern[stepInBar];
+      const noteFreq = chordNotes[noteIdx] * 2; // 1オクターブ上でキラキラ鳴らす
+
+      const oscMelody = this.ctx.createOscillator();
+      const gainMelody = this.ctx.createGain();
+      
+      oscMelody.connect(gainMelody);
+      gainMelody.connect(synthGain);
+
+      oscMelody.type = 'sine'; // まろやかなピコピコ音
+      oscMelody.frequency.setValueAtTime(noteFreq, now);
+
+      // メロディの音量エンベロープ
+      gainMelody.gain.setValueAtTime(0.25, now);
+      gainMelody.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+      oscMelody.start(now);
+      oscMelody.stop(now + 0.15);
+
+      // --- 3. 電子ドラム（キック：1拍目＆3拍目） ---
+      if (stepInBar === 0 || stepInBar === 8) {
+        const oscKick = this.ctx.createOscillator();
+        const gainKick = this.ctx.createGain();
+        
+        oscKick.connect(gainKick);
+        gainKick.connect(drumGain);
+
+        oscKick.type = 'sine';
+        // ドンというピッチスイープ（150Hzから40Hzへ瞬時に落とす）
+        oscKick.frequency.setValueAtTime(150, now);
+        oscKick.frequency.exponentialRampToValueAtTime(35, now + 0.12);
+
+        gainKick.gain.setValueAtTime(0.8, now);
+        gainKick.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        oscKick.start(now);
+        oscKick.stop(now + 0.13);
+      }
+
+      // --- 4. 電子ドラム（ノイズスネア：2拍目＆4拍目） ---
+      if (stepInBar === 4 || stepInBar === 12) {
+        // 白ノイズの生成
+        const bufferSize = this.ctx.sampleRate * 0.1; // 0.1秒分
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noiseNode = this.ctx.createBufferSource();
+        noiseNode.buffer = buffer;
+        const gainSnare = this.ctx.createGain();
+
+        noiseNode.connect(gainSnare);
+        gainSnare.connect(drumGain);
+
+        // 「タン」というホワイトノイズスネア
+        gainSnare.gain.setValueAtTime(0.12, now);
+        gainSnare.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+        noiseNode.start(now);
+        noiseNode.stop(now + 0.11);
+      }
+
+      step++;
     };
 
-    // 5.5秒ごとに次のコードをトリガー
-    playNextChord();
-    this.bgmTimer = setInterval(playNextChord, 5500);
+    // 260msごとにステップを進める
+    playStep();
+    this.bgmTimer = setInterval(playStep, stepTime * 1000);
   }
 }
 
