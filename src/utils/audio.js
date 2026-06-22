@@ -5,7 +5,9 @@ class AudioService {
   constructor() {
     this.ctx = null;
     this.enabled = true; // 音のON/OFF
-    this.bgmAudio = null; // BGM用HTMLAudioElement
+    this.bgmAudio = null; // BGM用HTMLAudioElement (フォールバック)
+    this.bgmTimer = null; // シンセBGM用のループタイマー
+    this.bgmGain = null; // シンセBGM用のボリュームコントロール
   }
 
   // ユーザーの最初の操作（クリック/タップ）でAudioContextを初期化
@@ -21,6 +23,15 @@ class AudioService {
 
   toggleSound() {
     this.enabled = !this.enabled;
+
+    // シンセBGMのボリューム切り替え
+    if (this.bgmGain) {
+      const now = this.ctx ? this.ctx.currentTime : 0;
+      const targetGain = this.enabled ? 0.025 : 0; // メイン音量 (控えめ)
+      this.bgmGain.gain.setValueAtTime(targetGain, now);
+    }
+
+    // ファイルBGM (mp3) 用の切り替え
     if (!this.enabled && this.bgmAudio) {
       this.bgmAudio.pause();
     } else if (this.enabled && this.bgmAudio) {
@@ -140,32 +151,89 @@ class AudioService {
   }
 
   // --- BGM管理 ---
-  // public/bgm.mp3 が配置されていればループ再生する
   startBgm() {
-    if (this.bgmAudio) return; // すでに再生中の場合は何もしない
+    if (this.bgmTimer) return; // すでにシンセBGMが開始されていればスルー
 
-    this.bgmAudio = new Audio('/bgm.mp3');
-    this.bgmAudio.loop = true;
-    this.bgmAudio.volume = 0.25; // やや小さめに再生
+    const startOnInteraction = () => {
+      this.init();
+      if (this.enabled) {
+        // 宇宙風シンセBGMの再生開始
+        this.startSynthBgm();
+      }
+      document.removeEventListener('click', startOnInteraction);
+      document.removeEventListener('touchstart', startOnInteraction);
+    };
 
-    if (this.enabled) {
-      this.bgmAudio.play().catch(e => {
-        // 初回のユーザーインタラクション前の自動再生ブロックへの対応
-        console.warn('BGM play was blocked by browser. It will start upon user interaction.', e);
+    document.addEventListener('click', startOnInteraction);
+    document.addEventListener('touchstart', startOnInteraction);
+  }
+
+  // 宇宙的なアンビエントBGMを動的に合成して再生し続ける
+  startSynthBgm() {
+    if (this.bgmTimer) return;
+    this.init();
+    if (!this.ctx) return;
+
+    // ボリュームノードを作成
+    this.bgmGain = this.ctx.createGain();
+    this.bgmGain.gain.setValueAtTime(this.enabled ? 0.025 : 0, this.ctx.currentTime);
+    this.bgmGain.connect(this.ctx.destination);
+
+    // ディレイノード（宇宙の残響感・エコー）
+    const delay = this.ctx.createDelay(2.0);
+    const delayFeedback = this.ctx.createGain();
+    delay.delayTime.value = 0.8; // 0.8秒遅れて音が反響
+    delayFeedback.gain.value = 0.35; // 響きの強さ（フィードバック）
+
+    // ディレイのループ接続
+    delay.connect(delayFeedback);
+    delayFeedback.connect(delay);
+    delayFeedback.connect(this.bgmGain);
+
+    // 宇宙を漂うコード進行 (Cmaj7 -> Fmaj7 -> G6 -> Em7)
+    const chords = [
+      [261.63, 329.63, 392.00, 493.88], // Cmaj7 (ド, ミ, ソ, シ)
+      [349.23, 440.00, 523.25, 659.25], // Fmaj7 (ファ, ラ, ド, ミ)
+      [392.00, 493.88, 587.33, 659.25], // G6 (ソ, シ, レ, ミ)
+      [329.63, 392.00, 493.88, 587.33]  // Em7 (ミ, ソ, シ, レ)
+    ];
+
+    let chordIdx = 0;
+
+    const playNextChord = () => {
+      if (!this.ctx || (this.bgmGain && this.bgmGain.gain.value === 0)) return;
+
+      const now = this.ctx.currentTime;
+      const notes = chords[chordIdx];
+      chordIdx = (chordIdx + 1) % chords.length;
+
+      // 各ノートをゆったりと鳴らす
+      notes.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const noteGain = this.ctx.createGain();
         
-        // 代替として、ドキュメントの最初のクリックで再生を開始するワンタイムリスナーを登録
-        const playOnInteraction = () => {
-          this.init();
-          if (this.enabled && this.bgmAudio) {
-            this.bgmAudio.play().catch(err => console.error(err));
-          }
-          document.removeEventListener('click', playOnInteraction);
-          document.removeEventListener('touchstart', playOnInteraction);
-        };
-        document.addEventListener('click', playOnInteraction);
-        document.addEventListener('touchstart', playOnInteraction);
+        osc.connect(noteGain);
+        noteGain.connect(this.bgmGain);
+        noteGain.connect(delay); // ディレイエフェクトにも送る
+
+        osc.type = 'triangle'; // やさしい三角波
+        osc.frequency.setValueAtTime(freq, now);
+
+        // 宇宙の浮遊感を出すためのアタック(フェードイン)とリリース(フェードアウト)
+        noteGain.gain.setValueAtTime(0, now);
+        // 音が同時に鳴り始めないようにわずかにずらす（アルペジオ風）
+        const noteStartDelay = idx * 0.15;
+        noteGain.gain.linearRampToValueAtTime(0.05, now + 1.5 + noteStartDelay);
+        noteGain.gain.exponentialRampToValueAtTime(0.001, now + 4.8);
+
+        osc.start(now + noteStartDelay);
+        osc.stop(now + 5.0);
       });
-    }
+    };
+
+    // 5.5秒ごとに次のコードをトリガー
+    playNextChord();
+    this.bgmTimer = setInterval(playNextChord, 5500);
   }
 }
 
