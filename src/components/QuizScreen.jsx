@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { generateQuizFromAI } from '../services/gemini';
 import { storage } from '../utils/storage';
+import { audio } from '../utils/audio';
 
 export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTitle }) {
   const [quizzes, setQuizzes] = useState([]);
@@ -103,8 +104,10 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
 
     if (isCorrect) {
       setScore(prev => prev + 1);
+      audio.playCorrect(); // 正解音
     } else {
       setIsWrongShake(true);
+      audio.playWrong(); // 不正解音
       setTimeout(() => setIsWrongShake(false), 500); // 揺れアニメーションリセット
     }
 
@@ -123,6 +126,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
   };
 
   const handleNext = () => {
+    audio.playClick();
     setSelectedAnswer(null);
     setShowExplanation(false);
 
@@ -154,7 +158,11 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
     <div className="quiz-screen fade-in" style={styles.container}>
       {/* 画面ヘッダー（進行状況） */}
       <div style={styles.header}>
-        <button className="btn-action btn-back" onClick={onBackToTitle} style={styles.abortButton}>
+        <button 
+          className="btn-action btn-back" 
+          onClick={() => { audio.playClick(); onBackToTitle(); }} 
+          style={styles.abortButton}
+        >
           🏠 やめる
         </button>
         <div style={styles.progressContainer}>

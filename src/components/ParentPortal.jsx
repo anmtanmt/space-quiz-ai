@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { storage } from '../utils/storage';
+import { audio } from '../utils/audio';
 
 export default function ParentPortal({ onBackToTitle }) {
   const [gateUnlocked, setGateUnlocked] = useState(false);
@@ -63,6 +64,7 @@ export default function ParentPortal({ onBackToTitle }) {
 
   const handleGateSubmit = (e) => {
     e.preventDefault();
+    audio.playClick();
     const val = parseInt(gateInput, 10);
     if (val === mathQuestion.a) {
       setGateUnlocked(true);
@@ -74,6 +76,7 @@ export default function ParentPortal({ onBackToTitle }) {
 
   // フォームクリア
   const resetForm = () => {
+    audio.playClick();
     setEditingQuiz(null);
     setDifficulty('easy');
     setQuestion('');
@@ -84,6 +87,7 @@ export default function ParentPortal({ onBackToTitle }) {
 
   // クイズ編集開始
   const handleEdit = (quiz) => {
+    audio.playClick();
     setEditingQuiz(quiz);
     setDifficulty(quiz.difficulty);
     setQuestion(quiz.question);
@@ -97,6 +101,7 @@ export default function ParentPortal({ onBackToTitle }) {
 
   // クイズ削除
   const handleDelete = (id) => {
+    audio.playClick();
     if (window.confirm('このクイズを削除してもよろしいですか？')) {
       storage.deleteParentQuiz(id);
       loadQuizzes();
@@ -107,6 +112,7 @@ export default function ParentPortal({ onBackToTitle }) {
   // クイズ保存
   const handleSave = (e) => {
     e.preventDefault();
+    audio.playClick();
     if (!question || choices.some(c => !c) || !explanation) {
       alert('すべての項目を入力してください。');
       return;
@@ -135,6 +141,7 @@ export default function ParentPortal({ onBackToTitle }) {
 
   // 回答履歴とバッジのリセット
   const handleResetData = () => {
+    audio.playClick();
     if (window.confirm('お子様の「回答した履歴」と「あつめたバッジ」をリセットして最初からあそべるようにします。よろしいですか？（※登録した手作りクイズは消えません）')) {
       storage.resetChildData();
       alert('リセットが完了しました！');
@@ -143,6 +150,7 @@ export default function ParentPortal({ onBackToTitle }) {
 
   // クイズインポート
   const handleImport = () => {
+    audio.playClick();
     try {
       if (!importCode.trim()) return;
       const jsonStr = decodeURIComponent(escape(atob(importCode.trim())));
@@ -175,6 +183,7 @@ export default function ParentPortal({ onBackToTitle }) {
 
   // コピー用ヘルパー
   const handleCopyCode = () => {
+    audio.playClick();
     navigator.clipboard.writeText(shareCode);
     setShareMsg('コピーしました！他の端末の「インポート」欄に貼り付けて使ってください。');
     setTimeout(() => setShareMsg(''), 3000);
@@ -206,7 +215,11 @@ export default function ParentPortal({ onBackToTitle }) {
               <button type="submit" className="btn-action btn-primary" style={{ flex: 1 }}>
                 おとな用ページへ ➔
               </button>
-              <button type="button" className="btn-action btn-back" onClick={onBackToTitle}>
+              <button 
+                type="button" 
+                className="btn-action btn-back" 
+                onClick={() => { audio.playClick(); onBackToTitle(); }}
+              >
                 タイトルへもどる
               </button>
             </div>
@@ -221,7 +234,7 @@ export default function ParentPortal({ onBackToTitle }) {
     <div className="parent-portal fade-in" style={styles.portalContainer}>
       <div style={styles.portalHeader}>
         <h1 style={styles.portalTitle}>おとな用 管理・作成ページ</h1>
-        <button className="btn-action btn-back" onClick={onBackToTitle}>
+        <button className="btn-action btn-back" onClick={() => { audio.playClick(); onBackToTitle(); }}>
           ⬅ タイトルへもどる
         </button>
       </div>

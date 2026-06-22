@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { storage } from '../utils/storage';
+import { audio } from '../utils/audio';
 
 // 定義された全バッジのプール
 const BADGE_POOL = [
@@ -26,6 +27,7 @@ export default function CollectionScreen({ onBackToTitle }) {
 
   const handleBadgeClick = (badge) => {
     if (earnedBadgeIds.includes(badge.id)) {
+      audio.playClick();
       setSelectedBadge(badge);
     }
   };
@@ -92,7 +94,7 @@ export default function CollectionScreen({ onBackToTitle }) {
 
       {/* 戻るボタン */}
       <div style={styles.footer}>
-        <button className="btn-action btn-back" onClick={onBackToTitle}>
+        <button className="btn-action btn-back" onClick={() => { audio.playClick(); onBackToTitle(); }}>
           ⬅ タイトルにもどる
         </button>
       </div>

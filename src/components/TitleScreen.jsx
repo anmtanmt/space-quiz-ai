@@ -1,17 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { storage } from '../utils/storage';
+import { audio } from '../utils/audio';
 
 export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParent }) {
   const [mode, setMode] = useState('ai'); // 'ai' or 'parent'
   const [difficulty, setDifficulty] = useState('easy'); // 'easy', 'medium', 'hard'
   const [hasParentQuizzes, setHasParentQuizzes] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(audio.enabled);
 
   useEffect(() => {
     const parentQuizzes = storage.getParentQuizzes();
     setHasParentQuizzes(parentQuizzes.length > 0);
+    // BGMの起動待機（ユーザーの初回操作で再生されます）
+    audio.startBgm();
   }, []);
 
+  const handleToggleSound = () => {
+    const nextState = audio.toggleSound();
+    setSoundEnabled(nextState);
+  };
+
   const handleStart = () => {
+    audio.playClick();
     if (mode === 'parent' && !hasParentQuizzes) {
       alert('まだ「おとうさん・おかあさんの クイズ」が つくられていないよ！おとな用ページで クイズを つくってね。');
       return;
@@ -38,7 +48,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
           <h2 style={styles.groupTitle}>🧭 クイズの モードを えらぼう</h2>
           <div style={styles.optionsRow}>
             <button
-              onClick={() => setMode('ai')}
+              onClick={() => { audio.playClick(); setMode('ai'); }}
               style={{
                 ...styles.optionCard,
                 ...(mode === 'ai' ? styles.optionCardActive : {})
@@ -50,7 +60,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
             </button>
 
             <button
-              onClick={() => setMode('parent')}
+              onClick={() => { audio.playClick(); setMode('parent'); }}
               style={{
                 ...styles.optionCard,
                 ...(mode === 'parent' ? styles.optionCardActive : {}),
@@ -73,7 +83,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
           <h2 style={styles.groupTitle}>⭐ むずかしさを えらぼう</h2>
           <div style={styles.optionsRow}>
             <button
-              onClick={() => setDifficulty('easy')}
+              onClick={() => { audio.playClick(); setDifficulty('easy'); }}
               style={{
                 ...styles.diffCard,
                 ...styles.diffEasy,
@@ -85,7 +95,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
             </button>
 
             <button
-              onClick={() => setDifficulty('medium')}
+              onClick={() => { audio.playClick(); setDifficulty('medium'); }}
               style={{
                 ...styles.diffCard,
                 ...styles.diffMedium,
@@ -97,7 +107,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
             </button>
 
             <button
-              onClick={() => setDifficulty('hard')}
+              onClick={() => { audio.playClick(); setDifficulty('hard'); }}
               style={{
                 ...styles.diffCard,
                 ...styles.diffHard,
@@ -116,14 +126,23 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
         <button className="btn-action btn-accent" onClick={handleStart} style={styles.startButton}>
           🎮 クイズを はじめる！🚀
         </button>
-        <button className="btn-action btn-back" onClick={onViewCollection} style={styles.collectionButton}>
+        <button 
+          className="btn-action btn-back" 
+          onClick={() => { audio.playClick(); onViewCollection(); }} 
+          style={styles.collectionButton}
+        >
           🏆 バッジを みる
         </button>
       </div>
 
+      {/* 音量切り替えフローティングボタン */}
+      <button onClick={handleToggleSound} style={styles.soundButton}>
+        {soundEnabled ? '🔊 おとON' : '🔇 おとOFF'}
+      </button>
+
       {/* おとな用ページへのひっそりとしたボタン */}
       <div style={styles.footer}>
-        <button onClick={onGoToParent} style={styles.parentButton}>
+        <button onClick={() => { audio.playClick(); onGoToParent(); }} style={styles.parentButton}>
           ⚙️ おとな用の ページ
         </button>
       </div>
@@ -148,6 +167,24 @@ const styles = {
     top: '20px',
     right: '50px',
     animation: 'rocketFloat 4s ease-in-out infinite alternate',
+    pointerEvents: 'none'
+  },
+  soundButton: {
+    position: 'absolute',
+    top: '20px',
+    left: '20px',
+    background: 'rgba(255, 255, 255, 0.08)',
+    border: '1px solid var(--color-card-border)',
+    borderRadius: '12px',
+    padding: '8px 12px',
+    color: '#fff',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-family)',
+    fontSize: '0.85rem',
+    transition: 'all 0.2s',
+    '&:hover': {
+      background: 'rgba(102, 252, 241, 0.1)'
+    }
   },
   header: {
     textAlign: 'center',

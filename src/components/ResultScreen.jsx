@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { storage } from '../utils/storage';
+import { audio } from '../utils/audio';
 
 // 定義された全バッジのプール
 const BADGE_POOL = [
@@ -36,6 +37,9 @@ export default function ResultScreen({ score, total, onPlayAgain, onViewCollecti
       setNewBadge(randomBadge);
       setIsNewBadgeEarned(false);
     }
+
+    // ファンファーレ音を再生
+    audio.playFanfare();
   }, []);
 
   // スコアに応じたメッセージ決定
@@ -85,13 +89,25 @@ export default function ResultScreen({ score, total, onPlayAgain, onViewCollecti
 
       {/* ナビゲーションボタン */}
       <div style={styles.actionRow}>
-        <button className="btn-action btn-primary" onClick={onPlayAgain} style={styles.actionBtn}>
+        <button 
+          className="btn-action btn-primary" 
+          onClick={() => { audio.playClick(); onPlayAgain(); }} 
+          style={styles.actionBtn}
+        >
           🔄 もういちど あそぶ
         </button>
-        <button className="btn-action btn-accent" onClick={onViewCollection} style={styles.actionBtn}>
+        <button 
+          className="btn-action btn-accent" 
+          onClick={() => { audio.playClick(); onViewCollection(); }} 
+          style={styles.actionBtn}
+        >
           🏆 バッジコレクション
         </button>
-        <button className="btn-action btn-back" onClick={onBackToTitle} style={styles.actionBtn}>
+        <button 
+          className="btn-action btn-back" 
+          onClick={() => { audio.playClick(); onBackToTitle(); }} 
+          style={styles.actionBtn}
+        >
           🏠 タイトルにもどる
         </button>
       </div>
