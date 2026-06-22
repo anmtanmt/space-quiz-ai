@@ -154,10 +154,20 @@ class AudioService {
   startBgm() {
     if (this.bgmTimer) return; // すでにシンセBGMが開始されていればスルー
 
-    const startOnInteraction = () => {
+    // 1. まずはページ表示直後に即座に再生を試みる（ブラウザが自動再生を許可している場合用）
+    try {
       this.init();
       if (this.enabled) {
-        // 宇宙風シンセBGMの再生開始
+        this.startSynthBgm();
+      }
+    } catch (e) {
+      console.warn('Instant BGM play failed, waiting for user interaction.', e);
+    }
+
+    // 2. 自動再生ポリシーでブロックされた場合に備え、ユーザーの最初の画面タップでもトリガーする
+    const startOnInteraction = () => {
+      this.init();
+      if (this.enabled && !this.bgmTimer) {
         this.startSynthBgm();
       }
       document.removeEventListener('click', startOnInteraction);
