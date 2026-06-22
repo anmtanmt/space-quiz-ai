@@ -118,8 +118,36 @@ const getApiKey = () => {
   return import.meta.env.VITE_GEMINI_API_KEY || '';
 };
 
+// API GatewayのURLを取得（本番環境用）
+const getApiGatewayUrl = () => {
+  return import.meta.env.VITE_API_GATEWAY_URL || '';
+};
+
 // Gemini APIを用いてクイズを生成する関数
 export const generateQuizFromAI = async (difficulty, answeredIds = []) => {
+  const apiGatewayUrl = getApiGatewayUrl();
+
+  // API Gateway の URL が設定されている場合は、AWS Lambda バックエンドを呼び出す
+  if (apiGatewayUrl) {
+    try {
+      const response = await fetch(apiGatewayUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ difficulty, answeredIds })
+      });
+
+      if (response.ok) {
+        const quiz = await response.json();
+        return quiz;
+      }
+      console.warn('API Gateway request failed, falling back to local client-side.');
+    } catch (e) {
+      console.error('Failed to fetch from API Gateway, falling back to local client-side.', e);
+    }
+  }
+
   const apiKey = getApiKey();
   
   // APIキーがない場合はフォールバックから即時返却
