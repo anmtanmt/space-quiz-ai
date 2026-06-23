@@ -31,10 +31,45 @@ const FALLBACK_QUIZZES = {
     },
     {
       id: 'fb_e5',
-      question: 'たいようは、どっちの ほうこうから のぼってくるかな？',
+      question: 'あさになると のぼってきて、まわりを あかるく ポカポカにしてくれる おおきなほしは なあに？',
       choices: ['ひがし', 'にし', 'みなみ'],
       answerIndex: 0,
       explanation: 'たいようは 「ひがし」から のぼって、「にし」へ しずむよ。ちきゅうが コマのように まわっているから そうみえるんだ。'
+    },
+    {
+      id: 'fb_e6',
+      question: 'うちゅうステーションで くらしている うちゅうひこうしさんは、どうやって ねむるのかな？',
+      choices: ['たったまま ねる', 'ふわふわ うきながら ねる', 'かべに ふくろを はりつけて そのなかで ねる'],
+      answerIndex: 2,
+      explanation: 'うちゅうは むじゅうりょく（ふわふわ うく）だから、ねている あいだに かべに ぶつからないように、かべの ねぶくろの なかに入って ねるんだよ。'
+    },
+    {
+      id: 'fb_e7',
+      question: 'たいようと ちきゅうは、どっちの ほうが おおきいかな？',
+      choices: ['ちきゅう', 'たいよう', 'おなじ おおきさ'],
+      answerIndex: 1,
+      explanation: 'たいようは とても おおきくて、ちきゅうが 100こ ならぶ くらいの おおきさんだよ！'
+    },
+    {
+      id: 'fb_e8',
+      question: 'つきには、くうき（いきをするための 空気）は あるかな？',
+      choices: ['たくさん ある', 'すこし ある', 'まったくない'],
+      answerIndex: 2,
+      explanation: 'つきには くうきが まったくないんだ。だから うちゅうひこうしさんは、くうきが入った うちゅうふくを きて いくんだよ。'
+    },
+    {
+      id: 'fb_e9',
+      question: 'よるに そらで いちばん あかるく ひかる おほしさま（わくせい）は なあに？',
+      choices: ['きんせい（よいの みょうじょう）', 'かせい', 'どせい'],
+      answerIndex: 0,
+      explanation: 'きんせいは「よいの みょうじょう」とも よばれていて、ゆうがたや あさかたに とても あかるく ピカピカ ひかって みえるんだよ。'
+    },
+    {
+      id: 'fb_e10',
+      question: 'ロケットが うちゅうに いくとき、したから なにを だして とぶかな？',
+      choices: ['みず', 'ものすごい ほのおと けむり', 'しゃぼんだま'],
+      answerIndex: 1,
+      explanation: 'ロケットは、ものすごい おとと ともに ほのおと けむりを したから いきおいよく だして、その ちからで うちゅうへと とびたつんだよ。'
     }
   ],
   medium: [
@@ -72,6 +107,41 @@ const FALLBACK_QUIZZES = {
       choices: ['こぐま座（ざ）', 'おおぐま座（ざ）', 'オリオン座（ざ）'],
       answerIndex: 1,
       explanation: '北斗七星（ほくとしちせい）は「おおぐま座（ざ）」のしっぽの部分（ぶぶん）にある、7つの明るい（あかるい）星（ほし）のあつまりだよ。'
+    },
+    {
+      id: 'fb_m6',
+      question: '<ruby>月<rt>つき</rt></ruby>の<ruby>重力<rt>じゅうりょく</rt></ruby>（<ruby>地面<rt>じめん</rt></ruby>に<ruby>引<rt>ひ</rt></ruby>っぱる<ruby>力<rt>ちから</rt></ruby>）は、<ruby>地球<rt>ちきゅう</rt></ruby>のどれくらいかな？',
+      choices: ['<ruby>約<rt>やく</rt></ruby>6<ruby>倍<rt>ばい</rt></ruby>', '<ruby>約<rt>やく</rt></ruby>6<ruby>分<rt>ぶん</rt></ruby>の1', '<ruby>同<rt>おな</rt></ruby>じ'],
+      answerIndex: 1,
+      explanation: '<ruby>正解<rt>せいかい</rt></ruby>は「<ruby>約<rt>やく</rt></ruby>6<ruby>分<rt>ぶん</rt></ruby>の1」です！だから、<ruby>月<rt>つき</rt></ruby>の<ruby>上<rt>うえ</rt></ruby>では<ruby>体<rt>からだ</rt></ruby>がふわふわと<ruby>軽<rt>かる</rt></ruby>くなり、<ruby>地球<rt>ちきゅう</rt></ruby>の6<ruby>倍<rt>ばい</rt></ruby>も<ruby>高<rt>たか</rt></ruby>くジャンプできるんだよ。'
+    },
+    {
+      id: 'fb_m7',
+      question: '<ruby>星<rt>ほし</rt></ruby>がたくさん<ruby>集<rt>あつ</rt></ruby>まった、うずまきや<ruby>丸<rt>まる</rt></ruby>い<ruby>形<rt>かたち</rt></ruby>をした<ruby>大<rt>おお</rt></ruby>きなグループを何（なに）と呼ぶ（よぶ）？',
+      choices: ['<ruby>銀河<rt>ぎんが</rt></ruby>', '<ruby>彗星<rt>すいせい</rt></ruby>', '<ruby>星座<rt>せいざ</rt></ruby>'],
+      answerIndex: 0,
+      explanation: 'たくさんの<ruby>星<rt>ほし</rt></ruby>（<ruby>数千億個<rt>すうせんおくこ</rt></ruby>）が<ruby>集<rt>あつ</rt></ruby>まったグループを「<ruby>銀河<rt>ぎんが</rt></ruby>」と呼ぶ（よぶ）よ。<ruby>私<rt>わたし</rt></ruby>たちの<ruby>地球<rt>ちきゅう</rt></ruby>も「<ruby>天<rt>あま</rt></ruby>の<ruby>川<rt>がわ</rt></ruby><ruby>銀河<rt>ぎんが</rt></ruby>」というグループの<ruby>中<rt>なか</rt></ruby>にいるんだ。'
+    },
+    {
+      id: 'fb_m8',
+      question: '<ruby>太陽系<rt>たいようけい</rt></ruby>で、<ruby>太陽<rt>たいよう</rt></ruby>のまわりをまわるわくせりは<ruby>全部<rt>ぜんぶ</rt></ruby>でいくつあるかな？',
+      choices: ['5つ', '8つ', '12こ'],
+      answerIndex: 1,
+      explanation: '<ruby>太陽系<rt>たいようけい</rt></ruby>のわくせいは、<ruby>水星<rt>すいせい</rt></ruby>・<ruby>金星<rt>きんせい</rt></ruby>・<ruby>地球<rt>ちきゅう</rt></ruby>・<ruby>火星<rt>かせい</rt></ruby>・<ruby>木星<rt>もくせい</rt></ruby>・<ruby>土星<rt>どせい</rt></ruby>・<ruby>天王星<rt>てんのうせい</rt></ruby>・<ruby>海王星<rt>海王星</rt></ruby>の「8つ」だよ！'
+    },
+    {
+      id: 'fb_m9',
+      question: '<ruby>太陽<rt>たいよう</rt></ruby>の<ruby>表面<rt>ひょうめん</rt></ruby>にある、まわりより<ruby>温度<rt>おんど</rt></ruby>が<ruby>低<rt>ひく</rt></ruby>くて<ruby>黒<rt>くろ</rt></ruby>く見える場所（ばしょ）を何（なに）と呼ぶ（よぶ）？',
+      choices: ['<ruby>黒点<rt>こくてん</rt></ruby>', '<ruby>青点<rt>あおてん</rt></ruby>', '<ruby>光球<rt>こうきゅう</rt></ruby>'],
+      answerIndex: 0,
+      explanation: '「<ruby>黒点<rt>こくてん</rt></ruby>」はまわりより<ruby>約<rt>やく</rt></ruby>2000<ruby>度<rt>ど</rt></ruby>も<ruby>温度<rt>おんど</rt></ruby>が<ruby>低<rt>ひく</rt></ruby>いため、<ruby>黒<rt>くろ</rt></ruby>く見えているんだ。<ruby>太陽<rt>たいよう</rt></ruby>の<ruby>磁石<rt>じしゃく</rt></ruby>の<ruby>力<rt>ちから</rt></ruby>で作られるよ。'
+    },
+    {
+      id: 'fb_m10',
+      question: '<ruby>流<rt>なが</rt></ruby>れ<ruby>星<rt>ぼし</rt></ruby>の<ruby>正体<rt>しょうたい</rt></ruby>は、<ruby>宇宙<rt>うちゅう</rt></ruby>に<ruby>浮<rt>う</rt>かぶ</ruby>何（なに）かな？',
+      choices: ['<ruby>小<rt>ちい</rt></ruby>さなチリや<ruby>石<rt>いし</rt></ruby>の<ruby>粒<rt>つぶ</rt></ruby>', '<ruby>本物<rt>ほんもの</rt></ruby>の<ruby>星<rt>ぼし</rt></ruby>', '<ruby>宇宙人<rt>うちゅうじん</rt></ruby>の<ruby>乗<rt>の</rt></ruby>り<ruby>物<rt>もの</rt></ruby>'],
+      answerIndex: 0,
+      explanation: '<ruby>宇宙<rt>うちゅう</rt></ruby>にある<ruby>小<rt>ちい</rt></ruby>さなチリや<ruby>砂<rt>すな</rt></ruby>つぶが、<ruby>地球<rt>ちきゅう</rt></ruby>の<ruby>空気<rt>くうき</rt></ruby>にぶつかって<ruby>激<rt>はげ</rt></ruby>しく燃える（もえる）ときの<ruby>光<rt>ひかり</rt></ruby>が<ruby>流<rt>なが</rt></ruby>れ<ruby>星<rt>ぼし</rt></ruby>だよ。'
     }
   ],
   hard: [
@@ -109,6 +179,41 @@ const FALLBACK_QUIZZES = {
       choices: ['準惑星（じゅんわくせい）', '小惑星（しょうわくせい）', '彗星（すいせい）'],
       answerIndex: 0,
       explanation: '冥王星（めいおうせい）は「準惑星（じゅんわくせい）」に再（さい）分類（ぶんるい）されました。まわりに似た（にた）ような天体（てんたい）がたくさんあり、軌道（きどう）からゴミを掃除（そうじ）しきれていないためです。'
+    },
+    {
+      id: 'fb_h6',
+      question: '<ruby>地球<rt>ちきゅう</rt></ruby>から一番（いちばん）近い（ちかい）<ruby>恒星<rt>こうせい</rt></ruby>（<ruby>太陽<rt>たいよう</rt></ruby>をのぞく）である、<ruby>約<rt>やく</rt></ruby>4.2光年（こうねん）離れた（はなれた）場所（ばしょ）にある星の名前は？',
+      choices: ['シリウス', 'プロキシマ・ケンタウリ', 'ベテルギウス'],
+      answerIndex: 1,
+      explanation: '正解は「プロキシマ・ケンタウリ」です。<ruby>約<rt>やく</rt></ruby>4.2光年という距離（きょり）は、光の速さで進んでも<ruby>約<rt>やく</rt></ruby>4年4ヶ月かかるほど遠い場所です。'
+    },
+    {
+      id: 'fb_h7',
+      question: '<ruby>太陽系<rt>たいようけい</rt></ruby>のなかで、自転軸（じてんじく）がほぼ横倒し（よこだおし）の状態でまわっている惑星（わくせい）は？',
+      choices: ['<ruby>海王星<rt>かいおうせい</rt></ruby>', '<ruby>天王星<rt>てんのうせい</rt></ruby>', '<ruby>土星<rt>どせい</rt></ruby>'],
+      answerIndex: 1,
+      explanation: '正解は「天王星」です。なぜ横倒しになったかは謎（なぞ）ですが、大昔（おおむかし）に巨大な天体が衝突（しょうとつ）したためと考えられています。'
+    },
+    {
+      id: 'fb_h8',
+      question: '<ruby>宇宙<rt>うちゅう</rt></ruby>の始まりとされる大爆発を「ビッグバン」と呼びますが、それは今から<ruby>約<rt>やく</rt></ruby>何年前に起きた？',
+      choices: ['<ruby>約<rt>やく</rt></ruby>46億年前', '<ruby>約<rt>やく</rt></ruby>138億年前', '<ruby>約<rt>やく</rt></ruby>500億年前'],
+      answerIndex: 1,
+      explanation: '正解は「約138億年前」です。その後、宇宙は今でも膨らみ（ふくらみ）続けています。なお、地球が誕生（たんじょう）したのは約46億年前です。'
+    },
+    {
+      id: 'fb_h9',
+      question: '<ruby>土星<rt>どせい</rt></ruby>の環（わ・リング）の主な（おもな）成分は、何でできているかな？',
+      choices: ['<ruby>宇宙<rt>うちゅう</rt></ruby>ゴミ', '岩石とガス', '氷の粒や岩石'],
+      answerIndex: 2,
+      explanation: '正解は「氷の粒や岩石」です。数センチメートルから数メートルの大きさの氷が、土星のまわりを高速で回って（まわって）輝いて（かがやいて）見えています。'
+    },
+    {
+      id: 'fb_h10',
+      question: '<ruby>火星<rt>かせい</rt></ruby>にある、高さが<ruby>約<rt>やく</rt></ruby>22キロメートル（エベレストの2.5倍以上）もある<ruby>太陽系<rt>たいようけい</rt></ruby>で最大の火山は？',
+      choices: ['オリンポス<ruby>山<rt>さん</rt></ruby>', 'アルシア<ruby>山<rt>さん</rt></ruby>', 'アスクレウス<ruby>山<rt>さん</rt></ruby>'],
+      answerIndex: 0,
+      explanation: '正解は「オリンポス山」です。火星には地面が動く仕組み（プレートテクトニクス）がないため、同じ場所で火山が噴火し続けてここまでの巨大さになりました。'
     }
   ]
 };

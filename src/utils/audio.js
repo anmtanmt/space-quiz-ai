@@ -27,7 +27,7 @@ class AudioService {
     // シンセBGMのボリューム切り替え
     if (this.bgmGain) {
       const now = this.ctx ? this.ctx.currentTime : 0;
-      const targetGain = this.enabled ? 0.025 : 0; // メイン音量 (控えめ)
+      const targetGain = this.enabled ? 0.08 : 0; // メイン音量を0.08に統一
       this.bgmGain.gain.setValueAtTime(targetGain, now);
     }
 
@@ -154,22 +154,30 @@ class AudioService {
   startBgm() {
     if (this.bgmTimer) return; // すでにシンセBGMが開始されていればスルー
 
-    // 1. まずはページ表示直後に即座に再生を試みる（ブラウザが自動再生を許可している場合用）
-    try {
-      this.init();
+    this.init();
+
+    // 1. すでにAudioContextがrunningであれば即座にスタート (自動再生許可環境)
+    if (this.ctx && this.ctx.state === 'running') {
       if (this.enabled) {
         this.startSynthBgm();
       }
-    } catch (e) {
-      console.warn('Instant BGM play failed, waiting for user interaction.', e);
+      return;
     }
 
-    // 2. 自動再生ポリシーでブロックされた場合に備え、ユーザーの最初の画面タップでもトリガーする
+    // 2. 自動再生制限がある場合は、ユーザーの最初のタップ/クリックで初期化・再生を開始する
     const startOnInteraction = () => {
       this.init();
-      if (this.enabled && !this.bgmTimer) {
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().then(() => {
+          if (this.enabled && !this.bgmTimer) {
+            this.startSynthBgm();
+          }
+        }).catch(e => console.warn('Failed to resume AudioContext:', e));
+      } else if (this.enabled && !this.bgmTimer) {
         this.startSynthBgm();
       }
+      
+      // 一度トリガーしたらイベントリスナーを解除する
       document.removeEventListener('click', startOnInteraction);
       document.removeEventListener('touchstart', startOnInteraction);
     };
@@ -186,7 +194,7 @@ class AudioService {
 
     // BGMのメイン音量ノード (他の効果音を邪魔しない適度な音量)
     this.bgmGain = this.ctx.createGain();
-    this.bgmGain.gain.setValueAtTime(this.enabled ? 0.15 : 0, this.ctx.currentTime);
+    this.bgmGain.gain.setValueAtTime(this.enabled ? 0.08 : 0, this.ctx.currentTime); // 音量を0.08に統一
     this.bgmGain.connect(this.ctx.destination);
 
     // ドラム用の音量調整
@@ -199,8 +207,8 @@ class AudioService {
     synthGain.gain.setValueAtTime(0.3, this.ctx.currentTime);
     synthGain.connect(this.bgmGain);
 
-    // BPM115（8分音符 = 260ms）
-    const stepTime = 0.26;
+    // BPM136（8分音符 = 220ms）へスピードアップしてワクワク感を演出
+    const stepTime = 0.22;
     let step = 0;
 
     // ワクワクするコード進行 (C -> G -> Am -> F)
@@ -258,10 +266,10 @@ class AudioService {
       oscMelody.connect(gainMelody);
       gainMelody.connect(synthGain);
 
-      oscMelody.type = 'sine';
+      oscMelody.type = 'square'; // sineからsquareに変更してピコピコ感（8bit感）を演出
       oscMelody.frequency.setValueAtTime(noteFreq, now);
 
-      gainMelody.gain.setValueAtTime(0.25, now);
+      gainMelody.gain.setValueAtTime(0.08, now); // squareは音が強いため音量を0.08に抑える
       gainMelody.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
       oscMelody.start(now);

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import WelcomeScreen from './components/WelcomeScreen';
 import TitleScreen from './components/TitleScreen';
 import QuizScreen from './components/QuizScreen';
 import ResultScreen from './components/ResultScreen';
@@ -6,7 +7,7 @@ import CollectionScreen from './components/CollectionScreen';
 import ParentPortal from './components/ParentPortal';
 
 export default function App() {
-  const [screen, setScreen] = useState('TITLE'); // 'TITLE', 'QUIZ', 'RESULT', 'COLLECTION', 'PARENT'
+  const [screen, setScreen] = useState('WELCOME'); // 'WELCOME', 'TITLE', 'QUIZ', 'RESULT', 'COLLECTION', 'PARENT'
   const [quizMode, setQuizMode] = useState('ai');
   const [difficulty, setDifficulty] = useState('easy');
   const [result, setResult] = useState({ score: 0, total: 0 });
@@ -44,6 +45,12 @@ export default function App() {
       <div className="space-stars" />
 
       {/* 画面切り替え */}
+      {screen === 'WELCOME' && (
+        <WelcomeScreen
+          onStartApp={() => setScreen('TITLE')}
+        />
+      )}
+
       {screen === 'TITLE' && (
         <TitleScreen
           onStartQuiz={handleStartQuiz}
