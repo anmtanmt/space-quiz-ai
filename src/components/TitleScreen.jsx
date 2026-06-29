@@ -174,7 +174,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
-    padding: '25px 30px 15px 30px',
+    padding: '30px 30px 20px 30px',
     alignItems: 'center',
     position: 'relative',
   },
@@ -205,7 +205,7 @@ const styles = {
   },
   header: {
     textAlign: 'center',
-    marginBottom: '10px',
+    marginBottom: '12px',
   },
   title: {
     lineHeight: '1.2',
@@ -216,7 +216,7 @@ const styles = {
     fontWeight: '700',
   },
   titleMain: {
-    fontSize: '2.8rem',
+    fontSize: '3.0rem',
     fontWeight: '800',
     background: 'linear-gradient(to right, #66fcf1, #ffb703)',
     WebkitBackgroundClip: 'text',
@@ -225,22 +225,22 @@ const styles = {
   },
   subtitle: {
     marginTop: '4px',
-    fontSize: '1.05rem',
+    fontSize: '1.1rem',
     color: '#a0a5c0',
   },
   selectionSection: {
     width: '100%',
     display: 'flex',
     flexDirection: 'column',
-    gap: '15px',
+    gap: '20px',
   },
   group: {
     width: '100%',
   },
   groupTitle: {
-    fontSize: '1.0rem',
+    fontSize: '1.05rem',
     color: 'var(--color-text-sub)',
-    marginBottom: '8px',
+    marginBottom: '10px',
     textAlign: 'center',
     fontWeight: '700',
   },
@@ -254,7 +254,7 @@ const styles = {
     background: 'var(--color-card-bg)',
     border: '2px solid var(--color-card-border)',
     borderRadius: '20px',
-    padding: '12px 10px',
+    padding: '16px 12px',
     cursor: 'pointer',
     color: '#fff',
     fontFamily: 'var(--font-family)',
@@ -280,22 +280,22 @@ const styles = {
     background: 'rgba(255, 255, 255, 0.02)'
   },
   cardIcon: {
-    fontSize: '2.0rem',
+    fontSize: '2.2rem',
     marginBottom: '8px',
   },
   cardTitle: {
-    fontSize: '1.05rem',
+    fontSize: '1.1rem',
     fontWeight: '700',
     marginBottom: '6px',
   },
   cardDesc: {
-    fontSize: '0.78rem',
+    fontSize: '0.8rem',
     color: '#a0a5c0',
     lineHeight: '1.4',
   },
   diffCard: {
     flex: 1,
-    padding: '10px 8px',
+    padding: '12px 10px',
     borderRadius: '16px',
     border: '2px solid var(--color-card-border)',
     background: 'var(--color-card-bg)',
@@ -321,32 +321,32 @@ const styles = {
     borderLeft: '8px solid var(--color-wrong)',
   },
   diffLabel: {
-    fontSize: '1.15rem',
+    fontSize: '1.20rem',
     fontWeight: '700',
     marginBottom: '4px',
   },
   diffTarget: {
-    fontSize: '0.7rem',
+    fontSize: '0.72rem',
     color: '#a0a5c0',
   },
   actionRow: {
     display: 'flex',
     gap: '24px',
-    marginTop: '10px',
+    marginTop: '15px',
     width: '100%',
     maxWidth: '600px',
   },
   startButton: {
     flex: 2,
     fontSize: '1.4rem',
-    padding: '14px',
+    padding: '16px',
   },
   collectionButton: {
     flex: 1,
     fontSize: '1.1rem',
   },
   footer: {
-    marginTop: '10px',
+    marginTop: '15px',
     width: '100%',
     display: 'flex',
     justifyContent: 'center',
