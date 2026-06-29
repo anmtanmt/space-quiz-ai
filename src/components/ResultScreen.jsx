@@ -8,33 +8,36 @@ export default function ResultScreen({ score, total, onPlayAgain, onViewCollecti
   const [isNewBadgeEarned, setIsNewBadgeEarned] = useState(false);
 
   useEffect(() => {
-    // 獲得済みのバッジリストを取得
-    const earned = storage.getEarnedBadges();
-    const earnedIds = earned.map(b => b.id);
-    
-    // まだ獲得していないバッジをリストアップ
-    const unearned = BADGE_POOL.filter(b => !earnedIds.includes(b.id));
+    // 3問以上正解したときだけバッジをごほうびとして獲得できる
+    if (score >= 3) {
+      // 獲得済みのバッジリストを取得
+      const earned = storage.getEarnedBadges();
+      const earnedIds = earned.map(b => b.id);
+      
+      // まだ獲得していないバッジをリストアップ
+      const unearned = BADGE_POOL.filter(b => !earnedIds.includes(b.id));
 
-    let selected = null;
-    let isNew = false;
+      let selected = null;
+      let isNew = false;
 
-    if (unearned.length > 0) {
-      // 未獲得のものからランダムに1つ選んで獲得
-      selected = unearned[Math.floor(Math.random() * unearned.length)];
-      isNew = true;
-    } else {
-      // すべて獲得済みの場合は、既存のバッジからランダムで選んで再度獲得（2周目対応）
-      selected = BADGE_POOL[Math.floor(Math.random() * BADGE_POOL.length)];
-      isNew = false;
-    }
+      if (unearned.length > 0) {
+        // 未獲得のものからランダムに1つ選んで獲得
+        selected = unearned[Math.floor(Math.random() * unearned.length)];
+        isNew = true;
+      } else {
+        // すべて獲得済みの場合は、既存のバッジからランダムで選んで再度獲得（2周目対応）
+        selected = BADGE_POOL[Math.floor(Math.random() * BADGE_POOL.length)];
+        isNew = false;
+      }
 
-    if (selected) {
-      const result = storage.addEarnedBadge(selected.id);
-      setNewBadge({
-        ...selected,
-        count: result ? result.count : 1
-      });
-      setIsNewBadgeEarned(isNew);
+      if (selected) {
+        const result = storage.addEarnedBadge(selected.id);
+        setNewBadge({
+          ...selected,
+          count: result ? result.count : 1
+        });
+        setIsNewBadgeEarned(isNew);
+      }
     }
 
     // ファンファーレ音を再生
@@ -68,22 +71,37 @@ export default function ResultScreen({ score, total, onPlayAgain, onViewCollecti
         </div>
       </div>
 
-      {/* ごほうびバッジ演出 */}
-      {newBadge && (
-        <div style={styles.badgeSection}>
-          <p style={styles.badgeInstruction}>
-            {isNewBadgeEarned 
-              ? '🎁 新しい ごほうびバッジを もらったよ！' 
-              : `🌟 ${newBadge.count}こめの ${newBadge.name}を ゲットしたよ！`}
-          </p>
-          <div className="badge-wrapper star-pop" style={styles.badgeWrapper}>
-            <div style={{ ...styles.badgeCircle, backgroundColor: newBadge.color }}>
-              <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
+      {/* ごほうびバッジ演出、または励まし表示 */}
+      {score >= 3 ? (
+        newBadge && (
+          <div style={styles.badgeSection}>
+            <p style={styles.badgeInstruction}>
+              {isNewBadgeEarned 
+                ? '🎁 新しい ごほうびバッジを もらったよ！' 
+                : `🌟 ${newBadge.count}こめの ${newBadge.name}を ゲットしたよ！`}
+            </p>
+            <div className="badge-wrapper star-pop" style={styles.badgeWrapper}>
+              <div style={{ ...styles.badgeCircle, backgroundColor: newBadge.color }}>
+                <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
+              </div>
+              <h3 style={styles.badgeName}>
+                {newBadge.name} {newBadge.count > 1 && `×${newBadge.count}`}
+              </h3>
+              <p style={styles.badgeDesc}>{newBadge.desc}</p>
             </div>
-            <h3 style={styles.badgeName}>
-              {newBadge.name} {newBadge.count > 1 && `×${newBadge.count}`}
-            </h3>
-            <p style={styles.badgeDesc}>{newBadge.desc}</p>
+          </div>
+        )
+      ) : (
+        <div style={styles.badgeSection}>
+          <p style={styles.badgeInstruction}>🔒 ごほうびバッジ</p>
+          <div style={styles.badgeWrapper}>
+            <div style={{ ...styles.badgeCircle, backgroundColor: 'rgba(255, 255, 255, 0.03)', border: '2px dashed rgba(255, 255, 255, 0.15)' }}>
+              <span style={{ ...styles.badgeEmoji, filter: 'grayscale(100%) opacity(0.3)' }}>🔒</span>
+            </div>
+            <h3 style={{ ...styles.badgeName, color: 'rgba(255, 255, 255, 0.4)' }}>？？？ バッジ</h3>
+            <p style={{ ...styles.badgeDesc, color: 'var(--color-accent)', fontWeight: '700' }}>
+              3もん いじょう せいかい すると、ごほうびバッジが もらえるよ！ つぎは がんばろう！ 🔥
+            </p>
           </div>
         </div>
       )}
