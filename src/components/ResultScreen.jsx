@@ -1,18 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
-
-// 定義された全バッジのプール
-const BADGE_POOL = [
-  { id: 'badge_earth', name: 'ちきゅう バッジ', emoji: '🌏', color: '#4cc9f0', desc: 'あおくて うつくしい、ぼくたちの すむ ほしだよ！' },
-  { id: 'badge_moon', name: 'つき バッジ', emoji: '🌙', color: '#ffb703', desc: 'よるに ちきゅうを てらしてくれる、いちばん ちかい ほし！' },
-  { id: 'badge_sun', name: 'たいよう バッジ', emoji: '☀️', color: '#fb8500', desc: 'ちきゅうに ひかりと あたたかさを くれる、もえる ほし！' },
-  { id: 'badge_saturn', name: 'どせい バッジ', emoji: '🪐', color: '#c5a059', desc: 'きれいな わ（リング）を もっている、ガスでできた ほし！' },
-  { id: 'badge_mars', name: 'かせい バッジ', emoji: '🔴', color: '#ff4d6d', desc: 'あかい いしや スナに おおわれた、ちきゅうの おとなりの ほし！' },
-  { id: 'badge_rocket', name: 'ロケット バッジ', emoji: '🚀', color: '#a2d2ff', desc: 'うちゅうへ とびだす、かっこいい のりもの！' },
-  { id: 'badge_astronaut', name: 'うちゅうひこうし バッジ', emoji: '🧑‍🚀', color: '#b5e2fa', desc: 'うちゅうふくを きて、うちゅうで おしごとを する ひと！' },
-  { id: 'badge_ufo', name: 'UFO バッジ', emoji: '🛸', color: '#66fcf1', desc: 'もしかしたら うちゅうじんが のっているかも しれない のりもの！' }
-];
+import { BADGE_POOL } from '../utils/badges';
 
 export default function ResultScreen({ score, total, onPlayAgain, onViewCollection, onBackToTitle }) {
   const [newBadge, setNewBadge] = useState(null);
@@ -21,21 +10,31 @@ export default function ResultScreen({ score, total, onPlayAgain, onViewCollecti
   useEffect(() => {
     // 獲得済みのバッジリストを取得
     const earned = storage.getEarnedBadges();
+    const earnedIds = earned.map(b => b.id);
     
     // まだ獲得していないバッジをリストアップ
-    const unearned = BADGE_POOL.filter(b => !earned.includes(b.id));
+    const unearned = BADGE_POOL.filter(b => !earnedIds.includes(b.id));
+
+    let selected = null;
+    let isNew = false;
 
     if (unearned.length > 0) {
       // 未獲得のものからランダムに1つ選んで獲得
-      const randomBadge = unearned[Math.floor(Math.random() * unearned.length)];
-      storage.addEarnedBadge(randomBadge.id);
-      setNewBadge(randomBadge);
-      setIsNewBadgeEarned(true);
+      selected = unearned[Math.floor(Math.random() * unearned.length)];
+      isNew = true;
     } else {
-      // すべて獲得済みの場合は、既存のバッジからランダムで表示
-      const randomBadge = BADGE_POOL[Math.floor(Math.random() * BADGE_POOL.length)];
-      setNewBadge(randomBadge);
-      setIsNewBadgeEarned(false);
+      // すべて獲得済みの場合は、既存のバッジからランダムで選んで再度獲得（2周目対応）
+      selected = BADGE_POOL[Math.floor(Math.random() * BADGE_POOL.length)];
+      isNew = false;
+    }
+
+    if (selected) {
+      const result = storage.addEarnedBadge(selected.id);
+      setNewBadge({
+        ...selected,
+        count: result ? result.count : 1
+      });
+      setIsNewBadgeEarned(isNew);
     }
 
     // ファンファーレ音を再生
@@ -75,13 +74,15 @@ export default function ResultScreen({ score, total, onPlayAgain, onViewCollecti
           <p style={styles.badgeInstruction}>
             {isNewBadgeEarned 
               ? '🎁 新しい ごほうびバッジを もらったよ！' 
-              : '🌟 すべての バッジを コンプリートしているよ！'}
+              : `🌟 ${newBadge.count}こめの ${newBadge.name}を ゲットしたよ！`}
           </p>
           <div className="badge-wrapper star-pop" style={styles.badgeWrapper}>
             <div style={{ ...styles.badgeCircle, backgroundColor: newBadge.color }}>
               <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
             </div>
-            <h3 style={styles.badgeName}>{newBadge.name}</h3>
+            <h3 style={styles.badgeName}>
+              {newBadge.name} {newBadge.count > 1 && `×${newBadge.count}`}
+            </h3>
             <p style={styles.badgeDesc}>{newBadge.desc}</p>
           </div>
         </div>

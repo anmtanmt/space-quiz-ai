@@ -1,36 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
-
-// 定義された全バッジのプール
-const BADGE_POOL = [
-  { id: 'badge_earth', name: 'ちきゅう バッジ', emoji: '🌏', color: '#4cc9f0', desc: 'あおくて うつくしい、ぼくたちの すむ ほしだよ！' },
-  { id: 'badge_moon', name: 'つき バッジ', emoji: '🌙', color: '#ffb703', desc: 'よるに ちきゅうを てらしてくれる、いちばん ちかい ほし！' },
-  { id: 'badge_sun', name: 'たいよう バッジ', emoji: '☀️', color: '#fb8500', desc: 'ちきゅうに ひかりと あたたかさを くれる、もえる ほし！' },
-  { id: 'badge_saturn', name: 'どせい バッジ', emoji: '🪐', color: '#c5a059', desc: 'きれいな わ（リング）を もっている、ガスでできた ほし！' },
-  { id: 'badge_mars', name: 'かせい バッジ', emoji: '🔴', color: '#ff4d6d', desc: 'あかい いしや スナに おおわれた、ちきゅうの おとなりの ほし！' },
-  { id: 'badge_rocket', name: 'ロケット バッジ', emoji: '🚀', color: '#a2d2ff', desc: 'うちゅうへ とびだす、かっこいい のりもの！' },
-  { id: 'badge_astronaut', name: 'うちゅうひこうし バッジ', emoji: '🧑‍🚀', color: '#b5e2fa', desc: 'うちゅうふくを きて、うちゅうで おしごとを する ひと！' },
-  { id: 'badge_ufo', name: 'UFO バッジ', emoji: '🛸', color: '#66fcf1', desc: 'もしかしたら うちゅうじんが のっているかも しれない のりもの！' }
-];
+import { BADGE_POOL, CATEGORIES } from '../utils/badges';
 
 export default function CollectionScreen({ onBackToTitle }) {
-  const [earnedBadgeIds, setEarnedBadgeIds] = useState([]);
+  const [earnedBadges, setEarnedBadges] = useState([]);
   const [selectedBadge, setSelectedBadge] = useState(null);
+  const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
-    setEarnedBadgeIds(storage.getEarnedBadges());
+    setEarnedBadges(storage.getEarnedBadges());
   }, []);
 
   const totalBadges = BADGE_POOL.length;
-  const earnedCount = earnedBadgeIds.length;
+  const earnedCount = earnedBadges.length;
 
   const handleBadgeClick = (badge) => {
-    if (earnedBadgeIds.includes(badge.id)) {
+    const earnedInfo = earnedBadges.find(b => b.id === badge.id);
+    if (earnedInfo) {
       audio.playClick();
-      setSelectedBadge(badge);
+      setSelectedBadge({
+        ...badge,
+        count: earnedInfo.count || 1,
+        earnedDates: earnedInfo.earnedDates || []
+      });
     }
   };
+
+  const filteredBadges = activeTab === 'all'
+    ? BADGE_POOL
+    : BADGE_POOL.filter(b => b.category === activeTab);
 
   return (
     <div className="collection-screen fade-in" style={styles.container}>
@@ -41,15 +40,28 @@ export default function CollectionScreen({ onBackToTitle }) {
         </p>
       </div>
 
-      {/* バッジグリッド */}
+      <div className="tab-container">
+        {CATEGORIES.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => { audio.playClick(); setActiveTab(tab.id); }}
+            className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+          >
+            {tab.name}
+          </button>
+        ))}
+      </div>
+
       <div style={styles.grid}>
-        {BADGE_POOL.map((badge) => {
-          const isEarned = earnedBadgeIds.includes(badge.id);
+        {filteredBadges.map((badge) => {
+          const earnedInfo = earnedBadges.find(b => b.id === badge.id);
+          const isEarned = !!earnedInfo;
           return (
             <div
               key={badge.id}
               onClick={() => handleBadgeClick(badge)}
               className={`badge-item ${isEarned ? 'earned' : 'locked'}`}
+              style={{ position: 'relative' }}
             >
               <div
                 style={{
@@ -71,12 +83,14 @@ export default function CollectionScreen({ onBackToTitle }) {
               }}>
                 {isEarned ? badge.name : '？？？'}
               </span>
+              {isEarned && earnedInfo.count > 1 && (
+                <span style={styles.badgeLoopCount}>×{earnedInfo.count}</span>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* バッジ詳細エリア（ポップアップ） */}
       {selectedBadge && (
         <div style={styles.overlay} onClick={() => setSelectedBadge(null)}>
           <div className="star-pop" style={styles.modal} onClick={e => e.stopPropagation()}>
@@ -85,6 +99,26 @@ export default function CollectionScreen({ onBackToTitle }) {
             </div>
             <h2 style={styles.modalTitle}>{selectedBadge.name}</h2>
             <p style={styles.modalDesc}>{selectedBadge.desc}</p>
+            
+            <div style={styles.earnedStats}>
+              <p style={styles.statsText}>
+                🏅 ゲットした回数: <span style={styles.statsHighlight}>{selectedBadge.count}回</span>
+              </p>
+              {selectedBadge.earnedDates && selectedBadge.earnedDates.length > 0 && (
+                <div style={styles.dateList}>
+                  <p style={styles.dateTitle}>📅 ゲットした記念日:</p>
+                  <ul style={styles.dates}>
+                    {selectedBadge.earnedDates.slice(-3).map((date, idx) => (
+                      <li key={idx} style={styles.dateItem}>• {date}</li>
+                    ))}
+                    {selectedBadge.earnedDates.length > 3 && (
+                      <li style={styles.dateItem}>...ほかにもあるよ！</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+
             <button className="btn-action btn-primary" onClick={() => setSelectedBadge(null)} style={styles.closeBtn}>
               とじる
             </button>
@@ -92,7 +126,6 @@ export default function CollectionScreen({ onBackToTitle }) {
         </div>
       )}
 
-      {/* 戻るボタン */}
       <div style={styles.footer}>
         <button className="btn-action btn-back" onClick={() => { audio.playClick(); onBackToTitle(); }}>
           ⬅ タイトルにもどる
@@ -109,58 +142,108 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
-    padding: '30px 20px 20px 20px',
+    padding: '20px 20px 15px 20px',
     alignItems: 'center',
   },
   header: {
     textAlign: 'center',
-    marginBottom: '20px',
+    marginBottom: '10px',
   },
   title: {
-    fontSize: '2.2rem',
+    fontSize: '2.0rem',
     fontWeight: '800',
     color: '#fff',
-    marginBottom: '8px',
+    marginBottom: '4px',
   },
   progressText: {
-    fontSize: '1.2rem',
+    fontSize: '1.1rem',
     color: 'var(--color-text-sub)',
     fontWeight: '700',
   },
   highlight: {
     color: 'var(--color-primary)',
-    fontSize: '1.5rem',
+    fontSize: '1.4rem',
   },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '20px',
+    gap: '15px',
     width: '100%',
-    maxHeight: '420px',
+    maxHeight: '380px',
     overflowY: 'auto',
     padding: '10px',
+    flex: 1,
   },
-  // styles.badgeItem, styles.badgeItemEarned, styles.badgeItemLocked are removed to index.css
   badgeCircle: {
-    width: '75px',
-    height: '75px',
+    width: '70px',
+    height: '70px',
     borderRadius: '50%',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: '10px',
+    marginBottom: '8px',
     boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
   },
   badgeEmoji: {
-    fontSize: '2.5rem',
+    fontSize: '2.2rem',
   },
   badgeName: {
-    fontSize: '0.85rem',
+    fontSize: '0.8rem',
     fontWeight: '700',
     textAlign: 'center',
   },
+  badgeLoopCount: {
+    position: 'absolute',
+    top: '2px',
+    right: '2px',
+    background: 'var(--color-accent)',
+    color: '#000',
+    fontSize: '0.7rem',
+    fontWeight: '800',
+    padding: '1px 5px',
+    borderRadius: '6px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+  },
+  earnedStats: {
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid var(--color-card-border)',
+    borderRadius: '16px',
+    padding: '12px 20px',
+    width: '100%',
+    marginBottom: '20px',
+    textAlign: 'left',
+  },
+  statsText: {
+    fontSize: '0.9rem',
+    color: '#fff',
+    fontWeight: '700',
+    marginBottom: '6px',
+  },
+  statsHighlight: {
+    color: 'var(--color-accent)',
+    fontSize: '1.05rem',
+  },
+  dateList: {
+    borderTop: '1px solid rgba(255,255,255,0.08)',
+    paddingTop: '6px',
+  },
+  dateTitle: {
+    fontSize: '0.8rem',
+    color: 'var(--color-text-sub)',
+    marginBottom: '4px',
+    fontWeight: '700',
+  },
+  dates: {
+    listStyle: 'none',
+    paddingLeft: '0',
+  },
+  dateItem: {
+    fontSize: '0.8rem',
+    color: '#b0b5d0',
+    marginBottom: '2px',
+  },
   footer: {
-    marginTop: '20px',
+    marginTop: '15px',
     width: '100%',
     display: 'flex',
     justifyContent: 'center',
@@ -182,9 +265,9 @@ const styles = {
     background: 'rgba(15, 15, 35, 0.95)',
     border: '3px solid var(--color-primary)',
     borderRadius: '28px',
-    padding: '30px',
+    padding: '24px',
     width: '90%',
-    maxWidth: '420px',
+    maxWidth: '380px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -192,34 +275,34 @@ const styles = {
     boxShadow: '0 20px 50px rgba(0,0,0,0.7)',
   },
   modalBadgeCircle: {
-    width: '100px',
-    height: '100px',
+    width: '90px',
+    height: '90px',
     borderRadius: '50%',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    fontSize: '4rem',
+    fontSize: '3.5rem',
     border: '4px solid #fff',
-    marginBottom: '20px',
+    marginBottom: '15px',
     boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
   },
   modalBadgeEmoji: {
     lineHeight: '1',
   },
   modalTitle: {
-    fontSize: '1.6rem',
+    fontSize: '1.4rem',
     color: '#fff',
     fontWeight: '700',
-    marginBottom: '10px',
+    marginBottom: '8px',
   },
   modalDesc: {
-    fontSize: '1.05rem',
-    lineHeight: '1.6',
+    fontSize: '0.95rem',
+    lineHeight: '1.5',
     color: '#b0b5d0',
-    marginBottom: '24px',
+    marginBottom: '16px',
   },
   closeBtn: {
-    padding: '10px 30px',
-    fontSize: '1.1rem',
+    padding: '8px 24px',
+    fontSize: '1.0rem',
   }
 };

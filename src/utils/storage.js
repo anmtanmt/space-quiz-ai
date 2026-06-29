@@ -86,7 +86,43 @@ export const storage = {
   getEarnedBadges: () => {
     try {
       const data = localStorage.getItem(KEYS.EARNED_BADGES);
-      return data ? JSON.parse(data) : [];
+      if (!data) return [];
+      const parsed = JSON.parse(data);
+      
+      // 旧ID -> 新IDのマッピング
+      const idMap = {
+        'badge_earth': 'b_earth',
+        'badge_moon': 'b_moon',
+        'badge_sun': 'b_sun',
+        'badge_saturn': 'b_saturn',
+        'badge_mars': 'b_mars',
+        'badge_rocket': 'b_rocket',
+        'badge_astronaut': 'b_space_suit',
+        'badge_ufo': 'b_ufo'
+      };
+
+      // マイグレーション: 旧形式の文字列配列から新形式のオブジェクト配列へ自動変換、およびIDの更新
+      let migrated = false;
+      const badges = parsed.map(item => {
+        if (typeof item === 'string') {
+          migrated = true;
+          const newId = idMap[item] || item;
+          return { id: newId, count: 1, earnedDates: [] };
+        }
+        if (item && item.id && idMap[item.id]) {
+          migrated = true;
+          return {
+            ...item,
+            id: idMap[item.id]
+          };
+        }
+        return item;
+      });
+
+      if (migrated) {
+        localStorage.setItem(KEYS.EARNED_BADGES, JSON.stringify(badges));
+      }
+      return badges;
     } catch (e) {
       console.error('Failed to get earned badges', e);
       return [];
@@ -96,15 +132,31 @@ export const storage = {
   addEarnedBadge: (badgeId) => {
     try {
       const badges = storage.getEarnedBadges();
-      if (!badges.includes(badgeId)) {
-        badges.push(badgeId);
+      const today = new Date().toLocaleDateString('ja-JP');
+      const index = badges.findIndex(b => b.id === badgeId);
+
+      if (index === -1) {
+        // 新規獲得
+        badges.push({
+          id: badgeId,
+          count: 1,
+          earnedDates: [today]
+        });
         localStorage.setItem(KEYS.EARNED_BADGES, JSON.stringify(badges));
-        return true; // 新規追加成功
+        return { isNew: true, count: 1 };
+      } else {
+        // 2回目以降の獲得（2週目対応）
+        badges[index].count += 1;
+        if (!badges[index].earnedDates) {
+          badges[index].earnedDates = [];
+        }
+        badges[index].earnedDates.push(today);
+        localStorage.setItem(KEYS.EARNED_BADGES, JSON.stringify(badges));
+        return { isNew: false, count: badges[index].count };
       }
-      return false; // すでに所持している
     } catch (e) {
       console.error('Failed to add earned badge', e);
-      return false;
+      return null;
     }
   },
 

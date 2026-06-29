@@ -55,7 +55,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
               }}
             >
               <div style={styles.cardIcon}>🤖</div>
-              <div style={styles.cardTitle}>AIの ひみつクイズ</div>
+              <div style={styles.cardTitle}>AIの<br />ひみつクイズ</div>
               <div style={styles.cardDesc}>AIが 毎回（まいかい）新しく（あたらしく）つくるよ！</div>
             </button>
 
@@ -68,11 +68,28 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
               }}
             >
               <div style={styles.cardIcon}>👨‍👩‍👧</div>
-              <div style={styles.cardTitle}>おとうさん・おかあさんの クイズ</div>
+              <div style={styles.cardTitle}>おとうさん・<br />おかあさんのクイズ</div>
               <div style={styles.cardDesc}>
                 {hasParentQuizzes 
                   ? 'おうちの人が つくってくれた クイズだよ！' 
                   : '（まだクイズが 登録（とうろく）されていません）'}
+              </div>
+            </button>
+
+            <button
+              disabled
+              style={{
+                ...styles.optionCard,
+                ...styles.comingSoonCard
+              }}
+            >
+              <div style={styles.cardIcon}>✏️</div>
+              <div style={styles.cardTitle}>てんもん<br />宇宙けんてい</div>
+              <div style={{ ...styles.cardDesc, color: 'var(--color-accent)', fontWeight: '700', marginBottom: '4px' }}>
+                【Coming Soon】
+              </div>
+              <div style={styles.cardDesc}>
+                しょうらい ほんかく的な 検定（けんてい）に チャレンジできるよ！
               </div>
             </button>
           </div>
@@ -255,6 +272,12 @@ const styles = {
   },
   disabledCard: {
     opacity: 0.6,
+  },
+  comingSoonCard: {
+    opacity: 0.45,
+    cursor: 'not-allowed',
+    borderStyle: 'dashed',
+    background: 'rgba(255, 255, 255, 0.02)'
   },
   cardIcon: {
     fontSize: '2.5rem',
