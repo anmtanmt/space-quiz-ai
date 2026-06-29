@@ -38,7 +38,7 @@ body {
   background: var(--bg-space);
   color: var(--color-text-main);
   min-height: 100vh;
-  overflow: hidden; /* スクロールバーを非表示（フルスクリーン前提） */
+  overflow-y: auto; /* コンテンツがはみ出たら縦スクロールを許可 */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -46,7 +46,7 @@ body {
 
 #root {
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -65,9 +65,20 @@ body {
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 40px rgba(102, 252, 241, 0.1);
   backdrop-filter: blur(12px);
   position: relative;
-  overflow: hidden;
+  overflow-y: auto; /* はみ出した場合にスクロールを許可 */
   display: flex;
   flex-direction: column;
+}
+
+/* 各画面コンポーネントがコンテナ内で潰れないように設定 */
+.welcome-screen,
+.title-screen,
+.quiz-screen,
+.result-screen,
+.collection-screen,
+.parent-portal {
+  min-height: 100%;
+  flex-shrink: 0;
 }
 
 /* スクロール可能にするコンテナ（大人用画面などで使用） */
