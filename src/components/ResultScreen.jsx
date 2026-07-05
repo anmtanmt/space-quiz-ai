@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
 import { BADGE_POOL } from '../utils/badges';
@@ -8,8 +8,12 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
   const [isNewBadgeEarned, setIsNewBadgeEarned] = useState(false);
   const [isTestMode, setIsTestMode] = useState(false);
   const [isTestPassed, setIsTestPassed] = useState(false);
+  const earnedRef = useRef(false);
 
   useEffect(() => {
+    if (earnedRef.current) return;
+    earnedRef.current = true;
+
     const testModeActive = mode === 'test';
     setIsTestMode(testModeActive);
 
