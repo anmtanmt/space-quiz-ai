@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { generateQuizFromAI } from '../services/gemini';
+import { generateQuizFromAI, generateAstronomyTestQuiz } from '../services/gemini';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
 
@@ -38,9 +38,22 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
         for (let i = 0; i < limit; i++) {
           quizList.push(shuffled[i]);
         }
+      } else if (mode === 'test') {
+        // 天文宇宙検定クイズ
+        const historyIds = [...answeredIds];
+        for (let i = 0; i < 5; i++) {
+          if (!active) return;
+          try {
+            const testQuiz = await generateAstronomyTestQuiz(difficulty, historyIds);
+            quizList.push(testQuiz);
+            historyIds.push(testQuiz.id);
+          } catch (e) {
+            console.error('Failed loading test question ' + i, e);
+          }
+        }
       } else {
         // AIのひみつクイズ
-        // 5回APIを叩いて問題をランダムに収集（順次ローディングしてもよいが、快適さのために開始時に5問ロード）
+        // 5回APIを叩いて問題をランダムに収集
         const historyIds = [...answeredIds];
         for (let i = 0; i < 5; i++) {
           if (!active) return;
@@ -74,7 +87,9 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
         <p style={styles.loadingText}>
           {mode === 'ai' 
             ? 'AIが うちゅうの ひみつクイズを つくっているよ。ちょっと まってね...' 
-            : 'クイズを じゅんび しているよ...'}
+            : mode === 'test'
+              ? 'てんもん宇宙けんていの もんだいを じゅんびしているよ。ちょっと まってね...'
+              : 'クイズを じゅんび しているよ...'}
         </p>
       </div>
     );
@@ -179,32 +194,52 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
       {/* クイズエリア */}
       <div className={`quiz-card ${isWrongShake ? 'shake-effect' : ''}`} style={styles.quizCard}>
         {/* 問題文 */}
-        <div style={styles.questionBox}>
+        <div style={{
+          ...styles.questionBox,
+          ...(currentQuiz.choices.length === 4 ? { padding: '16px', marginBottom: '12px' } : {})
+        }}>
           <h2 
-            style={styles.questionText}
+            style={{
+              ...styles.questionText,
+              ...(currentQuiz.choices.length === 4 ? { fontSize: '1.3rem', lineHeight: '1.4' } : {})
+            }}
             dangerouslySetInnerHTML={{ __html: currentQuiz.question }}
           />
         </div>
 
-        {/* 選択肢（3択） */}
+        {/* 選択肢（3択または4択） */}
         <div style={styles.choicesBox}>
-          {currentQuiz.choices.map((choice, index) => (
-            <button
-              key={index}
-              className={getButtonClass(index)}
-              onClick={() => handleAnswerSelect(index)}
-            >
-              <span style={styles.choiceNumber}>
-                {index === 0 ? '①' : index === 1 ? '②' : '③'}
-              </span>
-              <span dangerouslySetInnerHTML={{ __html: choice }} />
-            </button>
-          ))}
+          {currentQuiz.choices.map((choice, index) => {
+            const isFourChoices = currentQuiz.choices.length === 4;
+            const choiceBtnStyle = isFourChoices ? {
+              padding: '12px 20px',
+              marginBottom: '12px',
+              fontSize: '1.2rem',
+              borderRadius: '18px',
+            } : {};
+
+            return (
+              <button
+                key={index}
+                className={getButtonClass(index)}
+                onClick={() => handleAnswerSelect(index)}
+                style={choiceBtnStyle}
+              >
+                <span style={styles.choiceNumber}>
+                  {index === 0 ? '①' : index === 1 ? '②' : index === 2 ? '③' : '④'}
+                </span>
+                <span dangerouslySetInnerHTML={{ __html: choice }} />
+              </button>
+            );
+          })}
         </div>
 
         {/* 回答後の解説エリア */}
         {showExplanation && (
-          <div className="star-pop" style={styles.explanationBox}>
+          <div className="star-pop" style={{
+            ...styles.explanationBox,
+            ...(currentQuiz.choices.length === 4 ? { padding: '16px', bottom: '0' } : {})
+          }}>
             <div style={styles.explanationHeader}>
               {selectedAnswer === currentQuiz.answerIndex ? (
                 <span style={styles.correctLabel}>🎉 せいかい！ すごいね！</span>
@@ -213,11 +248,16 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
               )}
             </div>
             <p 
-              style={styles.explanationText}
+              style={{
+                ...styles.explanationText,
+                ...(currentQuiz.choices.length === 4 ? { fontSize: '1.05rem', marginBottom: '12px', lineHeight: '1.4' } : {})
+              }}
               dangerouslySetInnerHTML={{ __html: currentQuiz.explanation }}
             />
             <button className="btn-action btn-primary" onClick={handleNext} style={styles.nextButton}>
-              {currentIdx + 1 === quizzes.length ? 'ごほうびを もらう 🎁' : 'つぎへ すすむ ➔'}
+              {currentIdx + 1 === quizzes.length 
+                ? (mode === 'test' ? 'けっかを みる 🏁' : 'ごほうびを もらう 🎁') 
+                : 'つぎへ すすむ ➔'}
             </button>
           </div>
         )}

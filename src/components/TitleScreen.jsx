@@ -3,8 +3,8 @@ import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
 
 export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParent }) {
-  const [mode, setMode] = useState('ai'); // 'ai' or 'parent'
-  const [difficulty, setDifficulty] = useState('easy'); // 'easy', 'medium', 'hard'
+  const [mode, setMode] = useState('ai'); // 'ai', 'parent', or 'test'
+  const [difficulty, setDifficulty] = useState('easy'); // 'easy', 'medium', 'hard' (or '4', '3' for test)
   const [hasParentQuizzes, setHasParentQuizzes] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(audio.enabled);
 
@@ -14,6 +14,19 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
     // BGMの起動待機（ユーザーの初回操作で再生されます）
     audio.startBgm();
   }, []);
+
+  // モード切り替え時に適切なデフォルト難易度/級を設定する
+  useEffect(() => {
+    if (mode === 'test') {
+      if (difficulty !== '4' && difficulty !== '3') {
+        setDifficulty('4');
+      }
+    } else {
+      if (difficulty === '4' || difficulty === '3') {
+        setDifficulty('easy');
+      }
+    }
+  }, [mode]);
 
   const handleToggleSound = () => {
     const nextState = audio.toggleSound();
@@ -77,64 +90,105 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
             </button>
 
             <button
-              disabled
+              onClick={() => { audio.playClick(); setMode('test'); }}
               style={{
                 ...styles.optionCard,
-                ...styles.comingSoonCard
+                ...(mode === 'test' ? styles.optionCardActive : {})
               }}
             >
-              <div style={styles.cardIcon}>✏️</div>
+              <div style={styles.cardIcon}>🎓</div>
               <div style={styles.cardTitle}>てんもん<br />宇宙けんてい</div>
-              <div style={{ ...styles.cardDesc, color: 'var(--color-accent)', fontWeight: '700', marginBottom: '4px' }}>
-                【Coming Soon】
-              </div>
               <div style={styles.cardDesc}>
-                しょうらい ほんかく的な 検定（けんてい）に チャレンジできるよ！
+                ほんかく的な 検定（けんてい）に チャレンジできるよ！
               </div>
             </button>
           </div>
         </div>
 
-        {/* 難易度選択 */}
+        {/* 難易度・級の選択 */}
         <div style={styles.group}>
-          <h2 style={styles.groupTitle}>⭐ むずかしさを えらぼう</h2>
-          <div style={styles.optionsRow}>
-            <button
-              onClick={() => { audio.playClick(); setDifficulty('easy'); }}
-              style={{
-                ...styles.diffCard,
-                ...styles.diffEasy,
-                ...(difficulty === 'easy' ? styles.diffActive : {})
-              }}
-            >
-              <div style={styles.diffLabel}>やさしい</div>
-              <div style={styles.diffTarget}>（ようちえん・ほいくえん）</div>
-            </button>
+          {mode === 'test' ? (
+            <>
+              <h2 style={styles.groupTitle}>⭐ チャレンジする きゅうを えらぼう</h2>
+              <div style={styles.optionsRow}>
+                <button
+                  onClick={() => { audio.playClick(); setDifficulty('4'); }}
+                  style={{
+                    ...styles.diffCard,
+                    ...styles.diffEasy,
+                    ...(difficulty === '4' ? styles.diffActive : {})
+                  }}
+                >
+                  <div style={styles.diffLabel}>4きゅう</div>
+                  <div style={styles.diffTarget}>（星空はかせ★やさしい）</div>
+                </button>
 
-            <button
-              onClick={() => { audio.playClick(); setDifficulty('medium'); }}
-              style={{
-                ...styles.diffCard,
-                ...styles.diffMedium,
-                ...(difficulty === 'medium' ? styles.diffActive : {})
-              }}
-            >
-              <div style={styles.diffLabel}>ふつう</div>
-              <div style={styles.diffTarget}>（しょうがっこう ていがくねん）</div>
-            </button>
+                <button
+                  onClick={() => { audio.playClick(); setDifficulty('3'); }}
+                  style={{
+                    ...styles.diffCard,
+                    ...styles.diffMedium,
+                    ...(difficulty === '3' ? styles.diffActive : {})
+                  }}
+                >
+                  <div style={styles.diffLabel}>3きゅう</div>
+                  <div style={styles.diffTarget}>（星空じゅんあんないにん）</div>
+                </button>
 
-            <button
-              onClick={() => { audio.playClick(); setDifficulty('hard'); }}
-              style={{
-                ...styles.diffCard,
-                ...styles.diffHard,
-                ...(difficulty === 'hard' ? styles.diffActive : {})
-              }}
-            >
-              <div style={styles.diffLabel}>むずかしい</div>
-              <div style={styles.diffTarget}>（もっと しりたい 子向け）</div>
-            </button>
-          </div>
+                <button
+                  disabled
+                  style={{
+                    ...styles.diffCard,
+                    ...styles.comingSoonCard
+                  }}
+                >
+                  <div style={styles.diffLabel}>2きゅう</div>
+                  <div style={styles.diffTarget}>（Coming Soon）</div>
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 style={styles.groupTitle}>⭐ むずかしさを えらぼう</h2>
+              <div style={styles.optionsRow}>
+                <button
+                  onClick={() => { audio.playClick(); setDifficulty('easy'); }}
+                  style={{
+                    ...styles.diffCard,
+                    ...styles.diffEasy,
+                    ...(difficulty === 'easy' ? styles.diffActive : {})
+                  }}
+                >
+                  <div style={styles.diffLabel}>やさしい</div>
+                  <div style={styles.diffTarget}>（ようちえん・ほいくえん）</div>
+                </button>
+
+                <button
+                  onClick={() => { audio.playClick(); setDifficulty('medium'); }}
+                  style={{
+                    ...styles.diffCard,
+                    ...styles.diffMedium,
+                    ...(difficulty === 'medium' ? styles.diffActive : {})
+                  }}
+                >
+                  <div style={styles.diffLabel}>ふつう</div>
+                  <div style={styles.diffTarget}>（しょうがっこう ていがくねん）</div>
+                </button>
+
+                <button
+                  onClick={() => { audio.playClick(); setDifficulty('hard'); }}
+                  style={{
+                    ...styles.diffCard,
+                    ...styles.diffHard,
+                    ...(difficulty === 'hard' ? styles.diffActive : {})
+                  }}
+                >
+                  <div style={styles.diffLabel}>むずかしい</div>
+                  <div style={styles.diffTarget}>（もっと しりたい 子向け）</div>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

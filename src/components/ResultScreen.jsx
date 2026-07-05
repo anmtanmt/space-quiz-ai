@@ -3,49 +3,90 @@ import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
 import { BADGE_POOL } from '../utils/badges';
 
-export default function ResultScreen({ score, total, onPlayAgain, onViewCollection, onBackToTitle }) {
+export default function ResultScreen({ score, total, mode = 'ai', difficulty = 'easy', onPlayAgain, onViewCollection, onBackToTitle }) {
   const [newBadge, setNewBadge] = useState(null);
   const [isNewBadgeEarned, setIsNewBadgeEarned] = useState(false);
+  const [isTestMode, setIsTestMode] = useState(false);
+  const [isTestPassed, setIsTestPassed] = useState(false);
 
   useEffect(() => {
-    // 3問以上正解したときだけバッジをごほうびとして獲得できる
-    if (score >= 3) {
-      // 獲得済みのバッジリストを取得
-      const earned = storage.getEarnedBadges();
-      const earnedIds = earned.map(b => b.id);
-      
-      // まだ獲得していないバッジをリストアップ
-      const unearned = BADGE_POOL.filter(b => !earnedIds.includes(b.id));
+    const testModeActive = mode === 'test';
+    setIsTestMode(testModeActive);
 
-      let selected = null;
-      let isNew = false;
+    if (testModeActive) {
+      // 天文宇宙検定モード
+      const passed = score >= 4; // 5問中4問以上で合格
+      setIsTestPassed(passed);
 
-      if (unearned.length > 0) {
-        // 未獲得のものからランダムに1つ選んで獲得
-        selected = unearned[Math.floor(Math.random() * unearned.length)];
-        isNew = true;
-      } else {
-        // すべて獲得済みの場合は、既存のバッジからランダムで選んで再度獲得（2周目対応）
-        selected = BADGE_POOL[Math.floor(Math.random() * BADGE_POOL.length)];
-        isNew = false;
+      if (passed) {
+        // 合格！対応する級のバッジを付与
+        const badgeId = difficulty === '3' ? 'b_test_3' : 'b_test_4';
+        const targetBadge = BADGE_POOL.find(b => b.id === badgeId);
+
+        if (targetBadge) {
+          const result = storage.addEarnedBadge(targetBadge.id);
+          setNewBadge({
+            ...targetBadge,
+            count: result ? result.count : 1
+          });
+          setIsNewBadgeEarned(result ? result.count === 1 : true);
+        }
       }
+    } else {
+      // 通常のクイズモード（3問以上正解したときだけバッジをごほうびとして獲得できる）
+      if (score >= 3) {
+        const earned = storage.getEarnedBadges();
+        const earnedIds = earned.map(b => b.id);
+        
+        // まだ獲得していないバッジをリストアップ（検定用バッジは除外）
+        const unearned = BADGE_POOL.filter(b => !earnedIds.includes(b.id) && b.category !== 'test');
 
-      if (selected) {
-        const result = storage.addEarnedBadge(selected.id);
-        setNewBadge({
-          ...selected,
-          count: result ? result.count : 1
-        });
-        setIsNewBadgeEarned(isNew);
+        let selected = null;
+        let isNew = false;
+
+        if (unearned.length > 0) {
+          // 未獲得のものからランダムに1つ選んで獲得
+          selected = unearned[Math.floor(Math.random() * unearned.length)];
+          isNew = true;
+        } else {
+          // すべて獲得済みの場合は、既存の通常バッジからランダムで選んで再度獲得（2周目対応）
+          const normalBadges = BADGE_POOL.filter(b => b.category !== 'test');
+          selected = normalBadges[Math.floor(Math.random() * normalBadges.length)];
+          isNew = false;
+        }
+
+        if (selected) {
+          const result = storage.addEarnedBadge(selected.id);
+          setNewBadge({
+            ...selected,
+            count: result ? result.count : 1
+          });
+          setIsNewBadgeEarned(isNew);
+        }
       }
     }
 
     // ファンファーレ音を再生
     audio.playFanfare();
-  }, []);
+  }, [score, mode, difficulty]);
 
   // スコアに応じたメッセージ決定
   const getFeedback = () => {
+    if (mode === 'test') {
+      const gradeText = difficulty === '3' ? '3きゅう' : '4きゅう';
+      if (score >= 4) {
+        return {
+          text: `おめでとう！ てんもん宇宙けんてい ${gradeText} に「ごうかく」したよ！ 🎓`,
+          color: 'var(--color-accent)'
+        };
+      } else {
+        return {
+          text: `おしい！ あとすこしで ごうかく だったね。また チャレンジしよう！ 🔥`,
+          color: '#a0a5c0'
+        };
+      }
+    }
+
     if (score === total) return { text: 'パーフェクト！ うちゅうはかせだね！ 👑', color: 'var(--color-accent)' };
     if (score >= total - 2) return { text: 'すごい！ うちゅうの ことが よくわかったね！ 🌟', color: 'var(--color-primary)' };
     if (score > 0) return { text: 'がんばったね！ つぎは もっと せいかいできるよ！ 🚀', color: '#fff' };
@@ -58,7 +99,9 @@ export default function ResultScreen({ score, total, onPlayAgain, onViewCollecti
     <div className="result-screen fade-in" style={styles.container}>
       {/* 祝賀用アニメーションスター背景 */}
       <div style={styles.header}>
-        <h1 style={styles.title}>クイズ おしまい！</h1>
+        <h1 style={styles.title}>
+          {mode === 'test' ? 'けんてい おしまい！' : 'クイズ おしまい！'}
+        </h1>
         <p style={{ ...styles.feedbackText, color: feedback.color }}>{feedback.text}</p>
       </div>
 
@@ -72,38 +115,74 @@ export default function ResultScreen({ score, total, onPlayAgain, onViewCollecti
       </div>
 
       {/* ごほうびバッジ演出、または励まし表示 */}
-      {score >= 3 ? (
-        newBadge && (
-          <div style={styles.badgeSection}>
-            <p style={styles.badgeInstruction}>
-              {isNewBadgeEarned 
-                ? '🎁 新しい ごほうびバッジを もらったよ！' 
-                : `🌟 ${newBadge.count}こめの ${newBadge.name}を ゲットしたよ！`}
-            </p>
-            <div className="badge-wrapper star-pop" style={styles.badgeWrapper}>
-              <div style={{ ...styles.badgeCircle, backgroundColor: newBadge.color }}>
-                <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
+      {isTestMode ? (
+        isTestPassed ? (
+          newBadge && (
+            <div style={styles.badgeSection}>
+              <p style={styles.badgeInstruction}>
+                {isNewBadgeEarned 
+                  ? '🏅 合格おめでとう！ 合格バッジを ゲットしたよ！' 
+                  : `🌟 ${newBadge.count}かいめの 合格だ！`}
+              </p>
+              <div className="badge-wrapper star-pop" style={styles.badgeWrapper}>
+                <div style={{ ...styles.badgeCircle, backgroundColor: newBadge.color }}>
+                  <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
+                </div>
+                <h3 style={styles.badgeName}>
+                  {newBadge.name} {newBadge.count > 1 && `×${newBadge.count}`}
+                </h3>
+                <p style={styles.badgeDesc}>{newBadge.desc}</p>
               </div>
-              <h3 style={styles.badgeName}>
-                {newBadge.name} {newBadge.count > 1 && `×${newBadge.count}`}
-              </h3>
-              <p style={styles.badgeDesc}>{newBadge.desc}</p>
+            </div>
+          )
+        ) : (
+          <div style={styles.badgeSection}>
+            <p style={styles.badgeInstruction}>🔒 合格バッジ</p>
+            <div style={styles.badgeWrapper}>
+              <div style={{ ...styles.badgeCircle, backgroundColor: 'rgba(255, 255, 255, 0.03)', border: '2px dashed rgba(255, 255, 255, 0.15)' }}>
+                <span style={{ ...styles.badgeEmoji, filter: 'grayscale(100%) opacity(0.3)' }}>🔒</span>
+              </div>
+              <h3 style={{ ...styles.badgeName, color: 'rgba(255, 255, 255, 0.4)' }}>？？？ 合格バッジ</h3>
+              <p style={{ ...styles.badgeDesc, color: 'var(--color-accent)', fontWeight: '700' }}>
+                5もんのうち 4もんいじょう せいかいすると「ごうかく」バッジが もらえるよ！
+              </p>
             </div>
           </div>
         )
       ) : (
-        <div style={styles.badgeSection}>
-          <p style={styles.badgeInstruction}>🔒 ごほうびバッジ</p>
-          <div style={styles.badgeWrapper}>
-            <div style={{ ...styles.badgeCircle, backgroundColor: 'rgba(255, 255, 255, 0.03)', border: '2px dashed rgba(255, 255, 255, 0.15)' }}>
-              <span style={{ ...styles.badgeEmoji, filter: 'grayscale(100%) opacity(0.3)' }}>🔒</span>
+        score >= 3 ? (
+          newBadge && (
+            <div style={styles.badgeSection}>
+              <p style={styles.badgeInstruction}>
+                {isNewBadgeEarned 
+                  ? '🎁 新しい ごほうびバッジを もらったよ！' 
+                  : `🌟 ${newBadge.count}こめの ${newBadge.name}を ゲットしたよ！`}
+              </p>
+              <div className="badge-wrapper star-pop" style={styles.badgeWrapper}>
+                <div style={{ ...styles.badgeCircle, backgroundColor: newBadge.color }}>
+                  <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
+                </div>
+                <h3 style={styles.badgeName}>
+                  {newBadge.name} {newBadge.count > 1 && `×${newBadge.count}`}
+                </h3>
+                <p style={styles.badgeDesc}>{newBadge.desc}</p>
+              </div>
             </div>
-            <h3 style={{ ...styles.badgeName, color: 'rgba(255, 255, 255, 0.4)' }}>？？？ バッジ</h3>
-            <p style={{ ...styles.badgeDesc, color: 'var(--color-accent)', fontWeight: '700' }}>
-              3もん いじょう せいかい すると、ごほうびバッジが もらえるよ！ つぎは がんばろう！ 🔥
-            </p>
+          )
+        ) : (
+          <div style={styles.badgeSection}>
+            <p style={styles.badgeInstruction}>🔒 ごほうびバッジ</p>
+            <div style={styles.badgeWrapper}>
+              <div style={{ ...styles.badgeCircle, backgroundColor: 'rgba(255, 255, 255, 0.03)', border: '2px dashed rgba(255, 255, 255, 0.15)' }}>
+                <span style={{ ...styles.badgeEmoji, filter: 'grayscale(100%) opacity(0.3)' }}>🔒</span>
+              </div>
+              <h3 style={{ ...styles.badgeName, color: 'rgba(255, 255, 255, 0.4)' }}>？？？ バッジ</h3>
+              <p style={{ ...styles.badgeDesc, color: 'var(--color-accent)', fontWeight: '700' }}>
+                3もん いじょう せいかい すると、ごほうびバッジが もらえるよ！ つぎは がんばろう！ 🔥
+              </p>
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* ナビゲーションボタン */}

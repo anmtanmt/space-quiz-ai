@@ -406,3 +406,206 @@ const getFallbackQuiz = (difficulty, answeredIds) => {
   // コピーを返して元のデータを汚染しないようにする
   return { ...available[randomIndex] };
 };
+
+// 天文宇宙検定のフォールバック用クイズデータ
+const FALLBACK_TEST_QUIZZES = {
+  '4': [
+    {
+      id: 'fb_t4_1',
+      question: '<ruby>太陽<rt>たいよう</rt></ruby>の光（ひかり）が反射（はんしゃ）して光る、<ruby>地球<rt>ちきゅう</rt></ruby>のただひとつの<ruby>衛星<rt>えいせい</rt></ruby>（おともだちの星）はなあに？',
+      choices: ['<ruby>月<rt>つき</rt></ruby>', '<ruby>火星<rt>かせい</rt></ruby>', '<ruby>水星<rt>すいせい</rt></ruby>', '<ruby>金星<rt>きんせい</rt></ruby>'],
+      answerIndex: 0,
+      explanation: '<ruby>月<rt>つき</rt></ruby>はみずから光っているのではなく、<ruby>太陽<rt>たいよう</rt></ruby>の光をあびてピカピカ反射（はんしゃ）して光って見えているんだよ。'
+    },
+    {
+      id: 'fb_t4_2',
+      question: '「なつデネブ、はるアルクトゥルス、あきフォーマルハウト、ふゆシリアス」これらは何（なに）のなまえ？',
+      choices: ['星座（せいざ）のなまえ', '宇宙船（うちゅうせん）のなまえ', '１等星（いっとうせい）という、とても明るい星のなまえ', '銀河（ぎんが）のなまえ'],
+      answerIndex: 2,
+      explanation: '夜空（よぞら）でいちばん明るく見えるグループの星たちを「１等星（いっとうせい）」と呼ぶんだよ。シリウスは冬（ふゆ）にいちばん明るくかがやくよ！'
+    },
+    {
+      id: 'fb_t4_3',
+      question: '<ruby>太陽<rt>たいよう</rt></ruby>のまわりをまわる８つの惑星（わくせい）のなかで、いちばん<ruby>太陽<rt>たいよう</rt></ruby>にちかい場所（ばしょ）をまわるのはどれ？',
+      choices: ['<ruby>地球<rt>ちきゅう</rt></ruby>', '<ruby>金星<rt>きんせい</rt></ruby>', '<ruby>水星<rt>すいせい</rt></ruby>', '<ruby>火星<rt>かせい</rt></ruby>'],
+      answerIndex: 2,
+      explanation: '<ruby>太陽<rt>たいよう</rt></ruby>に近いほうから「すい（水）・きん（金）・ち（地）・か（火）・もく（木）・ど（土）・てん（天）・かい（海）」のじゅんばんだよ。いちばん近いのは「水星（すいせい）」だね！'
+    },
+    {
+      id: 'fb_t4_4',
+      question: '日本（にほん）でいちばん最初（さいしょ）に宇宙（うちゅう）へ行った、秋山（あきやま）さんがのったソ連（れん）の宇宙船（うちゅうせん）のなまえは？',
+      choices: ['アポロ', 'ソユーズ', 'スペースシャトル', 'はやぶさ'],
+      answerIndex: 1,
+      explanation: '1990年、テレビの記者（きしゃ）だった秋山（あきやま）豊寛（とよひろ）さんがソユーズという宇宙船（うちゅうせん）にのって、日本人で初めて宇宙へ行ったんだよ。'
+    },
+    {
+      id: 'fb_t4_5',
+      question: '夏（なつ）の夜空（よぞら）にみえる「夏（なつ）の大三角（だいさんかく）」をつくる星は、デネブ、ベガと、あとひとつは何（なに）かな？',
+      choices: ['シリウス', 'ベテルギウス', 'アルタイル', 'アンタレス'],
+      answerIndex: 2,
+      explanation: 'わし座（ざ）のアルタイル（ひこ星）、こと座（ざ）のベガ（おりひめ星）、はくちょう座（ざ）のデネブをつなぐと、大きな「夏（なつ）の大三角（だいさんかく）」になるよ。'
+    }
+  ],
+  '3': [
+    {
+      id: 'fb_t3_1',
+      question: '1609年に望遠鏡（ぼうえんきょう）を初めて夜空（よぞら）に向け、木星（もくせい）のまわりをまわる４つの大きな衛星（えいせい）を見つけたイタリアの学者は？',
+      choices: ['コペルニクス', 'ケプラー', 'ガリレオ・ガリレイ', 'アイザック・ニュートン'],
+      answerIndex: 2,
+      explanation: 'ガリレオは自作（じさく）の望遠鏡で木星をかんさつし、イオ、エウロパ、ガニメデ、カリストという４つの大きな月（ガリレオ衛星）を発見したよ。'
+    },
+    {
+      id: 'fb_t3_2',
+      question: '地球（ちきゅう）のまわりを太陽（たいよう）や星がまわっているという「天動説（てん動説）」に対して、太陽を中心に地球がまわっているという「地動説（ちどう説）」を本で発表したポーランドの天文学者は？',
+      choices: ['プトレマイオス', 'ニコラウス・コペルニクス', 'エドウィン・ハッブル', 'アルバート・アインシュタイン'],
+      answerIndex: 1,
+      explanation: 'コペルニクスは「地動説（ちどうせつ）」を唱え、宇宙のまんなかには地球ではなく太陽がある、と科学的に主張（しゅちょう）して天文学に大革命（だいかくめい）をおこしたよ。'
+    },
+    {
+      id: 'fb_t3_3',
+      question: '太陽（たいよう）の表面（ひょうめん）でおこる超（ちょう）巨大なばくはつ現象（げんしょう）「フレア」によって地球にふきつける、電気を帯びた高速の風を何（なに）と呼ぶ？',
+      choices: ['たいよう風（ふう）', 'オーロラ風（ふう）', 'ブラックホール熱（ねつ）', '宇宙（うちゅう）ハリケーン'],
+      answerIndex: 0,
+      explanation: '正解は「太陽風（たいようふう）」です。太陽からふき出すこの電気の粒子（りゅうし）が、地球のバリアをすり抜けて北極（ほっきょく）や南極（なんきょく）の空にぶつかることで「オーロラ」が光るんだよ。'
+    },
+    {
+      id: 'fb_t3_4',
+      question: '質量（しつりょう）が非常に大きく、重力が強すぎて光さえも吸い込んで出てこられない、アインシュタインの相対性理論（そうたいせいりろん）から予言された天体は？',
+      choices: ['中性子星（ちゅうせいしせい）', 'ホワイトドワーフ（白色矮星）', 'ブラックホール', '超新星（ちょうしんせい）'],
+      answerIndex: 2,
+      explanation: 'ブラックホールはその強力（きょうりょく）な引力（じゅうりょく）のため、あらゆる物質（ぶっしつ）や光すら脱出（だっしゅつ）できなくしてしまいます。'
+    },
+    {
+      id: 'fb_t3_5',
+      question: '2010年に小惑星（しょうわくせい）「イトカワ」から岩石の微粒子（サンプル）をカプセルに入れて地球に持ち帰ることに成功した、日本の探査機（たんさき）のなまえは？',
+      choices: ['はやぶさ', 'かぐや', 'あかつき', 'ひてん'],
+      answerIndex: 0,
+      explanation: '宇宙航空研究開発機構（JAXA）が打ち上げた「はやぶさ」は、多くの故障（こしょう）を乗り越えて7年かけて小惑星の砂を持ち帰るという、世界初の快挙（かいきょ）をなしとげたよ。'
+    }
+  ]
+};
+
+// 天文宇宙検定用のクイズ生成API
+export const generateAstronomyTestQuiz = async (grade, answeredIds = []) => {
+  const apiGatewayUrl = getApiGatewayUrl();
+
+  // AWS Lambda バックエンドの呼び出しを試みる
+  if (apiGatewayUrl) {
+    try {
+      const response = await fetch(apiGatewayUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ isTest: true, grade, answeredIds })
+      });
+
+      if (response.ok) {
+        const quiz = await response.json();
+        return quiz;
+      }
+      console.warn('API Gateway test request failed, falling back to local client-side.');
+    } catch (e) {
+      console.error('Failed to fetch test quiz from API Gateway.', e);
+    }
+  }
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    console.warn('VITE_GEMINI_API_KEY is not defined. Using fallback test quiz.');
+    return getFallbackTestQuiz(grade, answeredIds);
+  }
+
+  // 4級または3級の定義プロンプト
+  const gradePrompt = grade === '4' 
+    ? '天文宇宙検定4級（星空博士・主に中学生や星空に興味がある子供向け）のシラバスや出題傾向に準拠した、月や太陽、星座の動き、基本的な天体観測に関するクイズ'
+    : '天文宇宙検定3級（星空準案内人・一般天文学の基礎）のシラバスや出題傾向に準拠した、やや専門的な天文学の歴史、太陽の構造、宇宙物理の初歩に関するクイズ';
+
+  const exclusionPrompt = answeredIds.length > 0 
+    ? `以下の問題と重複しない、新しい問題を作成してください (除外された過去の問題IDやヒント: ${answeredIds.slice(-10).join(', ')})`
+    : '';
+
+  const prompt = `
+  ${gradePrompt}を1問、JSONフォーマットで生成してください。
+  以下のルールを厳密に守ってください。
+
+  - 【超重要】選択肢は必ず【4つ】生成してください。
+  - 【超重要】難易度に関わらず、すべての漢字にHTML形式のルビ（ふりがな）を振ること。
+    ルビの書き方例: <ruby>望遠鏡<rt>ぼうえんきょう</rt></ruby> のように記述してください。ひらがなやカタカナ、数字にルビを振る必要はありません。
+  - 選択肢(choices)、および解説(explanation)に含まれる漢字にも必ず同様のルビルールを適用してください。
+  - 解説は子供（小学校低学年でも読める）向けに、優しくロマンがある表現で記述してください。
+  ${exclusionPrompt}
+
+  【出力フォーマット】
+  必ず以下のJSONフォーマットのみで出力してください。Markdownのコードブロック (\`\`\`json) などは不要です。余計な説明文も一切付けないでください。
+
+  {
+    "question": "問題文（ルビ必須）",
+    "choices": ["選択肢1（ルビ必須）", "選択肢2（ルビ必須）", "選択肢3（ルビ必須）", "選択肢4（ルビ必須）"],
+    "answerIndex": 0, // 正解のインデックス（0, 1, 2, 3 のいずれか）
+    "explanation": "子ども向け解説（ルビ必須）"
+  }
+  `;
+
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: 'gemini-1.5-flash',
+        generationConfig: {
+          responseMimeType: 'application/json'
+        }
+      });
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text().trim();
+      const quiz = JSON.parse(text);
+
+      // バリデーション
+      if (validateTestQuiz(quiz)) {
+        quiz.id = `test_${grade}_` + Date.now() + '_' + Math.floor(Math.random() * 1000);
+        return quiz;
+      } else {
+        console.warn('Test quiz failed validation. Retrying...', quiz);
+      }
+    } catch (e) {
+      console.error('Failed to generate test quiz. Retries left: ' + (retries - 1), e);
+    }
+    retries--;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  return getFallbackTestQuiz(grade, answeredIds);
+};
+
+// 検定クイズ用バリデーション
+const validateTestQuiz = (quiz) => {
+  if (!quiz) return false;
+  if (typeof quiz.question !== 'string' || quiz.question.length < 5) return false;
+  if (!Array.isArray(quiz.choices) || quiz.choices.length !== 4) return false;
+  if (typeof quiz.answerIndex !== 'number' || quiz.answerIndex < 0 || quiz.answerIndex > 3) return false;
+  if (typeof quiz.explanation !== 'string' || quiz.explanation.length < 5) return false;
+
+  const uniqueChoices = new Set(quiz.choices);
+  if (uniqueChoices.size !== 4) return false;
+
+  // 漢字ルビチェック
+  const kanjiRegex = /[\u4e00-\u9faf]/;
+  if (kanjiRegex.test(quiz.question) && !quiz.question.includes('<ruby>')) return false;
+
+  return true;
+};
+
+// 検定用フォールバック
+const getFallbackTestQuiz = (grade, answeredIds) => {
+  const pool = FALLBACK_TEST_QUIZZES[grade] || FALLBACK_TEST_QUIZZES['4'];
+  let available = pool.filter(q => !answeredIds.includes(q.id));
+  if (available.length === 0) {
+    available = pool;
+  }
+  const randomIndex = Math.floor(Math.random() * available.length);
+  return { ...available[randomIndex] };
+};

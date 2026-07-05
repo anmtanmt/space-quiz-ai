@@ -136,7 +136,9 @@ export const BADGE_POOL = [
   { id: 'b_const_aquarius', category: 'space', name: 'みずがめ座 バッジ', emoji: '🏺', color: '#4cc9f0', desc: '美少年が、神々のために「お酒と水」を注ぐ水がめをもつ星座！' },
   { id: 'b_const_pisces', category: 'space', name: 'うお座 バッジ', emoji: '🐟', color: '#70d6ff', desc: 'リボンで結ばれた二匹の魚が、怪物から隠れて泳ぐ姿の星座！' },
   { id: 'b_dark_matter', category: 'space', name: '暗黒物質 バッジ', emoji: '🛸', color: '#4a4e69', desc: '目には見えないけれど、強い重力だけを放って宇宙を形作る謎の物質！' },
-  { id: 'b_universe_expansion', category: 'space', name: '宇宙膨張 バッジ', emoji: '🎈', color: '#b5e2fa', desc: 'ビッグバンからはじまり、今でも風船のように膨らみつづける宇宙のうごき！' }
+  { id: 'b_universe_expansion', category: 'space', name: '宇宙膨張 バッジ', emoji: '🎈', color: '#b5e2fa', desc: 'ビッグバンからはじまり、今でも風船のように膨らみつづける宇宙のうごき！' },
+  { id: 'b_test_4', category: 'test', name: '4きゅう 合格バッジ', emoji: '🎓', color: '#ffd166', desc: 'てんもん宇宙けんてい 4きゅう（星空はかせ）に ごうかくした しょうめいバッジ！' },
+  { id: 'b_test_3', category: 'test', name: '3きゅう 合格バッジ', emoji: '🏆', color: '#66fcf1', desc: 'てんもん宇宙けんてい 3きゅう（星空じゅんあんないにん）に ごうかくした しょうめいバッジ！' }
 ];
 
 export const CATEGORIES = [
@@ -145,5 +147,6 @@ export const CATEGORIES = [
   { id: 'vehicles', name: '🚀 のりもの' },
   { id: 'satellites', name: '🛰️ たんさき・えいせい' },
   { id: 'astronomers', name: '🔭 てんもんがくしゃ' },
-  { id: 'space', name: '🌟 せいざ・うちゅう' }
+  { id: 'space', name: '🌟 せいざ・うちゅう' },
+  { id: 'test', name: '🎓 けんてい' }
 ];

@@ -72,6 +72,8 @@ export default function App() {
         <ResultScreen
           score={result.score}
           total={result.total}
+          mode={quizMode}
+          difficulty={difficulty}
           onPlayAgain={handlePlayAgain}
           onViewCollection={handleViewCollection}
           onBackToTitle={handleBackToTitle}
