@@ -2,7 +2,7 @@
 // Gemini API を直接 HTTPS Fetch で呼び出すことで、追加のライブラリ依存性をゼロにし、
 // 超軽量・高速・低コストなサーバーレスAPIを実現します。
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.replace(/['"\s]/g, '') : '';
 
 export const handler = async (event) => {
   // CORS レスポンスヘッダーの設定
@@ -141,7 +141,11 @@ async function generateQuiz(difficulty, answeredIds) {
       );
 
       if (!response.ok) {
-        throw new Error(`Gemini API HTTP error! status: ${response.status}`);
+        let errorDetails = '';
+        try {
+          errorDetails = await response.text();
+        } catch (_) {}
+        throw new Error(`Gemini API HTTP error! status: ${response.status}. Details: ${errorDetails}`);
       }
 
       const data = await response.json();
@@ -245,7 +249,11 @@ async function generateTestQuiz(grade, answeredIds) {
       );
 
       if (!response.ok) {
-        throw new Error(`Gemini API HTTP error! status: ${response.status}`);
+        let errorDetails = '';
+        try {
+          errorDetails = await response.text();
+        } catch (_) {}
+        throw new Error(`Gemini API HTTP error! status: ${response.status}. Details: ${errorDetails}`);
       }
 
       const data = await response.json();
