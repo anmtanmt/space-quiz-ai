@@ -132,10 +132,7 @@ async function generateQuiz(difficulty, answeredIds) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generation_config: {
-              response_mime_type: 'application/json'
-            }
+            contents: [{ parts: [{ text: prompt }] }]
           })
         }
       );
@@ -240,10 +237,7 @@ async function generateTestQuiz(grade, answeredIds) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generation_config: {
-              response_mime_type: 'application/json'
-            }
+            contents: [{ parts: [{ text: prompt }] }]
           })
         }
       );
