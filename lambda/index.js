@@ -133,8 +133,8 @@ async function generateQuiz(difficulty, answeredIds) {
           },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              responseMimeType: 'application/json'
+            generation_config: {
+              response_mime_type: 'application/json'
             }
           })
         }
@@ -241,8 +241,8 @@ async function generateTestQuiz(grade, answeredIds) {
           },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              responseMimeType: 'application/json'
+            generation_config: {
+              response_mime_type: 'application/json'
             }
           })
         }
