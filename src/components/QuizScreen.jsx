@@ -41,12 +41,15 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
       } else if (mode === 'test') {
         // 天文宇宙検定クイズ
         const historyIds = [...answeredIds];
+        const sessionQuestions = [];
         for (let i = 0; i < 5; i++) {
           if (!active) return;
           try {
-            const testQuiz = await generateAstronomyTestQuiz(difficulty, historyIds);
+            const testQuiz = await generateAstronomyTestQuiz(difficulty, historyIds, sessionQuestions);
             quizList.push(testQuiz);
             historyIds.push(testQuiz.id);
+            const plainQuestion = testQuiz.question.replace(/<[^>]*>/g, '');
+            sessionQuestions.push(plainQuestion);
           } catch (e) {
             console.error('Failed loading test question ' + i, e);
           }
@@ -55,12 +58,15 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
         // AIのひみつクイズ
         // 5回APIを叩いて問題をランダムに収集
         const historyIds = [...answeredIds];
+        const sessionQuestions = [];
         for (let i = 0; i < 5; i++) {
           if (!active) return;
           try {
-            const aiQuiz = await generateQuizFromAI(difficulty, historyIds);
+            const aiQuiz = await generateQuizFromAI(difficulty, historyIds, sessionQuestions);
             quizList.push(aiQuiz);
             historyIds.push(aiQuiz.id); // 重複回避用の一時的追加
+            const plainQuestion = aiQuiz.question.replace(/<[^>]*>/g, '');
+            sessionQuestions.push(plainQuestion);
           } catch (e) {
             console.error('Failed loading question ' + i, e);
           }

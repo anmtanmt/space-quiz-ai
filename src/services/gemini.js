@@ -229,7 +229,7 @@ const getApiGatewayUrl = () => {
 };
 
 // Gemini APIを用いてクイズを生成する関数
-export const generateQuizFromAI = async (difficulty, answeredIds = []) => {
+export const generateQuizFromAI = async (difficulty, answeredIds = [], excludeQuestions = []) => {
   const apiGatewayUrl = getApiGatewayUrl();
 
   // API Gateway の URL が設定されている場合は、AWS Lambda バックエンドを呼び出す
@@ -240,7 +240,7 @@ export const generateQuizFromAI = async (difficulty, answeredIds = []) => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ difficulty, answeredIds })
+        body: JSON.stringify({ difficulty, answeredIds, excludeQuestions })
       });
 
       if (response.ok) {
@@ -284,9 +284,17 @@ export const generateQuizFromAI = async (difficulty, answeredIds = []) => {
   }
 
   // 除外クイズ情報
-  const exclusionPrompt = answeredIds.length > 0 
-    ? `以下の問題と重複しない、新しい問題を作成してください (除外ワード/過去問題のヒント: ${answeredIds.slice(-10).join(', ')})`
-    : '';
+  let exclusionPrompt = '';
+  if (excludeQuestions && excludeQuestions.length > 0) {
+    exclusionPrompt = `
+    - 【重要】以下の最近出題された問題と**「質問の趣旨・テーマ・正解の対象」が絶対に重複しない、全く異なる新しい宇宙のテーマから出題してください**。
+    - 例えば、最近の問題が「太陽の動きや方角」に関するものであれば、今回は「別の惑星の特徴」「ブラックホール」「ロケットの仕組み」「宇宙服のひみつ」など、全く別のジャンルにしてください。同じようなジャンルの連続出題は厳禁です。
+    - 最近出題された問題文:
+    ${excludeQuestions.map((q, idx) => `  ${idx + 1}. ${q}`).join('\n')}
+    `;
+  } else if (answeredIds.length > 0) {
+    exclusionPrompt = `以下の問題と重複しない、新しい問題を作成してください (除外ワード: ${answeredIds.slice(-10).join(', ')})`;
+  }
 
   const prompt = `
   宇宙に関する3択クイズを1問、JSONフォーマットで生成してください。
@@ -319,7 +327,7 @@ export const generateQuizFromAI = async (difficulty, answeredIds = []) => {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.1-flash-lite',
         generationConfig: {
           responseMimeType: 'application/json'
         }
@@ -486,7 +494,7 @@ const FALLBACK_TEST_QUIZZES = {
 };
 
 // 天文宇宙検定用のクイズ生成API
-export const generateAstronomyTestQuiz = async (grade, answeredIds = []) => {
+export const generateAstronomyTestQuiz = async (grade, answeredIds = [], excludeQuestions = []) => {
   const apiGatewayUrl = getApiGatewayUrl();
 
   // AWS Lambda バックエンドの呼び出しを試みる
@@ -497,7 +505,7 @@ export const generateAstronomyTestQuiz = async (grade, answeredIds = []) => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ isTest: true, grade, answeredIds })
+        body: JSON.stringify({ isTest: true, grade, answeredIds, excludeQuestions })
       });
 
       if (response.ok) {
@@ -521,9 +529,17 @@ export const generateAstronomyTestQuiz = async (grade, answeredIds = []) => {
     ? '天文宇宙検定4級（星空博士・主に中学生や星空に興味がある子供向け）のシラバスや出題傾向に準拠した、月や太陽、星座の動き、基本的な天体観測に関するクイズ'
     : '天文宇宙検定3級（星空準案内人・一般天文学の基礎）のシラバスや出題傾向に準拠した、やや専門的な天文学の歴史、太陽の構造、宇宙物理の初歩に関するクイズ';
 
-  const exclusionPrompt = answeredIds.length > 0 
-    ? `以下の問題と重複しない、新しい問題を作成してください (除外された過去の問題IDやヒント: ${answeredIds.slice(-10).join(', ')})`
-    : '';
+  let exclusionPrompt = '';
+  if (excludeQuestions && excludeQuestions.length > 0) {
+    exclusionPrompt = `
+    - 【重要】以下の最近出題された問題と**「質問の趣旨・テーマ・正解の対象」が絶対に重複しない、全く異なる新しい天文学のテーマから出題してください**。
+    - 例えば、最近の問題が「星座の動きや太陽の高度」に関するものであれば、今回は「ロケット」「別の惑星の重力」「彗星の軌道」「宇宙望遠鏡」など、全く別のジャンルの出題にしてください。同じようなジャンルの連続出題は厳禁です。
+    - 最近出題された問題文:
+    ${excludeQuestions.map((q, idx) => `  ${idx + 1}. ${q}`).join('\n')}
+    `;
+  } else if (answeredIds.length > 0) {
+    exclusionPrompt = `以下の問題と重複しない、新しい問題を作成してください (除外ワード: ${answeredIds.slice(-10).join(', ')})`;
+  }
 
   const prompt = `
   ${gradePrompt}を1問、JSONフォーマットで生成してください。
@@ -553,7 +569,7 @@ export const generateAstronomyTestQuiz = async (grade, answeredIds = []) => {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.1-flash-lite',
         generationConfig: {
           responseMimeType: 'application/json'
         }
