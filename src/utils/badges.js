@@ -316,7 +316,8 @@ export function getProjectStatus(badgeId, count) {
       color: badgeId === 'b_test_3' ? '#4cc9f0' : '#ffd166', // 級に合わせた色
       desc: proj.parts[4].desc,
       projectIndex: i,
-      image: '/images/' + PROJECT_IMAGE_MAP[proj.id]
+      image: '/images/' + PROJECT_IMAGE_MAP[proj.id],
+      parts: proj.parts
     });
   }
 
