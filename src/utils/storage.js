@@ -107,14 +107,29 @@ export const storage = {
         if (typeof item === 'string') {
           migrated = true;
           const newId = idMap[item] || item;
-          return { id: newId, count: 1, earnedDates: [] };
-        }
-        if (item && item.id && idMap[item.id]) {
-          migrated = true;
           return {
-            ...item,
-            id: idMap[item.id]
+            id: newId,
+            count: 1,
+            earnedDates: [],
+            earnedDetails: []
           };
+        }
+        if (item && typeof item === 'object') {
+          let updated = { ...item };
+          if (item.id && idMap[item.id]) {
+            updated.id = idMap[item.id];
+            migrated = true;
+          }
+          if (!updated.earnedDetails) {
+            migrated = true;
+            const dates = updated.earnedDates || [];
+            updated.earnedDetails = dates.map(date => ({
+              date: date,
+              difficulty: 'easy',
+              mode: 'ai'
+            }));
+          }
+          return updated;
         }
         return item;
       });
@@ -129,18 +144,24 @@ export const storage = {
     }
   },
 
-  addEarnedBadge: (badgeId) => {
+  addEarnedBadge: (badgeId, difficulty = 'easy', mode = 'ai') => {
     try {
       const badges = storage.getEarnedBadges();
       const today = new Date().toLocaleDateString('ja-JP');
       const index = badges.findIndex(b => b.id === badgeId);
+      const detail = {
+        date: today,
+        difficulty,
+        mode
+      };
 
       if (index === -1) {
         // 新規獲得
         badges.push({
           id: badgeId,
           count: 1,
-          earnedDates: [today]
+          earnedDates: [today],
+          earnedDetails: [detail]
         });
         localStorage.setItem(KEYS.EARNED_BADGES, JSON.stringify(badges));
         return { isNew: true, count: 1 };
@@ -151,6 +172,10 @@ export const storage = {
           badges[index].earnedDates = [];
         }
         badges[index].earnedDates.push(today);
+        if (!badges[index].earnedDetails) {
+          badges[index].earnedDetails = [];
+        }
+        badges[index].earnedDetails.push(detail);
         localStorage.setItem(KEYS.EARNED_BADGES, JSON.stringify(badges));
         return { isNew: false, count: badges[index].count };
       }

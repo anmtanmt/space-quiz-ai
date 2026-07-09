@@ -150,3 +150,234 @@ export const CATEGORIES = [
   { id: 'space', name: '🌟 せいざ・うちゅう' },
   { id: 'test', name: '🎓 けんてい' }
 ];
+
+// 難易度とモードの日本語マッピング
+export const DIFFICULTY_MAP = {
+  'easy': 'やさしい',
+  'medium': 'ふつう',
+  'hard': 'むずかしい',
+  '4': '4きゅう',
+  '3': '3きゅう'
+};
+
+export const MODE_MAP = {
+  'ai': 'AIのひみつクイズ',
+  'parent': 'おうちの人のクイズ',
+  'test': 'てんもん宇宙けんてい'
+};
+
+// けんてい用組み立てプロジェクトデータ (4きゅう・3きゅう各4種、計8種)
+export const TEST_PROJECTS = {
+  'b_test_4': [
+    {
+      id: 'p_mmx',
+      name: 'MMXローバー',
+      parts: [
+        { name: 'タイヤ', emoji: '🚜', desc: 'MMXローバーの タイヤ。でこぼこみちも へっちゃら！' },
+        { name: 'ボディ', emoji: '📦', desc: 'MMXローバーの ボディ。中にひみつのロボ頭脳が入っているぞ！' },
+        { name: 'ソーラーパネル', emoji: '🛰️', desc: 'MMXローバーの ソーラーパネル。たいようの光でパワーをためるぞ！' },
+        { name: 'ロボットアーム', emoji: '🦾', desc: 'MMXローバーの ロボットアーム。いしやスナをつかめるぞ！' },
+        { name: '完成ロボット', emoji: '🤖✨', desc: 'すべてのパーツがあつまって、かっこいい「MMXローバー」がかんせいしたぞ！' }
+      ]
+    },
+    {
+      id: 'p_artemis',
+      name: 'アルテミスロケット',
+      parts: [
+        { name: 'ブースター', emoji: '🔥', desc: 'ロケットの よこにつく ほじょブースター。ものすごいちからで おしあげるぞ！' },
+        { name: 'メインタンク', emoji: '🛢️', desc: 'おおきな 燃料タンク。ロケットが とぶための 燃料が入っているよ！' },
+        { name: 'エンジン', emoji: '🚀', desc: 'メインエンジン。宇宙までいっきに飛ぶための超強力エンジン！' },
+        { name: 'カプセル', emoji: '🛸', desc: '宇宙船カプセル。宇宙飛行士さんが乗る、最先端のコントロールルーム！' },
+        { name: '完成ロケット', emoji: '🚀✨', desc: 'すべてのパーツがあつまって、超強力な「アルテミスロケット」がかんせいしたぞ！' }
+      ]
+    },
+    {
+      id: 'p_iss',
+      name: 'うちゅうステーション (ISS)',
+      parts: [
+        { name: 'きぼうアーム', emoji: '🦾', desc: '宇宙ステーションのロボットアーム。いろんな実験につかうよ！' },
+        { name: 'ドッキングハッチ', emoji: '🚪', desc: '宇宙船がくっつく入り口。ここから人が行き来するよ！' },
+        { name: 'きぼう実験棟', emoji: '🧪', desc: '日本の実験スペース。宇宙の特別な環境で科学の実験をするよ！' },
+        { name: 'ソーラーパネル', emoji: '☀️', desc: '大きなつばさのような太陽電池パネル。宇宙でたくさんの電気をつくるよ！' },
+        { name: '完成ステーション', emoji: '🛰️✨', desc: 'すべてのパーツがあつまって、地球をまわる「うちゅうステーション」がかんせいしたぞ！' }
+      ]
+    },
+    {
+      id: 'p_lunar_rover',
+      name: 'つきのくるま',
+      parts: [
+        { name: 'メッシュタイヤ', emoji: '🛞', desc: '月のスナでもすべらない、あみあみでできた特別なメッシュのタイヤ！' },
+        { name: 'つうしんアンテナ', emoji: '📡', desc: '地球にデータを送るための、大きなお皿型のパラボラアンテナ！' },
+        { name: 'カメラの目', emoji: '📷', desc: '月のまわりを撮影するための、とても頑丈なカメラの目！' },
+        { name: 'うんてんせき', emoji: '💺', desc: '宇宙飛行士さんがすわる、宇宙服を着たまま乗れるシート！' },
+        { name: '完成ローバー', emoji: '🏎️✨', desc: 'すべてのパーツがあつまって、月の砂漠をはしる「つきのくるま」がかんせいしたぞ！' }
+      ]
+    }
+  ],
+  'b_test_3': [
+    {
+      id: 'p_hayabusa2',
+      name: 'はやぶさ２',
+      parts: [
+        { name: 'イオンエンジン', emoji: '🚀', desc: 'はやぶさ２のエンジン。青い光を出して、宇宙を長く長く飛ぶことができるよ！' },
+        { name: 'サンプラーホーン', emoji: '🎺', desc: 'はやぶさ２のお鼻。小惑星の砂や石をストローのように吸い込むよ！' },
+        { name: '回収カプセル', emoji: '☄️', desc: 'はやぶさ２のたからばこ。集めた砂を地球へ安全に届けるためのカプセル！' },
+        { name: 'ターゲットマーカー', emoji: '🟢', desc: 'きらきら光るお手玉。小惑星に落として、着陸するときの目印にするよ！' },
+        { name: '完成探査機', emoji: '🛰️✨', desc: 'すべてのパーツがあつまって、小惑星リュウグウを調査した「はやぶさ２」がかんせいしたぞ！' }
+      ]
+    },
+    {
+      id: 'p_voyager',
+      name: 'ボイジャー',
+      parts: [
+        { name: 'パラボラアンテナ', emoji: '📡', desc: '大きなおわん型アンテナ。何十億キロもはなれた地球へ電波を送るよ！' },
+        { name: '原子力電池', emoji: '🔋', desc: '太陽の光がとどかない遠くの宇宙でも、あつあつで電気をつくりつづける電池！' },
+        { name: 'ゴールデンレコード', emoji: '📀', desc: '地球の音や写真、あいさつをのせた金色のレコード。宇宙人へのメッセージ！' },
+        { name: 'カメラアーム', emoji: '🤳', desc: '木星や土星のきれいな写真をたくさん撮影した、ボイジャーのカメラのうで！' },
+        { name: '完成探査機', emoji: '🛸✨', desc: 'すべてのパーツがあつまって、太陽系の外へと旅をつづける伝説の「ボイジャー」がかんせいしたぞ！' }
+      ]
+    },
+    {
+      id: 'p_hubble',
+      name: 'ハッブルぼうえんきょう',
+      parts: [
+        { name: 'おおきな鏡', emoji: '🪞', desc: 'ハッブルの目となる大きな反射鏡。遠くの星 of わずかな光を集めるよ！' },
+        { name: 'フタのドア', emoji: '🚪', desc: '望遠鏡のいりぐち。明るすぎる光が入ってこないようにフタをするドア！' },
+        { name: 'ソーラーのつばさ', emoji: '☀️', desc: '宇宙で動くための電気をつくる、ハッブルの左右にのびたソーラーパネル！' },
+        { name: '宇宙のカメラ', emoji: '📷', desc: '星が生まれるガス雲など、宇宙のうつくしい姿をカラーでとらえる高性能カメラ！' },
+        { name: '完成望遠鏡', emoji: '🔭✨', desc: 'すべてのパーツがあつまって、宇宙の歴史を書き換えた「ハッブル宇宙望遠鏡」がかんせいしたぞ！' }
+      ]
+    },
+    {
+      id: 'p_jwst',
+      name: 'ウェッブぼうえんきょう',
+      parts: [
+        { name: 'きんいろの鏡', emoji: '🪙', desc: 'ハニカム型の金メッキ反射鏡。宇宙のいちばん最初期の星の光をとらえる鏡！' },
+        { name: '日よけのシート', emoji: '🛡️', desc: 'テニスコートサイズの遮熱シールド。太陽の熱からデリケートな鏡を守るよ！' },
+        { name: '鏡の支柱', emoji: '🗼', desc: '集めた光をカメラへ反射させるための、副鏡をささえる頑丈な３本の支柱！' },
+        { name: '赤外線カメラ', emoji: '🎛️', desc: '宇宙のチリを通り抜けて、はるか遠くの星を見透かすことができる赤外線カメラ！' },
+        { name: '完成望遠鏡', emoji: '👁️✨', desc: 'すべてのパーツがあつまって、最新鋭の「ジェイムズ・ウェッブ宇宙望遠鏡」がかんせいしたぞ！' }
+      ]
+    }
+  ]
+};
+
+export const PROJECT_IMAGE_MAP = {
+  'p_mmx': 'p_mmx.png',
+  'p_artemis': 'p_artemis.png',
+  'p_iss': 'p_iss.png',
+  'p_lunar_rover': 'p_lunar_rover.png',
+  'p_hayabusa2': 'p_hayabusa2.png',
+  'p_voyager': 'p_voyager.png',
+  'p_hubble': 'p_hubble.png',
+  'p_jwst': 'p_jwst.png'
+};
+
+/**
+ * 合格回数から、プロジェクトの進行状況と完成済みのプロジェクトリストを返す
+ */
+export function getProjectStatus(badgeId, count) {
+  const projects = TEST_PROJECTS[badgeId];
+  if (!projects) return null;
+
+  if (count <= 0) {
+    return {
+      currentProjectIndex: 0,
+      currentProject: projects[0],
+      currentPartIndex: -1, // まだパーツを1つも持っていない
+      isAllCompleted: false,
+      completedList: []
+    };
+  }
+
+  const maxProjectCount = projects.length; // 4
+  // 1つのプロジェクトは5回の合格で完成。
+  // 合格回数から、現在どのプロジェクトを組み立て中かを判定
+  const currentProjectIndex = Math.min(maxProjectCount - 1, Math.floor((count - 1) / 5));
+
+  let currentPartIndex = 0;
+  if (count >= maxProjectCount * 5) {
+    currentPartIndex = 4; // すべて完成している場合は、最後のプロジェクトの「完成体」
+  } else {
+    currentPartIndex = (count - 1) % 5;
+  }
+
+  const isAllCompleted = count >= maxProjectCount * 5;
+
+  // 完成済みのプロジェクトリストを抽出
+  const completedList = [];
+  const completedCount = Math.min(maxProjectCount, Math.floor(count / 5));
+  for (let i = 0; i < completedCount; i++) {
+    const proj = projects[i];
+    completedList.push({
+      id: proj.id,
+      name: proj.name,
+      emoji: proj.parts[4].emoji,
+      color: badgeId === 'b_test_3' ? '#4cc9f0' : '#ffd166', // 級に合わせた色
+      desc: proj.parts[4].desc,
+      projectIndex: i,
+      image: '/images/' + PROJECT_IMAGE_MAP[proj.id]
+    });
+  }
+
+  return {
+    currentProjectIndex,
+    currentProject: projects[currentProjectIndex],
+    currentPartIndex, // 0 = パーツ1, 1 = パーツ2, 2 = パーツ3, 3 = パーツ4, 4 = 完成体
+    isAllCompleted,
+    completedList
+  };
+}
+
+/**
+ * 獲得回数に応じてバッジ情報（絵文字、名前、説明）を動的に差し替えて返す
+ */
+export function getDynamicBadgeInfo(badge, count = 1) {
+  if (!badge) return null;
+
+  if (badge.id === 'b_test_4' || badge.id === 'b_test_3') {
+    const status = getProjectStatus(badge.id, count);
+    if (status && status.currentProject) {
+      const part = status.currentProject.parts[status.currentPartIndex];
+      if (part) {
+        return {
+          ...badge,
+          name: status.currentPartIndex === 4
+            ? `${status.currentProject.name}（かんせい！）`
+            : `${status.currentProject.name}の ${part.name}`,
+          emoji: part.emoji,
+          desc: part.desc,
+          image: status.currentPartIndex === 4
+            ? '/images/' + PROJECT_IMAGE_MAP[status.currentProject.id]
+            : null
+        };
+      }
+    }
+  }
+
+  return badge;
+}
+
+/**
+ * 獲得された最高難易度に基づいて、バッジのフチ色（ボーダー色）を返す
+ */
+export function getBadgeBorderColor(earnedInfo) {
+  if (!earnedInfo || !earnedInfo.earnedDetails || earnedInfo.earnedDetails.length === 0) {
+    return 'rgba(255, 255, 255, 0.15)'; // 未獲得時のデフォルト
+  }
+
+  const difficulties = earnedInfo.earnedDetails.map(d => d.difficulty);
+
+  if (difficulties.includes('hard')) {
+    return '#ffb703'; // 金色 (むずかしい)
+  }
+  if (difficulties.includes('medium') || difficulties.includes('3')) {
+    return '#3a86ff'; // 青 (ふつう / 3きゅう)
+  }
+  if (difficulties.includes('easy') || difficulties.includes('4')) {
+    return '#ffffff'; // 白 (やさしい / 4きゅう)
+  }
+
+  return '#ffffff'; // デフォルト白
+}
+

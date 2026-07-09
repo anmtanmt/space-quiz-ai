@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
-import { BADGE_POOL } from '../utils/badges';
+import { BADGE_POOL, getDynamicBadgeInfo, getBadgeBorderColor } from '../utils/badges';
 
 export default function ResultScreen({ score, total, mode = 'ai', difficulty = 'easy', onPlayAgain, onViewCollection, onBackToTitle }) {
   const [newBadge, setNewBadge] = useState(null);
   const [isNewBadgeEarned, setIsNewBadgeEarned] = useState(false);
   const [isTestMode, setIsTestMode] = useState(false);
   const [isTestPassed, setIsTestPassed] = useState(false);
+  const [isPhotoMaximized, setIsPhotoMaximized] = useState(false);
   const earnedRef = useRef(false);
 
   useEffect(() => {
@@ -28,10 +29,16 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
         const targetBadge = BADGE_POOL.find(b => b.id === badgeId);
 
         if (targetBadge) {
-          const result = storage.addEarnedBadge(targetBadge.id);
+          const result = storage.addEarnedBadge(targetBadge.id, difficulty, mode);
+          const count = result ? result.count : 1;
+          const dynamicBadge = getDynamicBadgeInfo(targetBadge, count);
+          
           setNewBadge({
-            ...targetBadge,
-            count: result ? result.count : 1
+            ...dynamicBadge,
+            count: count,
+            borderColor: getBadgeBorderColor({
+              earnedDetails: [{ difficulty, mode }]
+            })
           });
           setIsNewBadgeEarned(result ? result.count === 1 : true);
         }
@@ -60,10 +67,16 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
         }
 
         if (selected) {
-          const result = storage.addEarnedBadge(selected.id);
+          const result = storage.addEarnedBadge(selected.id, difficulty, mode);
+          const count = result ? result.count : 1;
+          const dynamicBadge = getDynamicBadgeInfo(selected, count);
+
           setNewBadge({
-            ...selected,
-            count: result ? result.count : 1
+            ...dynamicBadge,
+            count: count,
+            borderColor: getBadgeBorderColor({
+              earnedDetails: [{ difficulty, mode }]
+            })
           });
           setIsNewBadgeEarned(isNew);
         }
@@ -124,14 +137,29 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
           newBadge && (
             <div style={styles.badgeSection}>
               <p style={styles.badgeInstruction}>
-                {isNewBadgeEarned 
-                  ? '🏅 合格おめでとう！ 合格バッジを ゲットしたよ！' 
-                  : `🌟 ${newBadge.count}かいめの 合格だ！`}
+                {newBadge.name.includes('かんせい')
+                  ? '🎉 合格おめでとう！ ついに探査機（たんさきき）が「かんせい」したよ！'
+                  : '🏅 合格おめでとう！ 組み立てパーツを ゲットしたよ！'}
               </p>
               <div className="badge-wrapper star-pop" style={styles.badgeWrapper}>
-                <div style={{ ...styles.badgeCircle, backgroundColor: newBadge.color }}>
-                  <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
-                </div>
+                {newBadge.image ? (
+                  <div 
+                    style={styles.realPhotoContainer}
+                    onClick={() => { audio.playClick(); setIsPhotoMaximized(true); }}
+                    title="タップすると おおきくなるよ！"
+                  >
+                    <img src={newBadge.image} alt={newBadge.name} style={styles.realPhoto} />
+                    <div style={styles.zoomHint}>🔍 タップでおおきくなるよ！</div>
+                  </div>
+                ) : (
+                  <div style={{
+                    ...styles.badgeCircle,
+                    backgroundColor: newBadge.color,
+                    borderColor: newBadge.borderColor || '#fff'
+                  }}>
+                    <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
+                  </div>
+                )}
                 <h3 style={styles.badgeName}>
                   {newBadge.name} {newBadge.count > 1 && `×${newBadge.count}`}
                 </h3>
@@ -163,7 +191,11 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
                   : `🌟 ${newBadge.count}こめの ${newBadge.name}を ゲットしたよ！`}
               </p>
               <div className="badge-wrapper star-pop" style={styles.badgeWrapper}>
-                <div style={{ ...styles.badgeCircle, backgroundColor: newBadge.color }}>
+                <div style={{
+                  ...styles.badgeCircle,
+                  backgroundColor: newBadge.color,
+                  borderColor: newBadge.borderColor || '#fff'
+                }}>
                   <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
                 </div>
                 <h3 style={styles.badgeName}>
@@ -213,6 +245,29 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
           🏠 タイトルにもどる
         </button>
       </div>
+
+      {/* 写真の拡大表示モーダル */}
+      {isPhotoMaximized && newBadge && newBadge.image && (
+        <div 
+          style={styles.maximizedOverlay} 
+          onClick={() => { audio.playClick(); setIsPhotoMaximized(false); }}
+        >
+          <div style={styles.maximizedContainer}>
+            <img src={newBadge.image} alt={newBadge.name} style={styles.maximizedPhoto} />
+            <div style={styles.maximizedTitle}>{newBadge.name}</div>
+            <button 
+              className="btn-action btn-primary" 
+              onClick={() => { audio.playClick(); setIsPhotoMaximized(false); }}
+              style={{ marginTop: '20px', padding: '10px 30px' }}
+            >
+              もどる
+            </button>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '12px', letterSpacing: '0.05em' }}>
+              （がめんの どこをタップしても もどれるよ）
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -332,5 +387,75 @@ const styles = {
     flex: 1,
     padding: '14px 10px',
     fontSize: '1.05rem',
+  },
+  realPhotoContainer: {
+    width: '180px',
+    height: '180px',
+    borderRadius: '24px',
+    overflow: 'hidden',
+    border: '4px solid var(--color-primary)',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+    marginBottom: '15px',
+    background: '#000',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    cursor: 'pointer'
+  },
+  realPhoto: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
+  },
+  zoomHint: {
+    position: 'absolute',
+    bottom: '0',
+    left: '0',
+    right: '0',
+    background: 'rgba(0, 0, 0, 0.6)',
+    color: '#ffd166',
+    fontSize: '0.75rem',
+    padding: '4px 0',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  maximizedOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0, 0, 0, 0.95)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+    cursor: 'pointer',
+    animation: 'fadeIn 0.2s ease-out',
+    overflowY: 'auto',
+    padding: '40px 15px',
+  },
+  maximizedContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    maxWidth: '90%',
+    width: '100%',
+  },
+  maximizedPhoto: {
+    maxWidth: '100%',
+    maxHeight: '60vh',
+    borderRadius: '24px',
+    border: '4px solid #fff',
+    boxShadow: '0 0 30px rgba(255,255,255,0.2)',
+    objectFit: 'contain',
+  },
+  maximizedTitle: {
+    color: '#fff',
+    fontSize: '1.6rem',
+    fontWeight: 'bold',
+    marginTop: '15px',
+    textShadow: '0 2px 4px rgba(0,0,0,0.5)',
   }
 };

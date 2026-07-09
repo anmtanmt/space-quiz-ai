@@ -433,7 +433,7 @@ export default function ParentPortal({ onBackToTitle }) {
         {/* システム管理（リセット機能） */}
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>⚠️ システム管理</h2>
-          <div style={styles.systemCard}>
+          <div style={{ ...styles.systemCard, marginBottom: '20px' }}>
             <div style={styles.systemInfo}>
               <h4>子どもの進捗データを最初からやり直す</h4>
               <p style={styles.hint}>お子様の回答履歴と獲得したバッジをすべて消去し、最初の状態に戻します。（親御様が作成したクイズ自体は削除されません）</p>
@@ -441,6 +441,67 @@ export default function ParentPortal({ onBackToTitle }) {
             <button className="btn-action btn-back" onClick={handleResetData} style={styles.resetBtn}>
               💥 回答履歴とバッジをリセット
             </button>
+          </div>
+
+          {/* デバッグ機能 */}
+          <div style={{ ...styles.systemCard, border: '1px dashed #ffb703', background: 'rgba(255, 183, 3, 0.05)', marginTop: '20px' }}>
+            <div style={styles.systemInfo}>
+              <h4 style={{ color: '#ffd166', margin: '0 0 4px 0' }}>🛠️ 開発者デバッグツール</h4>
+              <p style={styles.hint}>パーツ組み立てやフチ色、マイグレーションなどの表示確認のためのボタンです。</p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
+              <button 
+                className="btn-action btn-primary"
+                onClick={() => {
+                  audio.playClick();
+                  storage.addEarnedBadge('b_test_4', '4', 'test');
+                  alert('4きゅうの合格回数を +1 しました！');
+                }}
+                style={{ fontSize: '0.9rem', padding: '10px 16px' }}
+              >
+                4きゅう合格 +1
+              </button>
+              <button 
+                className="btn-action btn-primary"
+                onClick={() => {
+                  audio.playClick();
+                  storage.addEarnedBadge('b_test_3', '3', 'test');
+                  alert('3きゅうの合格回数を +1 しました！');
+                }}
+                style={{ fontSize: '0.9rem', padding: '10px 16px' }}
+              >
+                3きゅう合格 +1
+              </button>
+              <button 
+                className="btn-action btn-accent"
+                onClick={() => {
+                  audio.playClick();
+                  // 古い形式のデータ（単なる文字列配列）を注入
+                  localStorage.setItem('sq_earned_badges', JSON.stringify([
+                    'b_earth',  // やさしいで獲得していたとみなされる
+                    'b_moon'
+                  ]));
+                  alert('古い形式のバッジデータを注入しました！リロード後にバッジ画面でマイグレーションが確認できます。');
+                }}
+                style={{ fontSize: '0.9rem', padding: '10px 16px' }}
+              >
+                古いバッジデータ注入 (マイグレーション確認用)
+              </button>
+              <button 
+                className="btn-action btn-back"
+                onClick={() => {
+                  audio.playClick();
+                  // 通常の難易度別のバッジ獲得をシミュレーション付与
+                  storage.addEarnedBadge('b_sun', 'easy', 'ai');
+                  storage.addEarnedBadge('b_mercury', 'medium', 'ai');
+                  storage.addEarnedBadge('b_venus', 'hard', 'ai');
+                  alert('やさしい(白)・ふつう(青)・むずかしい(金)で獲得した惑星バッジを付与しました！');
+                }}
+                style={{ fontSize: '0.9rem', padding: '10px 16px' }}
+              >
+                難易度別バッジ付与 (フチ色確認用)
+              </button>
+            </div>
           </div>
         </div>
       </div>
