@@ -42,16 +42,17 @@ export const handler = async (event) => {
     const difficulty = body.difficulty || 'easy';
     const answeredIds = body.answeredIds || [];
     const excludeQuestions = body.excludeQuestions || [];
+    const recentQuestions = body.recentQuestions || [];
     const isTest = body.isTest || false;
     const grade = body.grade || '4';
 
     let quiz;
     if (isTest) {
       // 天文宇宙検定クイズの生成
-      quiz = await generateTestQuiz(grade, answeredIds, excludeQuestions);
+      quiz = await generateTestQuiz(grade, answeredIds, excludeQuestions, recentQuestions);
     } else {
       // 通常の宇宙クイズ生成
-      quiz = await generateQuiz(difficulty, answeredIds, excludeQuestions);
+      quiz = await generateQuiz(difficulty, answeredIds, excludeQuestions, recentQuestions);
     }
 
     return {
@@ -73,7 +74,7 @@ export const handler = async (event) => {
 };
 
 // Gemini API からクイズを生成し、バリデーションとリトライを行う関数
-async function generateQuiz(difficulty, answeredIds, excludeQuestions = []) {
+async function generateQuiz(difficulty, answeredIds, excludeQuestions = [], recentQuestions = []) {
   let difficultyConstraint = '';
   if (difficulty === 'easy') {
     difficultyConstraint = `
@@ -97,11 +98,19 @@ async function generateQuiz(difficulty, answeredIds, excludeQuestions = []) {
 
   let exclusionPrompt = '';
   if (excludeQuestions && excludeQuestions.length > 0) {
-    exclusionPrompt = `
-    - 【重要】以下の最近出題された問題と**「質問の趣旨・テーマ・正解の対象」が絶対に重複しない、全く異なる新しい宇宙のテーマから出題してください**。
-    - 例えば、最近の問題が「太陽の動きや方角」に関するものであれば、今回は「別の惑星の特徴」「ブラックホール」「ロケットの仕組み」「宇宙服のひみつ」など、全く別のジャンルにしてください。同じようなジャンルの連続出題は厳禁です。
-    - 最近出題された問題文:
-    ${excludeQuestions.map((q, idx) => `  ${idx + 1}. ${q}`).join('\n')}
+    exclusionPrompt += `
+    - 【最重要・絶対遵守】以下の「直近の数問」と**「質問の趣旨・テーマ・正解の対象」が絶対に重複しない、全く異なる新しい宇宙のテーマから出題してください**。
+    - 直近の数問:
+    ${excludeQuestions.map((q, idx) => `  - ${q}`).join('\n')}
+    `;
+  }
+
+  if (recentQuestions && recentQuestions.length > 0) {
+    exclusionPrompt += `
+    - 【重要】以下の「最近出題された問題リスト（最大30問）」ともできるだけテーマや題材が重複しないようにしてください。
+    - まだ出題されていない幅広い宇宙のトピック（例：別の惑星の特徴、ブラックホール、ロケットの仕組み、宇宙服のひみつ、星座、歴史、宇宙探査機など）から積極的に選んで出題してください。
+    - 最近出題された問題リスト:
+    ${recentQuestions.map((q, idx) => `  - ${q}`).join('\n')}
     `;
   }
 
@@ -202,18 +211,27 @@ function validateQuiz(quiz, difficulty) {
 }
 
 // 天文宇宙検定用のクイズ生成（4択）
-async function generateTestQuiz(grade, answeredIds, excludeQuestions = []) {
+async function generateTestQuiz(grade, answeredIds, excludeQuestions = [], recentQuestions = []) {
   const gradePrompt = grade === '3' 
     ? '天文宇宙検定3級（星空準案内人・一般天文学の基礎）のシラバスや出題傾向に準拠した、やや専門的な天文学の歴史、太陽の構造、宇宙物理 of 初歩に関するクイズ'
     : '天文宇宙検定4級（星空博士・主に中学生や星空に興味がある子供向け）のシラバスや出題傾向に準拠した、月や太陽、星座の動き、基本的な天体観測に関するクイズ';
 
   let exclusionPrompt = '';
   if (excludeQuestions && excludeQuestions.length > 0) {
-    exclusionPrompt = `
-    - 【重要】以下の最近出題された問題と**「質問の趣旨・テーマ・正解の対象」が絶対に重複しない、全く異なる新しい天文学のテーマから出題してください**。
+    exclusionPrompt += `
+    - 【最重要・絶対遵守】以下の「直近の数問」と**「質問の趣旨・テーマ・正解の対象」が絶対に重複しない、全く異なる新しい天文学のテーマから出題してください**。
     - 例えば、最近の問題が「星座の動きや太陽の高度」に関するものであれば、今回は「ロケット」「別の惑星の重力」「彗星の軌道」「宇宙望遠鏡」など、全く別のジャンルの出題にしてください。同じようなジャンルの連続出題は厳禁です。
-    - 最近出題された問題文:
-    ${excludeQuestions.map((q, idx) => `  ${idx + 1}. ${q}`).join('\n')}
+    - 直近の数問:
+    ${excludeQuestions.map((q, idx) => `  - ${q}`).join('\n')}
+    `;
+  }
+
+  if (recentQuestions && recentQuestions.length > 0) {
+    exclusionPrompt += `
+    - 【重要】以下の「最近出題された問題リスト（最大30問）」ともできるだけテーマや題材が重複しないようにしてください。
+    - まだ出題されていない幅広い宇宙のトピック（例：別の惑星の特徴、ブラックホール、ロケットの仕組み、宇宙服のひみつ、星座、歴史、宇宙探査機など）から積極的に選んで出題してください。
+    - 最近出題された問題リスト:
+    ${recentQuestions.map((q, idx) => `  - ${q}`).join('\n')}
     `;
   }
 

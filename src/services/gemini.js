@@ -229,7 +229,7 @@ const getApiGatewayUrl = () => {
 };
 
 // Gemini APIを用いてクイズを生成する関数
-export const generateQuizFromAI = async (difficulty, answeredIds = [], excludeQuestions = []) => {
+export const generateQuizFromAI = async (difficulty, answeredIds = [], excludeQuestions = [], recentQuestions = []) => {
   const apiGatewayUrl = getApiGatewayUrl();
 
   // API Gateway の URL が設定されている場合は、AWS Lambda バックエンドを呼び出す
@@ -240,7 +240,7 @@ export const generateQuizFromAI = async (difficulty, answeredIds = [], excludeQu
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ difficulty, answeredIds, excludeQuestions })
+        body: JSON.stringify({ difficulty, answeredIds, excludeQuestions, recentQuestions })
       });
 
       if (response.ok) {
@@ -286,14 +286,22 @@ export const generateQuizFromAI = async (difficulty, answeredIds = [], excludeQu
   // 除外クイズ情報
   let exclusionPrompt = '';
   if (excludeQuestions && excludeQuestions.length > 0) {
-    exclusionPrompt = `
-    - 【重要】以下の最近出題された問題と**「質問の趣旨・テーマ・正解の対象」が絶対に重複しない、全く異なる新しい宇宙のテーマから出題してください**。
-    - 例えば、最近の問題が「太陽の動きや方角」に関するものであれば、今回は「別の惑星の特徴」「ブラックホール」「ロケットの仕組み」「宇宙服のひみつ」など、全く別のジャンルにしてください。同じようなジャンルの連続出題は厳禁です。
-    - 最近出題された問題文:
-    ${excludeQuestions.map((q, idx) => `  ${idx + 1}. ${q}`).join('\n')}
+    exclusionPrompt += `
+    - 【最重要・絶対遵守】以下の「直近の数問」と**「質問の趣旨・テーマ・正解の対象」が絶対に重複しない、全く異なる新しい宇宙のテーマから出題してください**。
+    - 直近の数問:
+    ${excludeQuestions.map((q, idx) => `  - ${q}`).join('\n')}
     `;
   } else if (answeredIds.length > 0) {
-    exclusionPrompt = `以下の問題と重複しない、新しい問題を作成してください (除外ワード: ${answeredIds.slice(-10).join(', ')})`;
+    exclusionPrompt += `以下の問題と重複しない、新しい問題を作成してください (除外ワード: ${answeredIds.slice(-10).join(', ')})`;
+  }
+
+  if (recentQuestions && recentQuestions.length > 0) {
+    exclusionPrompt += `
+    - 【重要】以下の「最近出題された問題リスト（最大30問）」ともできるだけテーマや題材が重複しないようにしてください。
+    - まだ出題されていない幅広い宇宙のトピック（例：別の惑星の特徴、ブラックホール、ロケットの仕組み、宇宙服のひみつ、星座、歴史、宇宙探査機など）から積極的に選んで出題してください。
+    - 最近出題された問題リスト:
+    ${recentQuestions.map((q, idx) => `  - ${q}`).join('\n')}
+    `;
   }
 
   const prompt = `
@@ -494,7 +502,7 @@ const FALLBACK_TEST_QUIZZES = {
 };
 
 // 天文宇宙検定用のクイズ生成API
-export const generateAstronomyTestQuiz = async (grade, answeredIds = [], excludeQuestions = []) => {
+export const generateAstronomyTestQuiz = async (grade, answeredIds = [], excludeQuestions = [], recentQuestions = []) => {
   const apiGatewayUrl = getApiGatewayUrl();
 
   // AWS Lambda バックエンドの呼び出しを試みる
@@ -505,7 +513,7 @@ export const generateAstronomyTestQuiz = async (grade, answeredIds = [], exclude
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ isTest: true, grade, answeredIds, excludeQuestions })
+        body: JSON.stringify({ isTest: true, grade, answeredIds, excludeQuestions, recentQuestions })
       });
 
       if (response.ok) {
@@ -531,14 +539,23 @@ export const generateAstronomyTestQuiz = async (grade, answeredIds = [], exclude
 
   let exclusionPrompt = '';
   if (excludeQuestions && excludeQuestions.length > 0) {
-    exclusionPrompt = `
-    - 【重要】以下の最近出題された問題と**「質問の趣旨・テーマ・正解の対象」が絶対に重複しない、全く異なる新しい天文学のテーマから出題してください**。
+    exclusionPrompt += `
+    - 【最重要・絶対遵守】以下の「直近の数問」と**「質問の趣旨・テーマ・正解の対象」が絶対に重複しない、全く異なる新しい天文学のテーマから出題してください**。
     - 例えば、最近の問題が「星座の動きや太陽の高度」に関するものであれば、今回は「ロケット」「別の惑星の重力」「彗星の軌道」「宇宙望遠鏡」など、全く別のジャンルの出題にしてください。同じようなジャンルの連続出題は厳禁です。
-    - 最近出題された問題文:
-    ${excludeQuestions.map((q, idx) => `  ${idx + 1}. ${q}`).join('\n')}
+    - 直近の数問:
+    ${excludeQuestions.map((q, idx) => `  - ${q}`).join('\n')}
     `;
   } else if (answeredIds.length > 0) {
-    exclusionPrompt = `以下の問題と重複しない、新しい問題を作成してください (除外ワード: ${answeredIds.slice(-10).join(', ')})`;
+    exclusionPrompt += `以下の問題と重複しない、新しい問題を作成してください (除外ワード: ${answeredIds.slice(-10).join(', ')})`;
+  }
+
+  if (recentQuestions && recentQuestions.length > 0) {
+    exclusionPrompt += `
+    - 【重要】以下の「最近出題された問題リスト（最大30問）」ともできるだけテーマや題材が重複しないようにしてください。
+    - まだ出題されていない幅広い宇宙のトピック（例：別の惑星の特徴、ブラックホール、ロケットの仕組み、宇宙服のひみつ、星座、歴史、宇宙探査機など）から積極的に選んで出題してください。
+    - 最近出題された問題リスト:
+    ${recentQuestions.map((q, idx) => `  - ${q}`).join('\n')}
+    `;
   }
 
   const prompt = `

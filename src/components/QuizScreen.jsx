@@ -42,13 +42,16 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
         // 天文宇宙検定クイズ
         const historyIds = [...answeredIds];
         const sessionQuestions = [];
+        const recentQuestions = storage.getRecentQuestions(30);
         for (let i = 0; i < 5; i++) {
           if (!active) return;
           try {
-            const testQuiz = await generateAstronomyTestQuiz(difficulty, historyIds, sessionQuestions);
+            const testQuiz = await generateAstronomyTestQuiz(difficulty, historyIds, sessionQuestions, recentQuestions);
             quizList.push(testQuiz);
             historyIds.push(testQuiz.id);
-            const plainQuestion = testQuiz.question.replace(/<[^>]*>/g, '');
+            const plainQuestion = testQuiz.question
+              .replace(/<rt>.*?<\/rt>/g, '')
+              .replace(/<[^>]*>/g, '');
             sessionQuestions.push(plainQuestion);
           } catch (e) {
             console.error('Failed loading test question ' + i, e);
@@ -59,13 +62,16 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
         // 5回APIを叩いて問題をランダムに収集
         const historyIds = [...answeredIds];
         const sessionQuestions = [];
+        const recentQuestions = storage.getRecentQuestions(30);
         for (let i = 0; i < 5; i++) {
           if (!active) return;
           try {
-            const aiQuiz = await generateQuizFromAI(difficulty, historyIds, sessionQuestions);
+            const aiQuiz = await generateQuizFromAI(difficulty, historyIds, sessionQuestions, recentQuestions);
             quizList.push(aiQuiz);
             historyIds.push(aiQuiz.id); // 重複回避用の一時的追加
-            const plainQuestion = aiQuiz.question.replace(/<[^>]*>/g, '');
+            const plainQuestion = aiQuiz.question
+              .replace(/<rt>.*?<\/rt>/g, '')
+              .replace(/<[^>]*>/g, '');
             sessionQuestions.push(plainQuestion);
           } catch (e) {
             console.error('Failed loading question ' + i, e);
@@ -76,6 +82,12 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
       if (active) {
         setQuizzes(quizList);
         setLoading(false);
+        // 最近出題された問題履歴に登録
+        quizList.forEach(quiz => {
+          if (quiz && quiz.question) {
+            storage.addRecentQuestion(quiz.question);
+          }
+        });
       }
     }
 

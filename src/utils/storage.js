@@ -3,7 +3,8 @@
 const KEYS = {
   ANSWERED_IDS: 'sq_answered_ids',
   PARENT_QUIZZES: 'sq_parent_quizzes',
-  EARNED_BADGES: 'sq_earned_badges'
+  EARNED_BADGES: 'sq_earned_badges',
+  RECENT_QUESTIONS: 'sq_recent_questions'
 };
 
 export const storage = {
@@ -193,9 +194,60 @@ export const storage = {
     }
   },
 
+  // --- 最近出題された問題履歴管理 ---
+  getRecentQuestions: (limit = 30) => {
+    try {
+      const data = localStorage.getItem(KEYS.RECENT_QUESTIONS);
+      const list = data ? JSON.parse(data) : [];
+      if (limit && typeof limit === 'number') {
+        return list.slice(-limit);
+      }
+      return list;
+    } catch (e) {
+      console.error('Failed to get recent questions', e);
+      return [];
+    }
+  },
+
+  addRecentQuestion: (question) => {
+    if (!question || typeof question !== 'string') return;
+    try {
+      const plain = question
+        .replace(/<rt>.*?<\/rt>/g, '')
+        .replace(/<[^>]*>/g, '')
+        .trim();
+      if (!plain) return;
+
+      const data = localStorage.getItem(KEYS.RECENT_QUESTIONS);
+      let list = data ? JSON.parse(data) : [];
+      
+      // 重複排除して最新（末尾）に配置
+      list = list.filter(q => q !== plain);
+      list.push(plain);
+
+      // 上限100問
+      if (list.length > 100) {
+        list = list.slice(-100);
+      }
+
+      localStorage.setItem(KEYS.RECENT_QUESTIONS, JSON.stringify(list));
+    } catch (e) {
+      console.error('Failed to add recent question', e);
+    }
+  },
+
+  clearRecentQuestions: () => {
+    try {
+      localStorage.removeItem(KEYS.RECENT_QUESTIONS);
+    } catch (e) {
+      console.error('Failed to clear recent questions', e);
+    }
+  },
+
   // --- 全体リセット（手作りクイズは残し、子どもの回答履歴とバッジのみリセット） ---
   resetChildData: () => {
     storage.clearAnsweredIds();
     storage.clearEarnedBadges();
+    storage.clearRecentQuestions();
   }
 };
