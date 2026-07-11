@@ -103,11 +103,13 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}>🚀</div>
         <p style={styles.loadingText}>
-          {mode === 'ai' 
-            ? 'AIが うちゅうの ひみつクイズを つくっているよ。ちょっと まってね...' 
-            : mode === 'test'
-              ? 'てんもん宇宙けんていの もんだいを じゅんびしているよ。ちょっと まってね...'
-              : 'クイズを じゅんび しているよ...'}
+          {mode === 'ai' ? (
+            <>AIが うちゅうの ひみつクイズを つくっているよ。<br />ちょっと まってね...</>
+          ) : mode === 'test' ? (
+            <>てんもん宇宙けんていの もんだいを じゅんびしているよ。<br />ちょっと まってね...</>
+          ) : (
+            'クイズを じゅんび しているよ...'
+          )}
         </p>
       </div>
     );
