@@ -1,7 +1,124 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { generateQuizFromAI, generateAstronomyTestQuiz } from '../services/gemini';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
+
+// HTMLから音声読み上げ用のひらがなテキストを抽出する関数
+function getReadingText(htmlString, isEasy = false) {
+  if (typeof document === 'undefined') return htmlString;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<span>${htmlString}</span>`, 'text/html');
+  const span = doc.body.firstChild;
+
+  // ruby要素を探して、親文字を削除しつつ、ルビテキストと送り仮名を正しく結合する
+  const rubies = span.querySelectorAll('ruby');
+  rubies.forEach(ruby => {
+    const childNodes = Array.from(ruby.childNodes);
+    const newNodes = [];
+
+    for (let i = 0; i < childNodes.length; i++) {
+      const node = childNodes[i];
+
+      if (node.nodeType === 1 && node.tagName.toLowerCase() === 'rt') { // ELEMENT_NODE
+        newNodes.push(doc.createTextNode(node.textContent));
+      } else if (node.nodeType === 3) { // TEXT_NODE
+        const nextNode = childNodes[i + 1];
+        const isParentText = nextNode &&
+          nextNode.nodeType === 1 &&
+          nextNode.tagName.toLowerCase() === 'rt';
+
+        // 直後に rt タグが控えていないテキストノード（送り仮名など）は残す
+        if (!isParentText) {
+          newNodes.push(doc.createTextNode(node.textContent));
+        }
+      }
+    }
+
+    // 子ノード群を置換してフラット化する
+    const fragment = doc.createDocumentFragment();
+    newNodes.forEach(n => fragment.appendChild(n));
+    ruby.parentNode.replaceChild(fragment, ruby);
+  });
+
+  let text = span.textContent;
+
+  // 1. 括弧内のひらがな・カタカナ（8文字以下）を削除（例: 「場所（ばしょ）」→「場所」）
+  text = text.replace(/[（(][\u3040-\u309F\u30A0-\u30FF\u30FC]{1,8}[）)]/g, '');
+
+  // 2. 「やさしい」モードの場合の追加処理
+  if (isEasy) {
+    // 助詞の「は」「へ」を正しい発音（わ、え）に置換（文末、スペース、句読点の前が対象）
+    text = text.replace(/は([ 　、。？！\?\!：:]|$)/g, 'わ$1');
+    text = text.replace(/へ([ 　、。？！\?\!：:]|$)/g, 'え$1');
+
+    // イントネーション改善のためのひらがな→漢字簡易置換マッピング
+    const wordMap = {
+      'うちゅうひこうし': '宇宙飛行士',
+      'うちゅうふく': '宇宙服',
+      'てんのうせい': '天王星',
+      'かいおうせい': '海王星',
+      'しんかんせん': '新幹線',
+      'たいようけい': '太陽系',
+      'おほしさま': 'お星さま',
+      'のりもの': '乗り物',
+      'ピカピカ': 'ぴかぴか',
+      'ポカポカ': 'ぽかぽか',
+      'ぴかぴか': 'ぴかぴか',
+      'ぽかぽか': 'ぽかぽか',
+      'うちゅう': '宇宙',
+      'ちきゅう': '地球',
+      'たいよう': '太陽',
+      'もくせい': '木星',
+      'ひこうき': '飛行機',
+      'なまえ': '名前',
+      'にほん': 'にっぽん',
+      'かせい': '火星',
+      'どせい': '土星',
+      'すいせい': '水星',
+      'きんせい': '金星',
+      'せいざ': '星座',
+      'ぎんが': '銀河',
+      'わくせい': '惑星',
+      'えいせい': '衛星',
+      'よる': '夜',
+      'した': '下',
+      'あさ': '朝',
+      'ひかる': '光る',
+      'まわって': '回って',
+      'まわる': '回る',
+      'ねむる': '眠る',
+      'ほのお': '炎',
+      'けむり': '煙',
+      'おと': '音',
+      'みず': '水',
+      'つき': '月',
+      'おとなり': 'お隣',
+      'となり': '隣',
+      'かるい': '軽い',
+      'かるく': '軽く',
+      'じかん': '時間',
+      'あとひとつ': 'あと一つ',
+      'ひとつ': '一つ',
+      'べが': 'ヴェガ'
+    };
+
+    for (const [kana, kanji] of Object.entries(wordMap)) {
+      text = text.replaceAll(kana, kanji);
+    }
+
+    // スペースを「、」に置換してイントネーションを改善
+    text = text.replace(/[ 　]+/g, '、');
+    text = text.replace(/、+/g, '、');
+  }
+
+  // 3. 全難易度共通の発音・ポーズ補正
+  text = text.replaceAll('ベガ', 'ヴェガ');
+  text = text.replaceAll('日本', 'にっぽん');
+  text = text.replace(/、/g, '。');    // 読点「、」もすべて句点「。」に変換して確実にポーズを置く
+  text = text.replace(/。+/g, '。');   // 連続する句点を1つにまとめる
+
+  return text;
+}
 
 export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTitle }) {
   const [quizzes, setQuizzes] = useState([]);
@@ -12,6 +129,225 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
   const [showExplanation, setShowExplanation] = useState(false);
   const [isWrongShake, setIsWrongShake] = useState(false);
   const [quizHistory, setQuizHistory] = useState([]);
+
+  // 音声読み上げ用ステートと参照
+  const [isPlayingSpeech, setIsPlayingSpeech] = useState(false);
+  const [autoSpeech, setAutoSpeech] = useState(() => {
+    try {
+      const saved = localStorage.getItem('auto_speech');
+      return saved !== null ? saved === 'true' : true;
+    } catch (e) {
+      return true;
+    }
+  });
+  const utteranceRef = useRef(null);
+
+  // マーカー（Canvas）用ステートと参照
+  const [isPenActive, setIsPenActive] = useState(true);
+  const canvasRef = useRef(null);
+  const isDrawingRef = useRef(false);
+  const lastPos = useRef({ x: 0, y: 0 });
+
+  // 誤タップ防止用トランジションロック
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const transitionTimerRef = useRef(null);
+
+  // 音声読み上げ開始
+  const startSpeech = (text) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    window.speechSynthesis.cancel();
+    audio.duckBgm();
+
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP';
+    u.rate = 0.88; // 子ども向けに少しゆっくり
+
+    u.onend = () => {
+      setIsPlayingSpeech(false);
+      audio.unduckBgm();
+    };
+    u.onerror = () => {
+      setIsPlayingSpeech(false);
+      audio.unduckBgm();
+    };
+
+    utteranceRef.current = u;
+    window.speechSynthesis.speak(u);
+    setIsPlayingSpeech(true);
+  };
+
+  // 音声読み上げ停止
+  const stopSpeech = () => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    setIsPlayingSpeech(false);
+    audio.unduckBgm();
+  };
+
+  // 読み上げの再生/停止切り替え
+  const toggleSpeech = () => {
+    audio.playClick();
+    if (isPlayingSpeech) {
+      stopSpeech();
+    } else {
+      if (quizzes[currentIdx]) {
+        const readingText = getReadingText(quizzes[currentIdx].question, difficulty === 'easy');
+        startSpeech(readingText);
+      }
+    }
+  };
+
+  // ペンの有効/無効切り替え
+  const togglePen = () => {
+    audio.playClick();
+    setIsPenActive(prev => !prev);
+  };
+
+  // 自動読み上げトグル
+  const handleToggleAutoSpeech = () => {
+    audio.playClick();
+    setAutoSpeech(prev => {
+      const newVal = !prev;
+      try {
+        localStorage.setItem('auto_speech', String(newVal));
+      } catch (e) { }
+      return newVal;
+    });
+  };
+
+  // Canvas初期化
+  const initCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    ctx.strokeStyle = 'rgba(255, 65, 54, 0.2)'; // 半透明の赤
+    ctx.lineWidth = 14;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  };
+
+  // Canvasクリア
+  const clearCanvas = () => {
+    if (isPenActive) {
+      audio.playClick();
+    }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
+  };
+
+  // ペン有効時の初期化とリサイズ監視
+  useEffect(() => {
+    if (isPenActive) {
+      const timer = setTimeout(initCanvas, 50);
+
+      const handleResize = () => {
+        initCanvas();
+      };
+      window.addEventListener('resize', handleResize);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, [isPenActive, currentIdx]);
+
+  const getCoordinates = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+
+    let clientX, clientY;
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  };
+
+  const startDrawing = (e) => {
+    const pos = getCoordinates(e);
+    lastPos.current = pos;
+    isDrawingRef.current = true;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    ctx.lineTo(pos.x + 0.1, pos.y);
+    ctx.stroke();
+  };
+
+  const draw = (e) => {
+    if (!isDrawingRef.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const pos = getCoordinates(e);
+
+    ctx.beginPath();
+    ctx.moveTo(lastPos.current.x, lastPos.current.y);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+
+    lastPos.current = pos;
+  };
+
+  const stopDrawing = () => {
+    isDrawingRef.current = false;
+  };
+
+  // 自動読み上げ & 画面遷移時のクリーンアップ
+  useEffect(() => {
+    if (!loading && quizzes.length > 0 && quizzes[currentIdx]) {
+      let timer;
+      if (autoSpeech) {
+        const readingText = getReadingText(quizzes[currentIdx].question, difficulty === 'easy');
+        timer = setTimeout(() => {
+          startSpeech(readingText);
+        }, 600);
+      }
+
+      return () => {
+        if (timer) clearTimeout(timer);
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+        setIsPlayingSpeech(false);
+        audio.unduckBgm();
+      };
+    }
+  }, [currentIdx, loading, quizzes, autoSpeech]);
+
+  // コンポーネントアンマウント時のクリーンアップ
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      audio.unduckBgm();
+      if (transitionTimerRef.current) {
+        clearTimeout(transitionTimerRef.current);
+      }
+    };
+  }, []);
 
   // クイズデータの取得・初期化
   useEffect(() => {
@@ -25,7 +361,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
       if (mode === 'parent') {
         // おとなの手作りクイズから出題
         const parentPool = storage.getParentQuizzes().filter(q => q.difficulty === difficulty);
-        
+
         // 未回答のものを優先
         let available = parentPool.filter(q => !answeredIds.includes(q.id));
         if (available.length === 0) {
@@ -132,7 +468,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
   const currentQuiz = quizzes[currentIdx];
 
   const handleAnswerSelect = (index) => {
-    if (selectedAnswer !== null) return; // すでに回答済みなら処理しない
+    if (selectedAnswer !== null || isTransitioning) return; // すでに回答済みまたは遷移中なら処理しない
 
     setSelectedAnswer(index);
     const isCorrect = index === currentQuiz.answerIndex;
@@ -165,6 +501,13 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
     setSelectedAnswer(null);
     setShowExplanation(false);
 
+    // 誤タップ防止ロック (連打による次問題の誤回答を防ぐ)
+    setIsTransitioning(true);
+    if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    transitionTimerRef.current = setTimeout(() => {
+      setIsTransitioning(false);
+    }, 600); // 600msの入力ロック
+
     if (currentIdx + 1 < quizzes.length) {
       setCurrentIdx(prev => prev + 1);
     } else {
@@ -193,9 +536,9 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
     <div className="quiz-screen fade-in" style={styles.container}>
       {/* 画面ヘッダー（進行状況） */}
       <div style={styles.header}>
-        <button 
-          className="btn-action btn-back" 
-          onClick={() => { audio.playClick(); onBackToTitle(); }} 
+        <button
+          className="btn-action btn-back"
+          onClick={() => { audio.playClick(); onBackToTitle(); }}
           style={styles.abortButton}
         >
           🏠 やめる
@@ -213,18 +556,77 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
 
       {/* クイズエリア */}
       <div className={`quiz-card ${isWrongShake ? 'shake-effect' : ''}`} style={styles.quizCard}>
+        {/* 音声＆マーカーコントロールバー */}
+        <div className="control-bar" style={styles.controlBar}>
+          <div className="audio-controls" style={styles.audioControls}>
+            <button
+              className={`btn-control-audio ${isPlayingSpeech ? 'playing' : ''}`}
+              onClick={toggleSpeech}
+              style={styles.audioButton}
+            >
+              {isPlayingSpeech ? '⏸️ よみあげ とめる' : '🔊 こえで よむ'}
+            </button>
+            <label className="auto-speech-label" style={styles.autoSpeechLabel}>
+              <input
+                type="checkbox"
+                checked={autoSpeech}
+                onChange={handleToggleAutoSpeech}
+                className="auto-speech-checkbox"
+                style={styles.autoSpeechCheckbox}
+              />
+              <span className="auto-speech-text" style={styles.autoSpeechText}>つぎも自動（じどう）でよむ</span>
+            </label>
+          </div>
+
+          <div className="marker-controls" style={styles.markerControls}>
+            <button
+              className={`btn-control-pen ${isPenActive ? 'active' : ''}`}
+              onClick={togglePen}
+              style={styles.penButton}
+            >
+              🖍️ {isPenActive ? 'あかペン OFF' : 'あかペンで線をひく'}
+            </button>
+            {isPenActive && (
+              <button
+                className="btn-control-clear"
+                onClick={clearCanvas}
+                style={styles.clearButton}
+              >
+                🗑️ けす
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* 問題文 */}
-        <div style={{
-          ...styles.questionBox,
-          ...(currentQuiz.choices.length === 4 ? { padding: '16px', marginBottom: '12px' } : {})
-        }}>
-          <h2 
-            style={{
-              ...styles.questionText,
-              ...(currentQuiz.choices.length === 4 ? { fontSize: '1.3rem', lineHeight: '1.4' } : {})
-            }}
-            dangerouslySetInnerHTML={{ __html: currentQuiz.question }}
-          />
+        <div className="question-container" style={styles.questionContainer}>
+          <div style={{
+            ...styles.questionBox,
+            ...(currentQuiz.choices.length === 4 ? { padding: '16px', marginBottom: '12px' } : {})
+          }}>
+            <h2
+              style={{
+                ...styles.questionText,
+                ...(currentQuiz.choices.length === 4 ? { fontSize: '1.3rem', lineHeight: '1.4' } : {})
+              }}
+              dangerouslySetInnerHTML={{ __html: currentQuiz.question }}
+            />
+          </div>
+
+          {/* マーカー描画用Canvas */}
+          {isPenActive && (
+            <canvas
+              ref={canvasRef}
+              className="marker-canvas"
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+              onTouchStart={startDrawing}
+              onTouchMove={draw}
+              onTouchEnd={stopDrawing}
+            />
+          )}
         </div>
 
         {/* 選択肢（3択または4択） */}
@@ -267,7 +669,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
                 <span style={styles.wrongLabel}>😢 ざんねん！ つぎは がんばろう！</span>
               )}
             </div>
-            <p 
+            <p
               style={{
                 ...styles.explanationText,
                 ...(currentQuiz.choices.length === 4 ? { fontSize: '1.05rem', marginBottom: '12px', lineHeight: '1.4' } : {})
@@ -275,8 +677,8 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
               dangerouslySetInnerHTML={{ __html: currentQuiz.explanation }}
             />
             <button className="btn-action btn-primary" onClick={handleNext} style={styles.nextButton}>
-              {currentIdx + 1 === quizzes.length 
-                ? (mode === 'test' ? 'けっかを みる 🏁' : 'ごほうびを もらう 🎁') 
+              {currentIdx + 1 === quizzes.length
+                ? (mode === 'test' ? 'けっかを みる 🏁' : 'ごほうびを もらう 🎁')
                 : 'つぎへ すすむ ➔'}
             </button>
           </div>
@@ -423,6 +825,80 @@ const styles = {
     alignSelf: 'center',
     padding: '12px 36px',
     fontSize: '1.25rem',
+  },
+  controlBar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '15px',
+    background: 'rgba(255, 255, 255, 0.04)',
+    border: '1px solid var(--color-card-border)',
+    borderRadius: '16px',
+    padding: '10px 16px',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+  },
+  audioControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  audioButton: {
+    padding: '8px 16px',
+    fontSize: '0.95rem',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    border: 'none',
+  },
+  autoSpeechLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    cursor: 'pointer',
+  },
+  autoSpeechCheckbox: {
+    width: '18px',
+    height: '18px',
+    cursor: 'pointer',
+  },
+  autoSpeechText: {
+    fontSize: '0.85rem',
+    color: 'var(--color-text-sub)',
+  },
+  markerControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  penButton: {
+    padding: '8px 16px',
+    fontSize: '0.95rem',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    border: 'none',
+  },
+  clearButton: {
+    padding: '8px 14px',
+    fontSize: '0.95rem',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    border: 'none',
+  },
+  questionContainer: {
+    position: 'relative',
+    width: '100%',
+  },
+  markerCanvas: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    borderRadius: '20px',
+    pointerEvents: 'auto',
+    touchAction: 'none',
+    zIndex: 5,
+    cursor: 'crosshair',
   }
 };
 

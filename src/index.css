@@ -399,5 +399,132 @@ rt {
   box-shadow: 0 0 15px rgba(102, 252, 241, 0.2);
 }
 
+/* --- 音声・マーカーコントロールバー --- */
+.control-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-card-border);
+  border-radius: 16px;
+  padding: 8px 16px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.audio-controls, .marker-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* コントロール用ボタン */
+.btn-control-audio, .btn-control-pen, .btn-control-clear {
+  border: none;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  color: #ffffff;
+}
+
+.btn-control-audio {
+  background: var(--color-primary);
+  color: #0b0c10;
+}
+
+.btn-control-audio.playing {
+  background: var(--color-accent);
+  color: #0b0c10;
+  animation: pulse-orange 1.5s infinite;
+}
+
+.btn-control-pen {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-control-pen.active {
+  background: #ff4136; /* 赤色 */
+  color: #fff;
+  border-color: #ff4136;
+  box-shadow: 0 0 12px rgba(255, 65, 84, 0.6);
+}
+
+.btn-control-clear {
+  background: rgba(255, 255, 255, 0.15);
+  color: #eee;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-control-audio:hover, .btn-control-pen:hover, .btn-control-clear:hover {
+  transform: translateY(-2px);
+}
+
+.btn-control-audio:active, .btn-control-pen:active, .btn-control-clear:active {
+  transform: translateY(0);
+}
+
+/* 自動読み上げ設定 */
+.auto-speech-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.auto-speech-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.auto-speech-text {
+  font-size: 0.85rem;
+  color: var(--color-text-sub);
+}
+
+/* 問題エリアのコンテナ（Canvas重ね合わせ用） */
+.question-container {
+  position: relative;
+  width: 100%;
+}
+
+/* マーカー用のCanvas */
+.marker-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  pointer-events: auto; /* ペン有効時にイベントを拾う */
+  touch-action: none;   /* タッチデバイスでのスクロールを抑制 */
+  z-index: 5;
+  cursor: crosshair;
+}
+
+/* よみあげ中のパルスアニメーション */
+@keyframes pulse-orange {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 183, 3, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(255, 183, 3, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 183, 3, 0);
+  }
+}
+
 
 

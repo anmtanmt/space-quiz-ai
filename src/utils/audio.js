@@ -326,6 +326,23 @@ class AudioService {
     playStep();
     this.bgmTimer = setInterval(playStep, stepTime * 1000);
   }
+
+  // --- BGMのダッキング（音声読み上げ時に音量を下げる） ---
+  duckBgm() {
+    if (!this.ctx || !this.bgmGain) return;
+    const now = this.ctx.currentTime;
+    const targetGain = this.enabled ? 0.015 : 0;
+    this.bgmGain.gain.setValueAtTime(this.bgmGain.gain.value, now);
+    this.bgmGain.gain.linearRampToValueAtTime(targetGain, now + 0.2);
+  }
+
+  unduckBgm() {
+    if (!this.ctx || !this.bgmGain) return;
+    const now = this.ctx.currentTime;
+    const targetGain = this.enabled ? 0.08 : 0;
+    this.bgmGain.gain.setValueAtTime(this.bgmGain.gain.value, now);
+    this.bgmGain.gain.linearRampToValueAtTime(targetGain, now + 0.4);
+  }
 }
 
 export const audio = new AudioService();
