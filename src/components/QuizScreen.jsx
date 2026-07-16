@@ -120,6 +120,28 @@ function getReadingText(htmlString, isEasy = false) {
   return text;
 }
 
+// 選択肢をシャッフルし、正解インデックスを再計算する関数
+function shuffleChoices(quiz) {
+  if (!quiz || !quiz.choices || quiz.choices.length === 0) return quiz;
+
+  const mapped = quiz.choices.map((choice, index) => ({
+    choice,
+    isCorrect: index === quiz.answerIndex
+  }));
+
+  // Fisher-Yates シャッフル
+  for (let i = mapped.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [mapped[i], mapped[j]] = [mapped[j], mapped[i]];
+  }
+
+  return {
+    ...quiz,
+    choices: mapped.map(item => item.choice),
+    answerIndex: mapped.findIndex(item => item.isCorrect)
+  };
+}
+
 export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTitle }) {
   const [quizzes, setQuizzes] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -152,6 +174,27 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
   const [isTransitioning, setIsTransitioning] = useState(false);
   const transitionTimerRef = useRef(null);
 
+  // 読み上げテキストを取得する関数
+  const getQuizReadingText = () => {
+    const currentQuiz = quizzes[currentIdx];
+    if (!currentQuiz) return '';
+
+    if (showExplanation) {
+      const isCorrect = selectedAnswer === currentQuiz.answerIndex;
+      const headerText = isCorrect ? 'せいかい！ すごいね！' : 'ざんねん！ つぎは がんばろう！';
+      const expText = getReadingText(currentQuiz.explanation, difficulty === 'easy');
+      return `${headerText}。${expText}`;
+    } else {
+      const questionText = getReadingText(currentQuiz.question, difficulty === 'easy');
+      const choicesText = currentQuiz.choices.map((choice, idx) => {
+        const numText = idx === 0 ? 'いち' : idx === 1 ? 'に' : idx === 2 ? 'さん' : 'よん';
+        const choiceText = getReadingText(choice, difficulty === 'easy');
+        return `${numText}。${choiceText}`;
+      }).join('。');
+      return `${questionText}。${choicesText}`;
+    }
+  };
+
   // 音声読み上げ開始
   const startSpeech = (text) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -162,6 +205,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'ja-JP';
     u.rate = 0.88; // 子ども向けに少しゆっくり
+    u.volume = 1.0; // 音量を最大に明示設定
 
     u.onend = () => {
       setIsPlayingSpeech(false);
@@ -191,8 +235,8 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
     if (isPlayingSpeech) {
       stopSpeech();
     } else {
-      if (quizzes[currentIdx]) {
-        const readingText = getReadingText(quizzes[currentIdx].question, difficulty === 'easy');
+      const readingText = getQuizReadingText();
+      if (readingText) {
         startSpeech(readingText);
       }
     }
@@ -228,8 +272,8 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
 
-    ctx.strokeStyle = 'rgba(255, 65, 54, 0.2)'; // 半透明の赤
-    ctx.lineWidth = 14;
+    ctx.strokeStyle = 'rgba(255, 65, 54, 0.15)'; // 半透明の赤
+    ctx.lineWidth = 10;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
   };
@@ -247,7 +291,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
 
   // ペン有効時の初期化とリサイズ監視
   useEffect(() => {
-    if (isPenActive) {
+    if (isPenActive && !loading) {
       const timer = setTimeout(initCanvas, 50);
 
       const handleResize = () => {
@@ -259,7 +303,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
         window.removeEventListener('resize', handleResize);
       };
     }
-  }, [isPenActive, currentIdx]);
+  }, [isPenActive, currentIdx, loading]);
 
   const getCoordinates = (e) => {
     const canvas = canvasRef.current;
@@ -319,7 +363,10 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
     if (!loading && quizzes.length > 0 && quizzes[currentIdx]) {
       let timer;
       if (autoSpeech) {
-        const readingText = getReadingText(quizzes[currentIdx].question, difficulty === 'easy');
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+        const readingText = getQuizReadingText();
         timer = setTimeout(() => {
           startSpeech(readingText);
         }, 600);
@@ -334,7 +381,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
         audio.unduckBgm();
       };
     }
-  }, [currentIdx, loading, quizzes, autoSpeech]);
+  }, [currentIdx, loading, quizzes, autoSpeech, showExplanation]);
 
   // コンポーネントアンマウント時のクリーンアップ
   useEffect(() => {
@@ -416,10 +463,11 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
       }
 
       if (active) {
-        setQuizzes(quizList);
+        const shuffledList = quizList.map(q => q ? shuffleChoices(q) : q);
+        setQuizzes(shuffledList);
         setLoading(false);
         // 最近出題された問題履歴に登録
-        quizList.forEach(quiz => {
+        shuffledList.forEach(quiz => {
           if (quiz && quiz.question) {
             storage.addRecentQuestion(quiz.question);
           }

@@ -27,7 +27,7 @@ class AudioService {
     // シンセBGMのボリューム切り替え
     if (this.bgmGain) {
       const now = this.ctx ? this.ctx.currentTime : 0;
-      const targetGain = this.enabled ? 0.08 : 0; // メイン音量を0.08に統一
+      const targetGain = this.enabled ? 0.15 : 0; // メイン音量を0.15に統一
       this.bgmGain.gain.setValueAtTime(targetGain, now);
     }
 
@@ -194,7 +194,7 @@ class AudioService {
 
     // BGMのメイン音量ノード (他の効果音を邪魔しない適度な音量)
     this.bgmGain = this.ctx.createGain();
-    this.bgmGain.gain.setValueAtTime(this.enabled ? 0.08 : 0, this.ctx.currentTime); // 音量を0.08に統一
+    this.bgmGain.gain.setValueAtTime(this.enabled ? 0.15 : 0, this.ctx.currentTime); // 音量を0.15に統一
     this.bgmGain.connect(this.ctx.destination);
 
     // ドラム用の音量調整
@@ -339,7 +339,7 @@ class AudioService {
   unduckBgm() {
     if (!this.ctx || !this.bgmGain) return;
     const now = this.ctx.currentTime;
-    const targetGain = this.enabled ? 0.08 : 0;
+    const targetGain = this.enabled ? 0.15 : 0;
     this.bgmGain.gain.setValueAtTime(this.bgmGain.gain.value, now);
     this.bgmGain.gain.linearRampToValueAtTime(targetGain, now + 0.4);
   }
