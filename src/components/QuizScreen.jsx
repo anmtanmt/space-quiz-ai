@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateQuizFromAI, generateAstronomyTestQuiz } from '../services/gemini';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
+import { QUIZ_IMAGES } from '../data/quizImages';
 
 // HTMLから音声読み上げ用のひらがなテキストを抽出する関数
 function getReadingText(htmlString, isEasy = false) {
@@ -144,12 +145,14 @@ function shuffleChoices(quiz) {
 
 export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTitle }) {
   const [quizzes, setQuizzes] = useState([]);
+  const totalQuestions = mode === 'parent' ? quizzes.length : 5;
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedAnswer, setSelectedAnswer] = useState(null); // null, 0, 1, 2
   const [score, setScore] = useState(0);
   const [showExplanation, setShowExplanation] = useState(false);
   const [isWrongShake, setIsWrongShake] = useState(false);
+  const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [quizHistory, setQuizHistory] = useState([]);
 
   // 音声読み上げ用ステートと参照
@@ -381,7 +384,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
         audio.unduckBgm();
       };
     }
-  }, [currentIdx, loading, quizzes, autoSpeech, showExplanation]);
+  }, [currentIdx, loading, quizzes[currentIdx], autoSpeech, showExplanation]);
 
   // コンポーネントアンマウント時のクリーンアップ
   useEffect(() => {
@@ -406,72 +409,131 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
       const answeredIds = storage.getAnsweredIds();
 
       if (mode === 'parent') {
-        // おとなの手作りクイズから出題
+        // おとなの手作りクイズから出題 (LocalStorageから瞬時にロード)
         const parentPool = storage.getParentQuizzes().filter(q => q.difficulty === difficulty);
-
-        // 未回答のものを優先
         let available = parentPool.filter(q => !answeredIds.includes(q.id));
         if (available.length === 0) {
-          available = parentPool; // すべて回答済みの場合は再出題
+          available = parentPool;
         }
-
-        // ランダムに最大5問をシャッフルして抽出
         const shuffled = [...available].sort(() => 0.5 - Math.random());
         const limit = Math.min(5, shuffled.length);
         for (let i = 0; i < limit; i++) {
           quizList.push(shuffled[i]);
         }
-      } else if (mode === 'test') {
-        // 天文宇宙検定クイズ
-        const historyIds = [...answeredIds];
-        const sessionQuestions = [];
-        const recentQuestions = storage.getRecentQuestions(30);
-        for (let i = 0; i < 5; i++) {
-          if (!active) return;
-          try {
-            const testQuiz = await generateAstronomyTestQuiz(difficulty, historyIds, sessionQuestions, recentQuestions);
-            quizList.push(testQuiz);
-            historyIds.push(testQuiz.id);
-            const plainQuestion = testQuiz.question
-              .replace(/<rt>.*?<\/rt>/g, '')
-              .replace(/<[^>]*>/g, '');
-            sessionQuestions.push(plainQuestion);
-          } catch (e) {
-            console.error('Failed loading test question ' + i, e);
-          }
+        if (active) {
+          const shuffledList = quizList.map(q => q ? shuffleChoices(q) : q);
+          setQuizzes(shuffledList);
+          setLoading(false);
+          shuffledList.forEach(quiz => {
+            if (quiz && quiz.question) {
+              storage.addRecentQuestion(quiz.question);
+            }
+          });
         }
-      } else {
-        // AIのひみつクイズ
-        // 5回APIを叩いて問題をランダムに収集
-        const historyIds = [...answeredIds];
-        const sessionQuestions = [];
-        const recentQuestions = storage.getRecentQuestions(30);
-        for (let i = 0; i < 5; i++) {
-          if (!active) return;
-          try {
-            const aiQuiz = await generateQuizFromAI(difficulty, historyIds, sessionQuestions, recentQuestions);
-            quizList.push(aiQuiz);
-            historyIds.push(aiQuiz.id); // 重複回避用の一時的追加
-            const plainQuestion = aiQuiz.question
+        return;
+      }
+
+      // AIクイズ (検定 & ひみつクイズ) - 最初の2問を同期取得して即プレイ開始
+      const historyIds = [...answeredIds];
+      const sessionQuestions = [];
+      const recentQuestions = storage.getRecentQuestions(30);
+
+      // 章リストの準備 (検定用)
+      let chapters = [];
+      if (difficulty === '4') {
+        chapters = [0, 1, 2, 3, 4, 5, 6];
+      } else if (difficulty === '3') {
+        chapters = [1, 2, 3, 4, 5, 6];
+      }
+      const shuffledChapters = [...chapters].sort(() => 0.5 - Math.random()).slice(0, 5);
+
+      const targetQuizCount = 5;
+      const initialQuizCount = 1;
+
+      // 1. 最初の1問を同期取得
+      for (let i = 0; i < initialQuizCount; i++) {
+        if (!active) return;
+        try {
+          let quiz;
+          if (mode === 'test') {
+            const targetChapter = shuffledChapters[i] !== undefined ? shuffledChapters[i] : null;
+            let targetImage = null;
+            if (targetChapter !== null && Math.random() < 0.3) {
+              const matchingImages = QUIZ_IMAGES.filter(img => 
+                img.grades.includes(difficulty) && img.chapters[difficulty] === targetChapter
+              );
+              if (matchingImages.length > 0) {
+                targetImage = matchingImages[Math.floor(Math.random() * matchingImages.length)];
+              }
+            }
+            quiz = await generateAstronomyTestQuiz(difficulty, historyIds, sessionQuestions, recentQuestions, targetChapter, targetImage);
+          } else {
+            quiz = await generateQuizFromAI(difficulty, historyIds, sessionQuestions, recentQuestions);
+          }
+
+          if (quiz) {
+            quizList.push(quiz);
+            historyIds.push(quiz.id);
+            const plainQuestion = quiz.question
               .replace(/<rt>.*?<\/rt>/g, '')
               .replace(/<[^>]*>/g, '');
             sessionQuestions.push(plainQuestion);
-          } catch (e) {
-            console.error('Failed loading question ' + i, e);
           }
+        } catch (e) {
+          console.error(`Failed loading initial question ${i}`, e);
         }
       }
 
-      if (active) {
-        const shuffledList = quizList.map(q => q ? shuffleChoices(q) : q);
-        setQuizzes(shuffledList);
-        setLoading(false);
-        // 最近出題された問題履歴に登録
-        shuffledList.forEach(quiz => {
-          if (quiz && quiz.question) {
+      if (!active) return;
+
+      // 最初の2問でゲーム開始
+      const initialList = quizList.map(q => q ? shuffleChoices(q) : q);
+      setQuizzes(initialList);
+      setLoading(false);
+      initialList.forEach(quiz => {
+        if (quiz && quiz.question) {
+          storage.addRecentQuestion(quiz.question);
+        }
+      });
+
+      // 2. 残りの3問をバックグラウンドで非同期に順次取得
+      for (let i = initialQuizCount; i < targetQuizCount; i++) {
+        if (!active) return;
+        try {
+          let quiz;
+          if (mode === 'test') {
+            const targetChapter = shuffledChapters[i] !== undefined ? shuffledChapters[i] : null;
+            let targetImage = null;
+            if (targetChapter !== null && Math.random() < 0.3) {
+              const matchingImages = QUIZ_IMAGES.filter(img => 
+                img.grades.includes(difficulty) && img.chapters[difficulty] === targetChapter
+              );
+              if (matchingImages.length > 0) {
+                targetImage = matchingImages[Math.floor(Math.random() * matchingImages.length)];
+              }
+            }
+            quiz = await generateAstronomyTestQuiz(difficulty, historyIds, sessionQuestions, recentQuestions, targetChapter, targetImage);
+          } else {
+            quiz = await generateQuizFromAI(difficulty, historyIds, sessionQuestions, recentQuestions);
+          }
+
+          if (quiz) {
+            if (!active) return;
+            const shuffledQuiz = shuffleChoices(quiz);
+            setQuizzes(prev => {
+              if (!active) return prev;
+              return [...prev, shuffledQuiz];
+            });
+            historyIds.push(quiz.id);
+            const plainQuestion = quiz.question
+              .replace(/<rt>.*?<\/rt>/g, '')
+              .replace(/<[^>]*>/g, '');
+            sessionQuestions.push(plainQuestion);
             storage.addRecentQuestion(quiz.question);
           }
-        });
+        } catch (e) {
+          console.error(`Failed loading background question ${i}`, e);
+        }
       }
     }
 
@@ -515,6 +577,19 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
 
   const currentQuiz = quizzes[currentIdx];
 
+  // 次の問題がバックグラウンドロード中でまだ届いていない場合のガード
+  if (!currentQuiz) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}>🚀</div>
+        <p style={styles.loadingText}>
+          つぎの もんだいを つくっているよ。<br />
+          ちょっと まってね...
+        </p>
+      </div>
+    );
+  }
+
   const handleAnswerSelect = (index) => {
     if (selectedAnswer !== null || isTransitioning) return; // すでに回答済みまたは遷移中なら処理しない
 
@@ -544,10 +619,24 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
     setShowExplanation(true);
   };
 
+  const handleCloseZoomModal = (e) => {
+    if (e) e.stopPropagation();
+    audio.playClick();
+    setIsImageZoomed(false);
+
+    // 誤タップ防止ロック (閉じた直後の誤回答を防ぐ)
+    setIsTransitioning(true);
+    if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    transitionTimerRef.current = setTimeout(() => {
+      setIsTransitioning(false);
+    }, 600);
+  };
+
   const handleNext = () => {
     audio.playClick();
     setSelectedAnswer(null);
     setShowExplanation(false);
+    setIsImageZoomed(false);
 
     // 誤タップ防止ロック (連打による次問題の誤回答を防ぐ)
     setIsTransitioning(true);
@@ -556,11 +645,11 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
       setIsTransitioning(false);
     }, 600); // 600msの入力ロック
 
-    if (currentIdx + 1 < quizzes.length) {
+    if (currentIdx + 1 < totalQuestions) {
       setCurrentIdx(prev => prev + 1);
     } else {
       // 5問終了
-      onFinishQuiz(score, quizzes.length, quizHistory);
+      onFinishQuiz(score, totalQuestions, quizHistory);
     }
   };
 
@@ -578,7 +667,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
   };
 
   // 進捗インジケーター（ロケットが地球から星へ進むデザイン）
-  const progressPercent = ((currentIdx) / quizzes.length) * 100;
+  const progressPercent = totalQuestions > 0 ? (currentIdx / totalQuestions) * 100 : 0;
 
   return (
     <div className="quiz-screen fade-in" style={styles.container}>
@@ -597,7 +686,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
             <div style={{ ...styles.progressRocket, left: `calc(${progressPercent}% - 15px)` }}>🚀</div>
           </div>
           <div style={styles.questionCounter}>
-            だい {currentIdx + 1} もん / ぜんぶで {quizzes.length} もん
+            だい {currentIdx + 1} もん / ぜんぶで {totalQuestions} もん
           </div>
         </div>
       </div>
@@ -645,6 +734,28 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
             )}
           </div>
         </div>
+
+        {/* 画像クイズ用画像表示 */}
+        {(() => {
+          const quizImage = currentQuiz.imageId 
+            ? QUIZ_IMAGES.find(img => img.id === currentQuiz.imageId) 
+            : null;
+          if (!quizImage) return null;
+          return (
+            <div style={styles.quizImageWrapper}>
+              <img 
+                src={quizImage.path} 
+                alt="Quiz Diagram" 
+                style={styles.quizImage}
+                onClick={() => {
+                  audio.playClick();
+                  setIsImageZoomed(true);
+                }}
+              />
+              <div style={styles.zoomHint}>🔍 タップで 大きくする</div>
+            </div>
+          );
+        })()}
 
         {/* 問題文 */}
         <div className="question-container" style={styles.questionContainer}>
@@ -725,12 +836,43 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
               dangerouslySetInnerHTML={{ __html: currentQuiz.explanation }}
             />
             <button className="btn-action btn-primary" onClick={handleNext} style={styles.nextButton}>
-              {currentIdx + 1 === quizzes.length
+              {currentIdx + 1 === totalQuestions
                 ? (mode === 'test' ? 'けっかを みる 🏁' : 'ごほうびを もらう 🎁')
                 : 'つぎへ すすむ ➔'}
             </button>
           </div>
         )}
+
+        {/* 画像拡大モーダル（ルール7準拠：画面のどこをタップしても閉じられる） */}
+        {isImageZoomed && (() => {
+          const quizImage = currentQuiz.imageId 
+            ? QUIZ_IMAGES.find(img => img.id === currentQuiz.imageId) 
+            : null;
+          if (!quizImage) return null;
+          return (
+            <div 
+              style={styles.modalOverlay}
+              onClick={handleCloseZoomModal}
+            >
+              <div 
+                style={styles.modalContent}
+                onClick={handleCloseZoomModal}
+              >
+                <img 
+                  src={quizImage.path} 
+                  alt="Quiz Diagram Zoomed" 
+                  style={styles.modalImage}
+                />
+                <button 
+                  style={styles.modalCloseButton}
+                  onClick={handleCloseZoomModal}
+                >
+                  ❌ とじる
+                </button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
@@ -947,6 +1089,68 @@ const styles = {
     touchAction: 'none',
     zIndex: 5,
     cursor: 'crosshair',
+  },
+  quizImageWrapper: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginBottom: '15px',
+    width: '100%',
+  },
+  quizImage: {
+    maxWidth: '100%',
+    maxHeight: '180px',
+    borderRadius: '16px',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    cursor: 'pointer',
+    objectFit: 'contain',
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+    transition: 'transform 0.2s ease',
+  },
+  zoomHint: {
+    fontSize: '0.8rem',
+    color: 'var(--color-text-sub)',
+    marginTop: '6px',
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    background: 'rgba(0, 0, 0, 0.9)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+    cursor: 'zoom-out',
+  },
+  modalContent: {
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    maxWidth: '90%',
+    maxHeight: '90%',
+  },
+  modalImage: {
+    maxWidth: '100%',
+    maxHeight: '80vh',
+    objectFit: 'contain',
+    borderRadius: '12px',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+  },
+  modalCloseButton: {
+    marginTop: '20px',
+    padding: '10px 24px',
+    fontSize: '1.1rem',
+    fontWeight: '700',
+    color: '#fff',
+    background: 'rgba(255, 255, 255, 0.15)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    borderRadius: '12px',
+    cursor: 'pointer',
   }
 };
 
