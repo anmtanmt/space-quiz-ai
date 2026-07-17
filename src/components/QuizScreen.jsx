@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { generateQuizFromAI, generateAstronomyTestQuiz } from '../services/gemini';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
@@ -849,7 +850,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
             ? QUIZ_IMAGES.find(img => img.id === currentQuiz.imageId) 
             : null;
           if (!quizImage) return null;
-          return (
+          return ReactDOM.createPortal(
             <div 
               style={styles.modalOverlay}
               onClick={handleCloseZoomModal}
@@ -870,7 +871,8 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
                   ❌ とじる
                 </button>
               </div>
-            </div>
+            </div>,
+            document.body
           );
         })()}
       </div>
