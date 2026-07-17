@@ -667,13 +667,23 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
     return className;
   };
 
+  const hasImage = !!(currentQuiz && currentQuiz.imageId);
+  const isFourChoices = currentQuiz && currentQuiz.choices && currentQuiz.choices.length === 4;
+  const isTightLayout = isFourChoices && hasImage;
+
   // 進捗インジケーター（ロケットが地球から星へ進むデザイン）
   const progressPercent = totalQuestions > 0 ? (currentIdx / totalQuestions) * 100 : 0;
 
   return (
-    <div className="quiz-screen fade-in" style={styles.container}>
+    <div className="quiz-screen fade-in" style={{
+      ...styles.container,
+      padding: isTightLayout ? '12px 15px' : '20px 20px'
+    }}>
       {/* 画面ヘッダー（進行状況） */}
-      <div style={styles.header}>
+      <div style={{
+        ...styles.header,
+        marginBottom: isTightLayout ? '8px' : '15px'
+      }}>
         <button
           className="btn-action btn-back"
           onClick={() => { audio.playClick(); onBackToTitle(); }}
@@ -695,12 +705,20 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
       {/* クイズエリア */}
       <div className={`quiz-card ${isWrongShake ? 'shake-effect' : ''}`} style={styles.quizCard}>
         {/* 音声＆マーカーコントロールバー */}
-        <div className="control-bar" style={styles.controlBar}>
+        <div className="control-bar" style={{
+          ...styles.controlBar,
+          padding: isTightLayout ? '6px 12px' : '10px 16px',
+          marginBottom: isTightLayout ? '8px' : '15px'
+        }}>
           <div className="audio-controls" style={styles.audioControls}>
             <button
               className={`btn-control-audio ${isPlayingSpeech ? 'playing' : ''}`}
               onClick={toggleSpeech}
-              style={styles.audioButton}
+              style={{
+                ...styles.audioButton,
+                padding: isTightLayout ? '6px 12px' : '8px 16px',
+                fontSize: isTightLayout ? '0.85rem' : '0.95rem'
+              }}
             >
               {isPlayingSpeech ? '⏸️ よみあげ とめる' : '🔊 こえで よむ'}
             </button>
@@ -720,7 +738,11 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
             <button
               className={`btn-control-pen ${isPenActive ? 'active' : ''}`}
               onClick={togglePen}
-              style={styles.penButton}
+              style={{
+                ...styles.penButton,
+                padding: isTightLayout ? '6px 12px' : '8px 16px',
+                fontSize: isTightLayout ? '0.85rem' : '0.95rem'
+              }}
             >
               🖍️ {isPenActive ? 'あかペン OFF' : 'あかペンで線をひく'}
             </button>
@@ -728,7 +750,11 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
               <button
                 className="btn-control-clear"
                 onClick={clearCanvas}
-                style={styles.clearButton}
+                style={{
+                  ...styles.clearButton,
+                  padding: isTightLayout ? '6px 12px' : '8px 14px',
+                  fontSize: isTightLayout ? '0.85rem' : '0.95rem'
+                }}
               >
                 🗑️ けす
               </button>
@@ -743,11 +769,17 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
             : null;
           if (!quizImage) return null;
           return (
-            <div style={styles.quizImageWrapper}>
+            <div style={{
+              ...styles.quizImageWrapper,
+              marginBottom: isTightLayout ? '8px' : '15px'
+            }}>
               <img 
                 src={quizImage.path} 
                 alt="Quiz Diagram" 
-                style={styles.quizImage}
+                style={{
+                  ...styles.quizImage,
+                  maxHeight: isTightLayout ? '100px' : '180px'
+                }}
                 onClick={() => {
                   audio.playClick();
                   setIsImageZoomed(true);
@@ -762,12 +794,14 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
         <div className="question-container" style={styles.questionContainer}>
           <div style={{
             ...styles.questionBox,
-            ...(currentQuiz.choices.length === 4 ? { padding: '16px', marginBottom: '12px' } : {})
+            padding: isTightLayout ? '12px 16px' : (isFourChoices ? '16px' : '24px'),
+            marginBottom: isTightLayout ? '8px' : (isFourChoices ? '12px' : '20px')
           }}>
             <h2
               style={{
                 ...styles.questionText,
-                ...(currentQuiz.choices.length === 4 ? { fontSize: '1.3rem', lineHeight: '1.4' } : {})
+                fontSize: isTightLayout ? '1.2rem' : (isFourChoices ? '1.3rem' : '1.6rem'),
+                lineHeight: isTightLayout ? '1.35' : (isFourChoices ? '1.4' : '1.6')
               }}
               dangerouslySetInnerHTML={{ __html: currentQuiz.question }}
             />
@@ -792,12 +826,11 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
         {/* 選択肢（3択または4択） */}
         <div style={styles.choicesBox}>
           {currentQuiz.choices.map((choice, index) => {
-            const isFourChoices = currentQuiz.choices.length === 4;
             const choiceBtnStyle = isFourChoices ? {
-              padding: '12px 20px',
-              marginBottom: '12px',
-              fontSize: '1.2rem',
-              borderRadius: '18px',
+              padding: isTightLayout ? '8px 16px' : '12px 20px',
+              marginBottom: isTightLayout ? '8px' : '12px',
+              fontSize: isTightLayout ? '1.1rem' : '1.2rem',
+              borderRadius: isTightLayout ? '14px' : '18px',
             } : {};
 
             return (

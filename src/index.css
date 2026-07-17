@@ -78,12 +78,19 @@ body {
 /* 各画面コンポーネントがコンテナ内で潰れないように設定 */
 .welcome-screen,
 .title-screen,
-.quiz-screen,
 .result-screen,
 .collection-screen,
 .parent-portal {
   min-height: 100%;
   flex-shrink: 0;
+}
+
+/* クイズ画面はスクロールを可能にする */
+.quiz-screen {
+  min-height: 100%;
+  flex-shrink: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
 }
 
 /* スクロール可能にするコンテナ（大人用画面などで使用） */
@@ -94,13 +101,16 @@ body {
   overscroll-behavior-y: contain;
   /* スクロールバーのカスタマイズ */
 }
-.scrollable-content::-webkit-scrollbar {
+.scrollable-content::-webkit-scrollbar,
+.quiz-screen::-webkit-scrollbar {
   width: 8px;
 }
-.scrollable-content::-webkit-scrollbar-track {
+.scrollable-content::-webkit-scrollbar-track,
+.quiz-screen::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.02);
 }
-.scrollable-content::-webkit-scrollbar-thumb {
+.scrollable-content::-webkit-scrollbar-thumb,
+.quiz-screen::-webkit-scrollbar-thumb {
   background: var(--color-secondary);
   border-radius: 4px;
 }
