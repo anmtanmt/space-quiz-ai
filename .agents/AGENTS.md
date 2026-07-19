@@ -30,6 +30,7 @@
 - **バックエンド**: AWS Lambda (Node.js 18+、ライブラリ依存ゼロ)
   - `lambda/index.js` が Gemini API と直接HTTPS fetchで連携し、バリデーションとリトライを実施。
   - 環境変数 `GEMINI_API_KEY` を Lambda 側に設定。
+  - **CommonJS 記法の義務付け**: Lambda 実行環境で ES Module 読み込みエラー（`SyntaxError: Unexpected token 'export'`）が発生するのを防ぐため、`lambda/index.js` のメインハンドラーは `export const handler` ではなく、**`exports.handler = async (event) => { ... }`** の形式（CommonJS）で記述してください。
 - **APIエンドポイント**: API Gateway または Lambda 関数 URL。
 
 ## 5. アセット・アイコン管理とキャッシュ対策
