@@ -4,7 +4,7 @@
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.replace(/['"\s]/g, '') : '';
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   // CORS レスポンスヘッダーの設定
   const headers = {
     'Access-Control-Allow-Origin': '*',
