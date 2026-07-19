@@ -1,0 +1,7 @@
+{
+  "awsRegion": "ap-northeast-1",
+  "lambdaFunctionName": "YOUR_LAMBDA_FUNCTION_NAME",
+  "amplifyAppId": "YOUR_AMPLIFY_APP_ID",
+  "amplifyBranchName": "main",
+  "apiGatewayUrl": "YOUR_API_GATEWAY_URL"
+}

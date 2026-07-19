@@ -31,3 +31,7 @@ dist-ssr/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Deploy configuration and build archives
+deploy-config.json
+*.zip
