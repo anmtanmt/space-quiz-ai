@@ -129,5 +129,21 @@
 - **取得未完了（遅延）への境界ガード**:
   - ユーザーの回答スピードが非同期ロード速度を上回り、まだロードされていない問題に進もうとした場合に備え、`!currentQuiz` の条件で一時的なロード画面（「つぎのもんだいを作っているよ」等）を表示し、データの追加検知に伴い自動で問題画面へシームレスに切り替わるガードロジックを実装してください。
 
+## 18. PWA（インストール・オフラインキャッシュ）の設計とビルド防衛
+- **手動実装の推奨**: PWA対応を追加する際、`vite-plugin-pwa` などのプラグインを使用すると、開発環境の Node.js バージョンと内部依存パッケージ（`lru-cache` 等）の不整合によってビルドエラー（例: `TypeError: tracingChannel is not a function`）が発生するリスクがあります。
+- **構成方針**: 外部依存を増やさず安定して動作させるため、`public/manifest.webmanifest` と `public/sw.js` を直接配置し、`src/main.jsx` でネイティブの `navigator.serviceWorker.register` を用いて登録する**手動実装**を採用してください。
+- **キャッシュ戦略 (`sw.js`)**: 
+  - 静的アセットには `Stale-While-Revalidate` 戦略を適用してオフライン動作を担保します。
+  - API GatewayやGemini APIへのPOST/GETリクエストなど、データ取得・生成に関する外部APIリクエストはキャッシュさせず、必ずネットワークから直接取得（ネットワークオンリー）するガードロジックを実装してください。
+
+## 19. AWS Amplify Hosting（Git連携）と Lambda のハイブリッドデプロイ
+- **Amplify デプロイ制限の考慮**: Amplify Hosting が GitHub などのリポジトリと接続されている場合、CLI からの直接アップロードデプロイ（`create-deployment`）は AWS の仕様で制限（`BadRequestException`）されます。
+- **デプロイフローの構築**: 自動デプロイスクリプト（`deploy.js`）は、フロントエンドを直接デプロイするのではなく、以下のように動作する「ハイブリッド型」で設計してください：
+  - **Lambda (バックエンド)**: CLI（`aws lambda update-function-code`）で即時に直接コードを更新・反映します。
+  - **Amplify (フロントエンド)**: ローカルのコード変更を Git にコミットし、GitHub へプッシュ（`git push`）することで、Amplify Hosting の自動ビルド（CI/CD）をトリガーして本番に反映させます。
+- **非対話型環境（チャット経由）での Git Push の解決**:
+  - チャットエージェントや自動スクリプトなどの非対話型環境から `git push` を成功させるため、リポジトリのリモート URL にパーソナルアクセストークンを埋め込む設定（例: `git remote set-url origin https://<TOKEN>@github.com/...`）を使用してください。これにより、プロンプト待ちでのフリーズやエラーを防ぎます。
+
+
 
 
