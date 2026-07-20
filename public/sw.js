@@ -1,4 +1,4 @@
-const CACHE_NAME = 'space-quiz-ai-v1';
+const CACHE_NAME = 'space-quiz-ai-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -38,6 +38,16 @@ self.addEventListener('activate', (event) => {
 // リクエスト時のフェッチ処理 (Stale-While-Revalidate戦略)
 self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
+
+  // ローカル開発環境 (localhost / 127.0.0.1) または Vite の開発用 HMR リクエストはキャッシュ対象外
+  if (
+    requestUrl.hostname === 'localhost' ||
+    requestUrl.hostname === '127.0.0.1' ||
+    requestUrl.pathname.startsWith('/@vite') ||
+    requestUrl.pathname.includes('hot-update')
+  ) {
+    return; // ネットワークから直接取得
+  }
 
   // POSTリクエストやAPIリクエスト (Lambda, API Gateway) はキャッシュしない
   if (

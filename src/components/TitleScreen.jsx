@@ -3,7 +3,7 @@ import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
 
 export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParent }) {
-  const [mode, setMode] = useState('ai'); // 'ai', 'parent', or 'test'
+  const [mode, setMode] = useState('ai'); // 'ai', 'parent', 'test', or 'spot_diff'
   const [difficulty, setDifficulty] = useState('easy'); // 'easy', 'medium', 'hard' (or '4', '3' for test)
   const [hasParentQuizzes, setHasParentQuizzes] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(audio.enabled);
@@ -35,6 +35,10 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
 
   const handleStart = () => {
     audio.playClick();
+    if (mode === 'spot_diff') {
+      onStartQuiz('spot_diff', difficulty);
+      return;
+    }
     if (mode === 'parent' && !hasParentQuizzes) {
       alert('まだ「おとうさん・おかあさんの クイズ」が つくられていないよ！おとな用ページで クイズを つくってね。');
       return;
@@ -100,6 +104,20 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
               <div style={styles.cardTitle}>てんもん<br />宇宙けんてい</div>
               <div style={styles.cardDesc}>
                 ほんかく的な 検定（けんてい）に チャレンジできるよ！
+              </div>
+            </button>
+
+            <button
+              onClick={() => { audio.playClick(); setMode('spot_diff'); }}
+              style={{
+                ...styles.optionCard,
+                ...(mode === 'spot_diff' ? styles.optionCardActive : {})
+              }}
+            >
+              <div style={styles.cardIcon}>🔍</div>
+              <div style={styles.cardTitle}>宇宙<br />まちがいさがし</div>
+              <div style={styles.cardDesc}>
+                左右の 絵を 見くらべて、ちがうところを さがそう！
               </div>
             </button>
           </div>
@@ -302,9 +320,10 @@ const styles = {
     display: 'flex',
     gap: '20px',
     width: '100%',
+    flexWrap: 'wrap',
   },
   optionCard: {
-    flex: 1,
+    flex: '1 1 200px',
     background: 'var(--color-card-bg)',
     border: '2px solid var(--color-card-border)',
     borderRadius: '20px',

@@ -5,6 +5,7 @@ import QuizScreen from './components/QuizScreen';
 import ResultScreen from './components/ResultScreen';
 import CollectionScreen from './components/CollectionScreen';
 import ParentPortal from './components/ParentPortal';
+import SpotDifferenceScreen from './components/SpotDifferenceScreen';
 
 export default function App() {
   const [screen, setScreen] = useState('WELCOME'); // 'WELCOME', 'TITLE', 'QUIZ', 'RESULT', 'COLLECTION', 'PARENT'
@@ -15,7 +16,11 @@ export default function App() {
   const handleStartQuiz = (mode, diff) => {
     setQuizMode(mode);
     setDifficulty(diff);
-    setScreen('QUIZ');
+    if (mode === 'spot_diff') {
+      setScreen('SPOT_THE_DIFFERENCE');
+    } else {
+      setScreen('QUIZ');
+    }
   };
 
   const handleFinishQuiz = (score, total) => {
@@ -65,6 +70,14 @@ export default function App() {
           difficulty={difficulty}
           onFinishQuiz={handleFinishQuiz}
           onBackToTitle={handleBackToTitle}
+        />
+      )}
+
+      {screen === 'SPOT_THE_DIFFERENCE' && (
+        <SpotDifferenceScreen
+          difficulty={difficulty}
+          onBackToTitle={handleBackToTitle}
+          onViewCollection={handleViewCollection}
         />
       )}
 

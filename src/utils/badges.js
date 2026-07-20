@@ -163,7 +163,8 @@ export const DIFFICULTY_MAP = {
 export const MODE_MAP = {
   'ai': 'AIのひみつクイズ',
   'parent': 'おうちの人のクイズ',
-  'test': 'てんもん宇宙けんてい'
+  'test': 'てんもん宇宙けんてい',
+  'spot_diff': '宇宙まちがいさがし'
 };
 
 // けんてい用組み立てプロジェクトデータ (4きゅう・3きゅう各4種、計8種)
