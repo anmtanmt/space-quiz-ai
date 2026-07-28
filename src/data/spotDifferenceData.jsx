@@ -417,11 +417,6 @@ export function SpaceObject({ type, size, x, y, angle, properties, isDiffMode = 
     ? { ...properties, ...properties.diffProps } 
     : properties;
 
-  // もし非表示（消えている）の場合は描画しない
-  if (props.visible === false) {
-    return null;
-  }
-
   // アスペクト比が16:10 (800x500) なので、横幅と縦幅の%比率を別々に計算
   const style = {
     position: 'absolute',
@@ -436,6 +431,11 @@ export function SpaceObject({ type, size, x, y, angle, properties, isDiffMode = 
     justifyContent: 'center',
     alignItems: 'center',
   };
+
+  // もし非表示（消えている）の場合はSVGの描画をスキップして透明な判定領域を残す
+  if (props.visible === false) {
+    return <div style={style} />;
+  }
 
   const renderSVG = () => {
     switch (type) {
@@ -665,7 +665,8 @@ export function generateGame(sceneId, difficulty) {
           diffProps = { hasFlag: false };
           description = '宇宙飛行士の はたが ない';
         } else {
-          diffProps = { visorColor: '#ffb703' };
+          const nextVisor = obj.properties.visorColor === '#ffb703' ? '#ef476f' : '#ffb703';
+          diffProps = { visorColor: nextVisor };
           description = '宇宙飛行士の ヘルメットの色が ちがう';
         }
         break;
@@ -701,7 +702,7 @@ export function generateGame(sceneId, difficulty) {
           description = '人工衛星の はねが かたほうない';
         } else {
           diffProps = { hasSignal: false };
-          description = '人工衛星의 でんぱが でていない';
+          description = '人工衛星の でんぱが でていない';
         }
         break;
 

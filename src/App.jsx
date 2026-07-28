@@ -11,7 +11,7 @@ export default function App() {
   const [screen, setScreen] = useState('WELCOME'); // 'WELCOME', 'TITLE', 'QUIZ', 'RESULT', 'COLLECTION', 'PARENT'
   const [quizMode, setQuizMode] = useState('ai');
   const [difficulty, setDifficulty] = useState('easy');
-  const [result, setResult] = useState({ score: 0, total: 0 });
+  const [selectedBadgeId, setSelectedBadgeId] = useState(null);
 
   const handleStartQuiz = (mode, diff) => {
     setQuizMode(mode);
@@ -32,7 +32,8 @@ export default function App() {
     setScreen('QUIZ');
   };
 
-  const handleViewCollection = () => {
+  const handleViewCollection = (badgeId = null) => {
+    setSelectedBadgeId(badgeId);
     setScreen('COLLECTION');
   };
 
@@ -95,6 +96,7 @@ export default function App() {
 
       {screen === 'COLLECTION' && (
         <CollectionScreen
+          initialBadgeId={selectedBadgeId}
           onBackToTitle={handleBackToTitle}
         />
       )}

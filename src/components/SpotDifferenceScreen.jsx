@@ -10,6 +10,7 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
   const ALL_SCENE_IDS = ['rocket_journey', 'alien_party', 'moon_sky', 'space_station', 'blackhole_comet', 'galaxy_drive'];
   const [currentSceneId, setCurrentSceneId] = useState('');
   const [clearCount, setClearCount] = useState(0); // クリアしたイラストの総数
+  const [stageIndex, setStageIndex] = useState(0); // 1セッション(3問)内の進行 (0, 1, 2)
   
   // ゲームデータ状態
   const [gameData, setGameData] = useState(null);
@@ -20,14 +21,16 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
   const [activeHintId, setActiveHintId] = useState(null); // 現在点滅表示しているヒント対象ID
   
   // 進行フェーズ
-  const [phase, setPhase] = useState('READY'); // 'READY' (ステージ開始ボード), 'PLAYING', 'STAGE_CLEAR', 'GAME_OVER', 'ALL_CLEAR'
-  const [isTransitioning, setIsTransitioning] = useState(false); // 誤タップ（突き抜け）ガード用ロックフラグ
+  const [phase, setPhase] = useState('READY'); // 'READY', 'PLAYING', 'STAGE_CLEAR', 'GAME_OVER', 'ALL_CLEAR'
+  const [isTransitioning, setIsTransitioning] = useState(false); // 誤タップガード用
   const [newBadge, setNewBadge] = useState(null);
   const [isNewBadgeEarned, setIsNewBadgeEarned] = useState(false);
+  const [lastFoundDesc, setLastFoundDesc] = useState(''); // リアルタイムで発見した間違いの説明
+  const [isPhotoMaximized, setIsPhotoMaximized] = useState(false); // 獲得バッジ画像の拡大表示フラグ
 
   const leftCanvasRef = useRef(null);
   const rightCanvasRef = useRef(null);
-  const synthRef = useRef(null); // 音声発話インスタンス保持用
+  const synthRef = useRef(null); // 音声発話インスタンス
 
   // 1. 新しいシーンの初期化
   useEffect(() => {
@@ -45,6 +48,7 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
     setFoundIds([]);
     setWrongClicks([]);
     setActiveHintId(null);
+    setLastFoundDesc('');
     setPhase('READY');
     
     // ステージ開始のアナウンス
@@ -62,29 +66,21 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
   const speakGuideText = (sceneName, diff) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
-    // 音声をリセット
     window.speechSynthesis.cancel();
 
-    // 難易度ごとの間違い数
     let diffCount = 3;
     if (diff === 'medium') diffCount = 4;
     if (diff === 'hard') diffCount = 5;
 
-    // 読み上げテキストの生成
-    let text = '';
-    const cleanSceneName = sceneName.replace(/<rt>.*?<\/rt>/g, '').replace(/<[^>]*>/g, '');
-    
-    text = `${cleanSceneName}の まちがいさがし。まちがいは全部で ${diffCount}つ あるよ。左右の 絵を 見くらべて、ちがうところを タッチしてね。`;
+    const stageNum = stageIndex + 1;
+    let text = `${stageNum}もんめ。${sceneName.replace(/<rt>.*?<\/rt>/g, '').replace(/<[^>]*>/g, '')}。まちがいは全部で ${diffCount}つ あるよ。`;
 
-    // 助詞「は」「へ」の誤読ハックと、一呼吸(ポーズ)のための読点ハック
-    // 「は」が助詞の時に「わ」と読ませる簡易ハック
     let speechText = text
       .replace(/は/g, 'わ')
       .replace(/へ/g, 'え')
       .replace(/、/g, '。')
       .replace(/ /g, '。');
 
-    // 特異ワードのアクセント補正
     speechText = speechText
       .replace(/宇宙飛行士/g, 'うちゅうひこうし')
       .replace(/宇宙人/g, 'うちゅうじん');
@@ -92,18 +88,12 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
     const utterance = new SpeechSynthesisUtterance(speechText);
     utterance.lang = 'ja-JP';
     utterance.rate = 1.0;
-    utterance.pitch = 1.1; // 少し高めで優しい声
+    utterance.pitch = 1.1;
 
-    // BGMのダッキング
     audio.duckBgm();
 
-    utterance.onend = () => {
-      audio.unduckBgm();
-    };
-
-    utterance.onerror = () => {
-      audio.unduckBgm();
-    };
+    utterance.onend = () => { audio.unduckBgm(); };
+    utterance.onerror = () => { audio.unduckBgm(); };
 
     synthRef.current = utterance;
     window.speechSynthesis.speak(utterance);
@@ -128,7 +118,7 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
             ...p,
             x: p.x + p.vx,
             y: p.y + p.vy,
-            vy: p.vy + 0.18, // 重力で落下
+            vy: p.vy + 0.18,
             opacity: p.opacity - 0.025,
             scale: Math.max(0, p.scale - 0.015)
           }))
@@ -168,9 +158,9 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
       const color = colors[Math.floor(Math.random() * colors.length)];
       newParticles.push({
         id: `${Date.now()}_${i}_${Math.random()}`,
-        x: pctX, // パーセント座標で管理
+        x: pctX,
         y: pctY,
-        vx: Math.cos(angle) * speed * 0.15, // パーセント単位の速度にスケーリング
+        vx: Math.cos(angle) * speed * 0.15,
         vy: (Math.sin(angle) * speed - 1.5) * 0.15, 
         size,
         color,
@@ -183,28 +173,22 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
 
   // 7. 左右どちらかのキャンバスのタップ・クリックハンドラー
   const handleCanvasClick = (e, side) => {
-    // ロック中、または非プレイ中は無視
     if (isTransitioning || phase !== 'PLAYING') return;
 
     const rect = e.currentTarget.getBoundingClientRect();
-    // 仮想サイズ 800x500 に対するパーセント割合座標
     const pctX = ((e.clientX - rect.left) / rect.width) * 100;
     const pctY = ((e.clientY - rect.top) / rect.height) * 100;
 
-    // 仮想 800x500 基準の実ピクセル座標に変換
     const clickX = (pctX / 100) * 800;
     const clickY = (pctY / 100) * 500;
 
-    // まだ見つかっていない間違いを検索
     let matchedDiff = null;
     let clickDistance = 9999;
 
     gameData.differences.forEach(diff => {
       if (foundIds.includes(diff.id)) return;
 
-      // 距離を測定
       const dist = Math.sqrt((clickX - diff.x) ** 2 + (clickY - diff.y) ** 2);
-      // 子供向けのルーズ判定 (本来の半径に 35px 判定枠をプラスする)
       const allowedRadius = (diff.size / 2) + 35;
 
       if (dist < allowedRadius) {
@@ -220,28 +204,28 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
       audio.playCorrect();
       const updatedFound = [...foundIds, matchedDiff.id];
       setFoundIds(updatedFound);
+      setLastFoundDesc(matchedDiff.description);
       triggerParticles(pctX, pctY);
       
-      // ヒント中のものを当てたらヒントを解除
       if (activeHintId === matchedDiff.id) {
         setActiveHintId(null);
       }
 
+      // 3秒後にトースト記述をリセット
+      setTimeout(() => {
+        setLastFoundDesc(prev => prev === matchedDiff.description ? '' : prev);
+      }, 3500);
+
       // シーン内の全間違いを発見
       if (updatedFound.length === gameData.differences.length) {
-        // 最後の丸をしっかりと確認してもらうため、1.8秒のディレイを設ける
         setTimeout(() => {
           handleStageClear();
-        }, 1800);
+        }, 1500);
       }
     } else {
-      // 不正解処理
       audio.playWrong();
-      
-      // バウンドエフェクト用に位置を保存
       setWrongClicks(prev => [...prev, { id: Date.now(), x: pctX, y: pctY }]);
 
-      // むずかしい難易度ならライフを削る
       if (difficulty === 'hard') {
         const nextLives = lives - 1;
         setLives(nextLives);
@@ -252,11 +236,19 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
     }
   };
 
-  // 8. ステージクリア処理
+  // 8. ステージクリア処理（3問で1セッション）
   const handleStageClear = () => {
-    setPhase('ALL_CLEAR'); // 即座にごほうび獲得画面へ
-    activateTransitionLock(1000);
-    handleAllClear();
+    if (stageIndex >= 2) {
+      // 3問目クリア！バッジ獲得モーダルを表示
+      setPhase('ALL_CLEAR');
+      activateTransitionLock(1000);
+      handleAllClear();
+    } else {
+      // 1問目・2問目クリア！「つぎの問題へ」モーダルを表示
+      setPhase('STAGE_CLEAR');
+      activateTransitionLock(800);
+      audio.playCorrect();
+    }
   };
 
   // 9. ゲームオーバー処理
@@ -312,10 +304,16 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
     
     setCurrentSceneId(nextId);
     setClearCount(prev => prev + 1);
-    setNewBadge(null);
-    setIsNewBadgeEarned(false);
     
-    // むずかしい難易度なら、もしライフが尽きていたら回復（通常プレイ時は引き継ぎ）
+    if (phase === 'ALL_CLEAR') {
+      setStageIndex(0);
+      setNewBadge(null);
+      setIsNewBadgeEarned(false);
+      setIsPhotoMaximized(false);
+    } else {
+      setStageIndex(prev => prev + 1);
+    }
+    
     if (difficulty === 'hard' && lives <= 0) {
       setLives(3);
     }
@@ -326,14 +324,12 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
     if (phase !== 'PLAYING' || isTransitioning) return;
     audio.playClick();
 
-    // まだ見つかっていない間違いからランダムに1つ選定
     const unfound = gameData.differences.filter(d => !foundIds.includes(d.id));
     if (unfound.length === 0) return;
 
     const randomDiff = unfound[Math.floor(Math.random() * unfound.length)];
     setActiveHintId(randomDiff.id);
 
-    // 3.5秒後にヒント点滅を自動オフにする
     setTimeout(() => {
       setActiveHintId(prev => prev === randomDiff.id ? null : prev);
     }, 3500);
@@ -348,9 +344,10 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
     setActiveHintId(null);
     setNewBadge(null);
     setIsNewBadgeEarned(false);
+    setIsPhotoMaximized(false);
     setClearCount(0);
+    setStageIndex(0);
     
-    // 新しいランダムなシーンへ
     const candidates = ALL_SCENE_IDS.filter(id => id !== currentSceneId);
     const nextId = candidates[Math.floor(Math.random() * candidates.length)];
     setCurrentSceneId(nextId);
@@ -377,7 +374,7 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
             {difficulty === 'hard' && '🔥 むずかしい'}
           </div>
           <h2 style={styles.stageTitle}>
-            まちがいさがし {clearCount + 1}つめ：<span dangerouslySetInnerHTML={{ __html: gameData.nameRuby }} />
+            まちがいさがし {stageIndex + 1} / 3 もんめ：<span dangerouslySetInnerHTML={{ __html: gameData.nameRuby }} />
           </h2>
         </div>
 
@@ -406,7 +403,7 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
       {phase === 'READY' && (
         <div style={styles.readyBoard} className="scale-up-bounce">
           <h3 style={styles.readyText}>
-            まちがいさがし {clearCount + 1}つめ<br />
+            まちがいさがし {stageIndex + 1} / 3 もんめ<br />
             <span style={{ fontSize: '2.8rem', color: '#ffb703' }} dangerouslySetInnerHTML={{ __html: gameData.nameRuby }} />
           </h3>
           <p style={styles.readySubText}>
@@ -577,6 +574,68 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
         </div>
       )}
 
+      {/* 発見したまちがいの解説トースト（画面上部中央） */}
+      {lastFoundDesc && (
+        <div 
+          style={{
+            position: 'absolute',
+            top: '80px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 100,
+            backgroundColor: 'rgba(17, 24, 39, 0.92)',
+            border: '2px solid #66fcf1',
+            borderRadius: '30px',
+            padding: '10px 24px',
+            color: '#66fcf1',
+            fontWeight: '700',
+            fontSize: '1.2rem',
+            boxShadow: '0 8px 24px rgba(102, 252, 241, 0.3)',
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap'
+          }}
+          className="scale-up-bounce"
+        >
+          🔍 みつけた！ {lastFoundDesc}
+        </div>
+      )}
+
+      {/* 1問クリア / 2問クリア モーダル (STAGE_CLEAR) */}
+      {phase === 'STAGE_CLEAR' && ReactDOM.createPortal(
+        <div style={styles.backdrop}>
+          <div style={styles.overlayBoard} className="scale-up-bounce">
+            <div style={styles.medalIcon}>✨</div>
+            <h3 style={{ fontSize: '2.4rem', color: '#66fcf1', fontWeight: '800' }}>
+              クリア！ ({stageIndex + 1} / 3 もんめ)
+            </h3>
+            <p style={{ fontSize: '1.15rem', margin: '8px 0 12px 0' }}>
+              みつけた まちがい：
+            </p>
+            <ul style={{
+              textAlign: 'left',
+              backgroundColor: 'rgba(255, 255, 255, 0.06)',
+              borderRadius: '12px',
+              padding: '12px 20px 12px 36px',
+              margin: '0 0 20px 0',
+              color: '#ffd166',
+              fontSize: '1.05rem',
+              lineHeight: '1.6'
+            }}>
+              {gameData.differences.map((diff, i) => (
+                <li key={i}>{diff.description}</li>
+              ))}
+            </ul>
+
+            <div style={styles.actionButtons}>
+              <button className="btn-action btn-accent" onClick={handleNextStage} style={styles.modalBtn}>
+                🚀 つぎの もんだいへ ({stageIndex + 2} / 3 もんめ)
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* ゲームオーバー画面 */}
       {phase === 'GAME_OVER' && ReactDOM.createPortal(
         <div style={styles.backdrop}>
@@ -599,26 +658,29 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
         document.body
       )}
 
-      {/* ステージクリア（バッジ獲得）画面 */}
+      {/* ステージクリア（バッジ獲得）画面 - 3問クリア時 */}
       {phase === 'ALL_CLEAR' && ReactDOM.createPortal(
         <div style={styles.backdrop}>
           <div style={styles.overlayBoard} className="scale-up-bounce">
             <div style={styles.medalIcon}>🎉</div>
             <h3 style={{ fontSize: '2.6rem', color: '#ffb703', fontWeight: '800', textShadow: '0 0 20px rgba(255,183,3,0.5)' }}>
-              せいかい！
+              3もん ぜんぶ クリア！
             </h3>
-            <p style={{ fontSize: '1.25rem', margin: '8px 0 18px 0', lineHeight: '1.4' }}>
-              すべての まちがいを みつけたぞ！<br />
-              きみは <strong>うちゅうの めいたんてい</strong> だ！🔍
+            <p style={{ fontSize: '1.2rem', margin: '8px 0 14px 0', lineHeight: '1.4' }}>
+              きみは <strong>うちゅうの めいたんてい</strong> だ！🔍<br />
+              ごほうびの バッジを ゲットしたよ！
             </p>
 
             {newBadge && (
               <div 
+                onClick={() => { audio.playClick(); onViewCollection(newBadge.id); }}
                 style={{
                   ...styles.badgeRewardBox,
                   borderColor: newBadge.borderColor || '#ffb703',
-                  background: 'rgba(255, 255, 255, 0.05)'
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  cursor: 'pointer'
                 }}
+                title="タップすると コレクションで くわしく みれるよ！"
               >
                 <div 
                   style={{
@@ -633,19 +695,48 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
                     fontSize: '2.5rem',
                     border: '3px solid #ffffff',
                     boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    position: 'relative'
+                  }}
+                  onClick={(e) => {
+                    if (newBadge.image) {
+                      e.stopPropagation();
+                      audio.playClick();
+                      setIsPhotoMaximized(true);
+                    }
                   }}
                 >
                   {newBadge.emoji}
+                  {newBadge.image && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      right: '-2px',
+                      backgroundColor: 'var(--color-accent)',
+                      color: '#000',
+                      borderRadius: '50%',
+                      width: '26px',
+                      height: '26px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      fontSize: '0.85rem',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                      border: '2px solid #fff'
+                    }}>
+                      📸
+                    </div>
+                  )}
                 </div>
-                <div style={{ textAlign: 'left' }}>
+
+                <div style={{ textAlign: 'left', flex: 1 }}>
                   <h4 style={{ color: '#ffb703', fontSize: '1.2rem', fontWeight: '700' }}>
-                    {isNewBadgeEarned ? '🎉 はじめて ゲット！' : '⭐ ２回目（かいめ）以降（いこう）のごほうび！'}
+                    {isNewBadgeEarned ? '🎉 はじめて ゲット！' : '⭐ ２回目（かいめ）以降のごほうび！'}
                   </h4>
                   <p style={{ fontSize: '1.1rem', color: '#ffffff', fontWeight: '700', marginTop: '2px' }}>
                     {newBadge.name}
                   </p>
-                  <p style={{ fontSize: '0.8rem', color: '#a0a5c0', marginTop: '4px', lineHeight: '1.4' }}>
+                  <p style={{ fontSize: '0.85rem', color: '#a0a5c0', marginTop: '4px', lineHeight: '1.4' }}>
                     {newBadge.desc}
                   </p>
                 </div>
@@ -654,10 +745,10 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
 
             <div style={styles.actionButtons}>
               <button className="btn-action btn-accent" onClick={handleNextStage} style={styles.modalBtn}>
-                🚀 つぎの まちがいさがしへ！
+                🚀 つぎの 3もんに チャレンジ！
               </button>
               <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
-                <button className="btn-action btn-secondary" onClick={onViewCollection} style={{ ...styles.modalBtn, flex: 1 }}>
+                <button className="btn-action btn-secondary" onClick={() => onViewCollection(newBadge ? newBadge.id : null)} style={{ ...styles.modalBtn, flex: 1 }}>
                   🏆 コレクション
                 </button>
                 <button className="btn-action btn-back" onClick={onBackToTitle} style={{ ...styles.modalBtn, flex: 1 }}>
@@ -665,6 +756,50 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
                 </button>
               </div>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 写真の拡大表示モーダル (ReactDOM.createPortal で document.body 直下にレンダリング) */}
+      {isPhotoMaximized && newBadge && newBadge.image && ReactDOM.createPortal(
+        <div 
+          style={styles.maximizedOverlay} 
+          onClick={() => { audio.playClick(); setIsPhotoMaximized(false); }}
+        >
+          <div style={styles.maximizedContainer} onClick={(e) => e.stopPropagation()}>
+            <img src={newBadge.image} alt={newBadge.name} style={styles.maximizedPhoto} />
+            <div style={styles.maximizedTitle}>{newBadge.name}</div>
+
+            {/* リアル画像下のさらに詳しい概要説明テキスト（独自詳細文がある場合のみ表示） */}
+            {newBadge.detailDesc && (
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(102, 252, 241, 0.3)',
+                borderRadius: '16px',
+                padding: '14px 20px',
+                margin: '14px 0 6px 0',
+                textAlign: 'left',
+                color: '#e2e8f0',
+                fontSize: '1rem',
+                lineHeight: '1.6',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              }}>
+                📖 <strong>くわしい おはなし：</strong><br />
+                {newBadge.detailDesc}
+              </div>
+            )}
+
+            <button 
+              className="btn-action btn-primary" 
+              onClick={() => { audio.playClick(); setIsPhotoMaximized(false); }}
+              style={{ marginTop: '16px', padding: '10px 30px' }}
+            >
+              とじる
+            </button>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '10px', letterSpacing: '0.05em' }}>
+              （がめんの どこをタップしても もどれるよ）
+            </p>
           </div>
         </div>,
         document.body

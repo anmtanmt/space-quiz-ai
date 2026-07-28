@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
 import { BADGE_POOL, CATEGORIES, getDynamicBadgeInfo, getBadgeBorderColor, DIFFICULTY_MAP, MODE_MAP, getProjectStatus, PROJECT_IMAGE_MAP } from '../utils/badges';
 
-export default function CollectionScreen({ onBackToTitle }) {
+export default function CollectionScreen({ initialBadgeId, onBackToTitle }) {
   const [earnedBadges, setEarnedBadges] = useState([]);
   const [selectedBadge, setSelectedBadge] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
@@ -11,23 +12,63 @@ export default function CollectionScreen({ onBackToTitle }) {
   const [modalPartIdx, setModalPartIdx] = useState(4);
 
   useEffect(() => {
-    setEarnedBadges(storage.getEarnedBadges());
-  }, []);
+    const earned = storage.getEarnedBadges();
+    setEarnedBadges(earned);
+
+    if (initialBadgeId) {
+      const targetBadge = BADGE_POOL.find(b => b.id === initialBadgeId);
+      if (targetBadge) {
+        const earnedInfo = earned.find(b => b.id === initialBadgeId);
+        if (earnedInfo) {
+          const dynamicBadge = getDynamicBadgeInfo(targetBadge, earnedInfo.count);
+          setSelectedBadge({
+            ...dynamicBadge,
+            isEarned: true,
+            count: earnedInfo.count || 1,
+            earnedDates: earnedInfo.earnedDates || [],
+            earnedDetails: earnedInfo.earnedDetails || [],
+            borderColor: getBadgeBorderColor(earnedInfo)
+          });
+        } else {
+          setSelectedBadge({
+            ...targetBadge,
+            isEarned: false,
+            count: 0,
+            earnedDates: [],
+            earnedDetails: [],
+            borderColor: 'rgba(255, 255, 255, 0.2)'
+          });
+        }
+      }
+    }
+  }, [initialBadgeId]);
 
   const totalBadges = BADGE_POOL.length;
   const earnedCount = earnedBadges.length;
 
   const handleBadgeClick = (badge) => {
+    audio.playClick();
+    setIsPhotoMaximized(false);
+    setModalPartIdx(4);
     const earnedInfo = earnedBadges.find(b => b.id === badge.id);
     if (earnedInfo) {
-      audio.playClick();
       const dynamicBadge = getDynamicBadgeInfo(badge, earnedInfo.count);
       setSelectedBadge({
         ...dynamicBadge,
+        isEarned: true,
         count: earnedInfo.count || 1,
         earnedDates: earnedInfo.earnedDates || [],
         earnedDetails: earnedInfo.earnedDetails || [],
         borderColor: getBadgeBorderColor(earnedInfo)
+      });
+    } else {
+      setSelectedBadge({
+        ...badge,
+        isEarned: false,
+        count: 0,
+        earnedDates: [],
+        earnedDetails: [],
+        borderColor: 'rgba(255, 255, 255, 0.2)'
       });
     }
   };
@@ -206,27 +247,27 @@ export default function CollectionScreen({ onBackToTitle }) {
                 key={badge.id}
                 onClick={() => handleBadgeClick(badge)}
                 className={`badge-item ${isEarned ? 'earned' : 'locked'}`}
-                style={{ position: 'relative' }}
+                style={{ position: 'relative', cursor: 'pointer' }}
               >
                 <div
                   style={{
                     ...styles.badgeCircle,
-                    backgroundColor: isEarned ? dynamicBadge.color : 'rgba(255, 255, 255, 0.05)',
-                    border: isEarned ? `3px solid ${borderColor}` : '2px dashed rgba(255, 255, 255, 0.15)'
+                    backgroundColor: isEarned ? dynamicBadge.color : 'rgba(255, 255, 255, 0.04)',
+                    border: isEarned ? `3px solid ${borderColor}` : '2px dashed rgba(255, 255, 255, 0.18)'
                   }}
                 >
                   <span style={{
                     ...styles.badgeEmoji,
-                    filter: isEarned ? 'none' : 'grayscale(100%) opacity(0.3)'
+                    filter: isEarned ? 'none' : 'grayscale(80%) opacity(0.45)'
                   }}>
-                    {isEarned ? dynamicBadge.emoji : '❓'}
+                    {dynamicBadge.emoji}
                   </span>
                 </div>
                 <span style={{
                   ...styles.badgeName,
-                  color: isEarned ? '#fff' : 'rgba(255, 255, 255, 0.3)'
+                  color: isEarned ? '#fff' : 'rgba(255, 255, 255, 0.45)'
                 }}>
-                  {isEarned ? dynamicBadge.name : '？？？'}
+                  {isEarned ? dynamicBadge.name : `🔒 ${dynamicBadge.name}`}
                 </span>
                 {isEarned && earnedInfo.count > 1 && (
                   <span style={styles.badgeLoopCount}>×{earnedInfo.count}</span>
@@ -237,137 +278,215 @@ export default function CollectionScreen({ onBackToTitle }) {
         </div>
       )}
 
-      {selectedBadge && (() => {
-        // 完成プロジェクト表示モード時の動的値の定義
-        const activePart = selectedBadge.isCompletedProjectView 
-          ? selectedBadge.projectParts[modalPartIdx]
-          : null;
-        
-        const displayName = selectedBadge.isCompletedProjectView
-          ? (modalPartIdx === 4 ? `${selectedBadge.name}` : `${selectedBadge.name.replace('（かんせい！）', '')}の ${activePart.name}`)
-          : selectedBadge.name;
-        
-        const displayDesc = selectedBadge.isCompletedProjectView
-          ? activePart.desc
-          : selectedBadge.desc;
-        
-        const displayEmoji = selectedBadge.isCompletedProjectView
-          ? activePart.emoji
-          : selectedBadge.emoji;
+      {selectedBadge && ReactDOM.createPortal(
+        (() => {
+          // 完成プロジェクト表示モード時の動的値の定義
+          const activePart = selectedBadge.isCompletedProjectView 
+            ? selectedBadge.projectParts[modalPartIdx]
+            : null;
           
-        return (
-          <div style={styles.overlay} onClick={() => { setSelectedBadge(null); setIsPhotoMaximized(false); }}>
-            <div className="star-pop" style={styles.modal} onClick={e => e.stopPropagation()}>
-              
-              {selectedBadge.isCompletedProjectView && modalPartIdx === 4 && selectedBadge.image ? (
+          const displayName = selectedBadge.isCompletedProjectView
+            ? (modalPartIdx === 4 ? `${selectedBadge.name}` : `${selectedBadge.name.replace('（かんせい！）', '')}の ${activePart.name}`)
+            : selectedBadge.name;
+          
+          const displayDesc = selectedBadge.isCompletedProjectView
+            ? activePart.desc
+            : selectedBadge.desc;
+          
+          const displayEmoji = selectedBadge.isCompletedProjectView
+            ? activePart.emoji
+            : selectedBadge.emoji;
+            
+          return (
+            <div style={styles.overlay} onClick={() => { setSelectedBadge(null); setIsPhotoMaximized(false); }}>
+              <div className="star-pop" style={styles.modal} onClick={e => e.stopPropagation()}>
                 <div 
-                  style={styles.realPhotoContainer} 
-                  onClick={() => { audio.playClick(); setIsPhotoMaximized(true); }}
-                  title="タップすると おおきくなるよ！"
+                  style={{ 
+                    ...styles.modalBadgeCircle, 
+                    backgroundColor: selectedBadge.color || 'rgba(255,255,255,0.1)',
+                    borderColor: selectedBadge.borderColor || '#fff',
+                    cursor: 'pointer',
+                    position: 'relative'
+                  }}
+                  onClick={() => {
+                    audio.playClick();
+                    setIsPhotoMaximized(true);
+                  }}
                 >
-                  <img src={selectedBadge.image} alt={selectedBadge.name} style={styles.realPhoto} />
-                  <div style={styles.zoomHint}>🔍 タップでおおきくなるよ！</div>
-                </div>
-              ) : selectedBadge.image && !selectedBadge.isCompletedProjectView ? (
-                <div 
-                  style={styles.realPhotoContainer} 
-                  onClick={() => { audio.playClick(); setIsPhotoMaximized(true); }}
-                  title="タップすると おおきくなるよ！"
-                >
-                  <img src={selectedBadge.image} alt={selectedBadge.name} style={styles.realPhoto} />
-                  <div style={styles.zoomHint}>🔍 タップでおおきくなるよ！</div>
-                </div>
-              ) : (
-                <div style={{ 
-                  ...styles.modalBadgeCircle, 
-                  backgroundColor: selectedBadge.color,
-                  borderColor: selectedBadge.borderColor || '#fff'
-                }}>
                   <span style={styles.modalBadgeEmoji}>{displayEmoji}</span>
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '-6px',
+                    right: '-6px',
+                    backgroundColor: 'var(--color-accent)',
+                    color: '#000',
+                    borderRadius: '50%',
+                    width: '28px',
+                    height: '28px',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    fontSize: '0.95rem',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                    border: '2px solid #fff'
+                  }}>
+                    {selectedBadge.image ? '📸' : '🔍'}
+                  </div>
                 </div>
-              )}
 
-              {/* 図鑑パーツ切り替えタブ（完成プロジェクトの場合のみ表示） */}
-              {selectedBadge.isCompletedProjectView && (
-                <div style={styles.modalPartsRow}>
-                  {selectedBadge.projectParts.map((part, idx) => {
-                    const isActive = modalPartIdx === idx;
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => { audio.playClick(); setModalPartIdx(idx); }}
-                        style={{
-                          ...styles.modalPartSlot,
-                          border: isActive ? '2px solid var(--color-primary)' : '1px solid rgba(255,255,255,0.1)',
-                          background: isActive ? 'rgba(102,252,241,0.15)' : 'rgba(255,255,255,0.03)',
-                        }}
-                      >
-                        <span style={styles.modalPartSlotEmoji}>{part.emoji}</span>
-                        <span style={{ 
-                          ...styles.modalPartSlotName,
-                          color: isActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.5)'
-                        }}>
-                          {idx === 4 ? 'かんせい' : part.name}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <h2 style={styles.modalTitle}>{displayName}</h2>
-              <p style={styles.modalDesc}>{displayDesc}</p>
-              
-              <div style={styles.earnedStats}>
-                <p style={styles.statsText}>
-                  🏅 ゲットした回数: <span style={styles.statsHighlight}>{selectedBadge.count}回</span>
-                </p>
-                {selectedBadge.earnedDetails && selectedBadge.earnedDetails.length > 0 && (
-                  <div style={styles.dateList}>
-                    <p style={styles.dateTitle}>📅 ゲットした記念日:</p>
-                    <ul style={styles.dates}>
-                      {selectedBadge.earnedDetails.slice(-3).map((detail, idx) => (
-                        <li key={idx} style={styles.dateItem}>
-                          • {detail.date} - {DIFFICULTY_MAP[detail.difficulty] || detail.difficulty} ({MODE_MAP[detail.mode] || detail.mode})
-                        </li>
-                      ))}
-                      {selectedBadge.earnedDetails.length > 3 && (
-                        <li style={styles.dateItem}>...ほかにもあるよ！</li>
-                      )}
-                    </ul>
+                {/* 図鑑パーツ切り替えタブ（完成プロジェクトの場合のみ表示） */}
+                {selectedBadge.isCompletedProjectView && (
+                  <div style={styles.modalPartsRow}>
+                    {selectedBadge.projectParts.map((part, idx) => {
+                      const isActive = modalPartIdx === idx;
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => { audio.playClick(); setModalPartIdx(idx); }}
+                          style={{
+                            ...styles.modalPartSlot,
+                            border: isActive ? '2px solid var(--color-primary)' : '1px solid rgba(255,255,255,0.1)',
+                            background: isActive ? 'rgba(102,252,241,0.15)' : 'rgba(255,255,255,0.03)',
+                          }}
+                        >
+                          <span style={styles.modalPartSlotEmoji}>{part.emoji}</span>
+                          <span style={{ 
+                            ...styles.modalPartSlotName,
+                            color: isActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.5)'
+                          }}>
+                            {idx === 4 ? 'かんせい' : part.name}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
+
+                <h2 style={styles.modalTitle}>
+                  {selectedBadge.isEarned === false ? `🔒 ${selectedBadge.name}` : displayName}
+                </h2>
+                <p style={styles.modalDesc}>{displayDesc}</p>
+                
+                {selectedBadge.isEarned === false ? (
+                  <div style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px dashed rgba(255, 255, 255, 0.2)',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    margin: '12px 0 16px 0',
+                    color: '#ffd166',
+                    fontSize: '0.95rem',
+                    lineHeight: '1.5',
+                    width: '100%'
+                  }}>
+                    💡 <strong>ヒント：</strong><br />
+                    クイズや まちがいさがしを あそぶと ゲットできるかも！？ チャレンジしてみよう！
+                  </div>
+                ) : (
+                  <div style={styles.earnedStats}>
+                    <p style={styles.statsText}>
+                      🏅 ゲットした回数: <span style={styles.statsHighlight}>{selectedBadge.count}回</span>
+                    </p>
+                    {selectedBadge.earnedDetails && selectedBadge.earnedDetails.length > 0 && (
+                      <div style={styles.dateList}>
+                        <p style={styles.dateTitle}>📅 ゲットした記念日:</p>
+                        <ul style={styles.dates}>
+                          {selectedBadge.earnedDetails.slice(-3).map((detail, idx) => (
+                            <li key={idx} style={styles.dateItem}>
+                              • {detail.date} - {DIFFICULTY_MAP[detail.difficulty] || detail.difficulty} ({MODE_MAP[detail.mode] || detail.mode})
+                            </li>
+                          ))}
+                          {selectedBadge.earnedDetails.length > 3 && (
+                            <li style={styles.dateItem}>...ほかにもあるよ！</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <button className="btn-action btn-primary" onClick={() => { setSelectedBadge(null); setIsPhotoMaximized(false); }} style={styles.closeBtn}>
+                  とじる
+                </button>
               </div>
-
-              <button className="btn-action btn-primary" onClick={() => { setSelectedBadge(null); setIsPhotoMaximized(false); }} style={styles.closeBtn}>
-                とじる
-              </button>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })(),
+        document.body
+      )}
 
-      {/* 写真の拡大表示モーダル */}
-      {isPhotoMaximized && selectedBadge && selectedBadge.image && (
+      {/* 写真 / 特製イラストカードの拡大表示モーダル (ReactDOM.createPortal で document.body 直下にレンダリング) */}
+      {isPhotoMaximized && selectedBadge && ReactDOM.createPortal(
         <div 
           style={styles.maximizedOverlay} 
           onClick={() => { audio.playClick(); setIsPhotoMaximized(false); }}
         >
-          <div style={styles.maximizedContainer}>
-            <img src={selectedBadge.image} alt={selectedBadge.name} style={styles.maximizedPhoto} />
-            <div style={styles.maximizedTitle}>{selectedBadge.name}</div>
+          <div style={styles.maximizedContainer} onClick={(e) => e.stopPropagation()}>
+            {selectedBadge.image ? (
+              <img src={selectedBadge.image} alt={selectedBadge.name} style={styles.maximizedPhoto} />
+            ) : (
+              <div style={{
+                width: '240px',
+                height: '240px',
+                borderRadius: '50%',
+                backgroundColor: selectedBadge.color || '#4cc9f0',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                margin: '0 auto 16px auto',
+                boxShadow: `0 0 30px ${selectedBadge.color || '#4cc9f0'}aa`,
+                border: '4px solid #fff'
+              }}>
+                <span style={{ fontSize: '7.5rem', filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.5))' }}>
+                  {selectedBadge.isCompletedProjectView && selectedBadge.projectParts ? selectedBadge.projectParts[modalPartIdx].emoji : selectedBadge.emoji}
+                </span>
+              </div>
+            )}
+            <div style={styles.maximizedTitle}>
+              {selectedBadge.isCompletedProjectView && selectedBadge.projectParts 
+                ? (modalPartIdx === 4 ? `${selectedBadge.name}` : `${selectedBadge.name.replace('（かんせい！）', '')}の ${selectedBadge.projectParts[modalPartIdx].name}`)
+                : selectedBadge.name}
+            </div>
+
+            <p style={{ color: '#fff', fontSize: '1.05rem', margin: '8px 0 14px 0', lineHeight: '1.5' }}>
+              {selectedBadge.isCompletedProjectView && selectedBadge.projectParts 
+                ? selectedBadge.projectParts[modalPartIdx].desc 
+                : selectedBadge.desc}
+            </p>
+            
+            {/* リアル画像/イラストカード下の詳しい解説テキスト */}
+            {(selectedBadge.detailDesc || selectedBadge.desc) && (
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(102, 252, 241, 0.3)',
+                borderRadius: '16px',
+                padding: '14px 20px',
+                margin: '10px 0 6px 0',
+                textAlign: 'left',
+                color: '#e2e8f0',
+                fontSize: '0.95rem',
+                lineHeight: '1.6',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                width: '100%'
+              }}>
+                📖 <strong>くわしい おはなし：</strong><br />
+                {selectedBadge.detailDesc || selectedBadge.desc}
+              </div>
+            )}
+
             <button 
               className="btn-action btn-primary" 
               onClick={() => { audio.playClick(); setIsPhotoMaximized(false); }}
-              style={{ marginTop: '20px', padding: '10px 30px' }}
+              style={{ marginTop: '16px', padding: '10px 30px' }}
             >
-              もどる
+              とじる
             </button>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '12px', letterSpacing: '0.05em' }}>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '10px', letterSpacing: '0.05em' }}>
               （がめんの どこをタップしても もどれるよ）
             </p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <div style={styles.footer}>
@@ -613,17 +732,19 @@ const styles = {
     justifyContent: 'center',
   },
   overlay: {
-    position: 'absolute',
+    position: 'fixed',
     top: 0,
     left: 0,
-    width: '100%',
-    height: '100%',
+    right: 0,
+    bottom: 0,
+    width: '100vw',
+    height: '100vh',
     background: 'rgba(5, 5, 15, 0.85)',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 100,
-    backdropFilter: 'blur(4px)',
+    zIndex: 9999,
+    backdropFilter: 'blur(6px)',
   },
   modal: {
     background: 'rgba(15, 15, 35, 0.95)',
@@ -631,7 +752,9 @@ const styles = {
     borderRadius: '28px',
     padding: '24px',
     width: '90%',
-    maxWidth: '380px',
+    maxWidth: '420px',
+    maxHeight: '90vh',
+    overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',

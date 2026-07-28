@@ -298,9 +298,16 @@ rt {
 }
 
 .badge-item.locked {
-  background: transparent;
-  border: 1px solid transparent;
-  opacity: 0.8;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  opacity: 0.85;
+}
+
+.badge-item.locked:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* --- モバイル・スマホ縦画面対応 (メディアクエリ) --- */

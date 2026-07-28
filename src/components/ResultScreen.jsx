@@ -142,24 +142,43 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
                   : '🏅 合格おめでとう！ 組み立てパーツを ゲットしたよ！'}
               </p>
               <div className="badge-wrapper star-pop" style={styles.badgeWrapper}>
-                {newBadge.image ? (
-                  <div 
-                    style={styles.realPhotoContainer}
-                    onClick={() => { audio.playClick(); setIsPhotoMaximized(true); }}
-                    title="タップすると おおきくなるよ！"
-                  >
-                    <img src={newBadge.image} alt={newBadge.name} style={styles.realPhoto} />
-                    <div style={styles.zoomHint}>🔍 タップでおおきくなるよ！</div>
-                  </div>
-                ) : (
-                  <div style={{
+                <div 
+                  style={{
                     ...styles.badgeCircle,
-                    backgroundColor: newBadge.color,
-                    borderColor: newBadge.borderColor || '#fff'
-                  }}>
-                    <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
-                  </div>
-                )}
+                    backgroundColor: newBadge.color || 'rgba(255,255,255,0.1)',
+                    borderColor: newBadge.borderColor || '#fff',
+                    cursor: newBadge.image ? 'pointer' : 'default',
+                    position: 'relative'
+                  }}
+                  onClick={() => {
+                    if (newBadge.image) {
+                      audio.playClick();
+                      setIsPhotoMaximized(true);
+                    }
+                  }}
+                >
+                  <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
+                  {newBadge.image && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '-4px',
+                      right: '-4px',
+                      backgroundColor: 'var(--color-accent)',
+                      color: '#000',
+                      borderRadius: '50%',
+                      width: '26px',
+                      height: '26px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      fontSize: '0.85rem',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                      border: '2px solid #fff'
+                    }}>
+                      📸
+                    </div>
+                  )}
+                </div>
                 <h3 style={styles.badgeName}>
                   {newBadge.name} {newBadge.count > 1 && `×${newBadge.count}`}
                 </h3>
@@ -190,14 +209,30 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
                   ? '🎁 新しい ごほうびバッジを もらったよ！' 
                   : `🌟 ${newBadge.count}こめの ${newBadge.name}を ゲットしたよ！`}
               </p>
-              <div className="badge-wrapper star-pop" style={styles.badgeWrapper}>
-                <div style={{
-                  ...styles.badgeCircle,
-                  backgroundColor: newBadge.color,
-                  borderColor: newBadge.borderColor || '#fff'
-                }}>
-                  <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
-                </div>
+              <div 
+                className="badge-wrapper star-pop" 
+                style={{ ...styles.badgeWrapper, cursor: 'pointer' }}
+                onClick={() => { audio.playClick(); onViewCollection(newBadge.id); }}
+                title="タップすると コレクションで くわしく みれるよ！"
+              >
+                {newBadge.image ? (
+                  <div 
+                    style={styles.realPhotoContainer}
+                    onClick={(e) => { e.stopPropagation(); audio.playClick(); setIsPhotoMaximized(true); }}
+                    title="タップすると おおきくなるよ！"
+                  >
+                    <img src={newBadge.image} alt={newBadge.name} style={styles.realPhoto} />
+                    <div style={styles.zoomHint}>🔍 タップでおおきくなるよ！</div>
+                  </div>
+                ) : (
+                  <div style={{
+                    ...styles.badgeCircle,
+                    backgroundColor: newBadge.color,
+                    borderColor: newBadge.borderColor || '#fff'
+                  }}>
+                    <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
+                  </div>
+                )}
                 <h3 style={styles.badgeName}>
                   {newBadge.name} {newBadge.count > 1 && `×${newBadge.count}`}
                 </h3>
@@ -232,7 +267,7 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
         </button>
         <button 
           className="btn-action btn-accent" 
-          onClick={() => { audio.playClick(); onViewCollection(); }} 
+          onClick={() => { audio.playClick(); onViewCollection(newBadge ? newBadge.id : null); }} 
           style={styles.actionBtn}
         >
           🏆 バッジコレクション
@@ -252,17 +287,37 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
           style={styles.maximizedOverlay} 
           onClick={() => { audio.playClick(); setIsPhotoMaximized(false); }}
         >
-          <div style={styles.maximizedContainer}>
+          <div style={styles.maximizedContainer} onClick={(e) => e.stopPropagation()}>
             <img src={newBadge.image} alt={newBadge.name} style={styles.maximizedPhoto} />
             <div style={styles.maximizedTitle}>{newBadge.name}</div>
+
+            {/* リアル画像下のさらに詳しい概要説明テキスト（独自詳細文がある場合のみ表示） */}
+            {newBadge.detailDesc && (
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(102, 252, 241, 0.3)',
+                borderRadius: '16px',
+                padding: '14px 20px',
+                margin: '14px 0 6px 0',
+                textAlign: 'left',
+                color: '#e2e8f0',
+                fontSize: '1rem',
+                lineHeight: '1.6',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              }}>
+                📖 <strong>くわしい おはなし：</strong><br />
+                {newBadge.detailDesc}
+              </div>
+            )}
+
             <button 
               className="btn-action btn-primary" 
               onClick={() => { audio.playClick(); setIsPhotoMaximized(false); }}
-              style={{ marginTop: '20px', padding: '10px 30px' }}
+              style={{ marginTop: '16px', padding: '10px 30px' }}
             >
-              もどる
+              とじる
             </button>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '12px', letterSpacing: '0.05em' }}>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginTop: '10px', letterSpacing: '0.05em' }}>
               （がめんの どこをタップしても もどれるよ）
             </p>
           </div>
