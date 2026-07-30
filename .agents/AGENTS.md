@@ -142,6 +142,9 @@
   - **ローカル開発環境でのキャッシュバイパス義務**: サービスワーカーがローカル上の JS/CSS モジュールをキャッシュすることで、開発時の Vite ホットリロード（HMR）やブラウザ更新が無視されて古い画面が表示され続けるデシンク現象を防ぐため、`sw.js` の `fetch` イベントリスナーの最優先項目として **「リクエスト元が `localhost` / `127.0.0.1` である場合、および Vite 内部ファイル（`/@vite` や `hot-update`）である場合は、キャッシュをバイパスして即座に `fetch`（ネットワーク）にスルーする」** ガードを追加してください。
   - **本番デプロイ時の Service Worker キャッシュ更新 (`CACHE_NAME`)**:
     - 新機能の追加やUI・データ構造の更新を行って本番デプロイする際は、ユーザーのブラウザが旧キャッシュを読み込み続けるデシンク現象を防ぐため、必ず `public/sw.js` の `CACHE_NAME` バージョン（例: `space-quiz-ai-v2` ➔ `v3`）および `index.html` のクエリパラメータ（`?v=3`）をカウントアップ・更新してください。
+  - **Service Worker 登録時の自動リロード (`controllerchange`) の禁止**:
+    - `src/main.jsx` 等で `navigator.serviceWorker.addEventListener('controllerchange', ...)` に `window.location.reload()` を仕込むと、アクティベート時やSW更新時にDOM描画処理と競合し、初回ロード時等に画面が真っ暗のままフリーズするブラックアウトバグや無限リロードループを引き起こす原因となります。
+    - したがって、Service Worker の登録は `navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })` の標準的なハンドリングに留め、`controllerchange` での強制全画面リロードを行わないでください。
 
 ## 19. AWS Amplify Hosting（Git連携）と Lambda のハイブリッドデプロイ
 - **Amplify デプロイ制限の考慮**: Amplify Hosting が GitHub などのリポジトリと接続されている場合、CLI からの直接アップロードデプロイ（`create-deployment`）は AWS の仕様で制限（`BadRequestException`）されます。
@@ -150,6 +153,10 @@
   - **Amplify (フロントエンド)**: ローカルのコード変更を Git にコミットし、GitHub へプッシュ（`git push`）することで、Amplify Hosting の自動ビルド（CI/CD）をトリガーして本番に反映させます。
 - **非対話型環境（チャット経由）での Git Push の解決**:
   - チャットエージェントや自動スクリプトなどの非対話型環境から `git push` を成功させるため、リポジトリのリモート URL にパーソナルアクセストークンを埋め込む設定（例: `git remote set-url origin https://<TOKEN>@github.com/...`）を使用してください。これにより、プロンプト待ちでのフリーズやエラーを防ぎます。
+
+## 20. ルートコンポーネントにおける State 初期値と例外防衛
+- **ルート状態管理の非空初期化保護**:
+  - `App.jsx` 等で画面遷移（クイズ結果・間違い探し等）に使用する State（`result` など）は、初期値を `undefined` にせず、必ず適切なデフォルトオブジェクト（例: `{ score: 0, total: 5 }`）で初期化し、実行時エラーによる白画面・黒画面クラッシュを確実に防いでください。
 
 
 
