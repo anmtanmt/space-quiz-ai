@@ -12,6 +12,7 @@ export default function App() {
   const [quizMode, setQuizMode] = useState('ai');
   const [difficulty, setDifficulty] = useState('easy');
   const [selectedBadgeId, setSelectedBadgeId] = useState(null);
+  const [result, setResult] = useState({ score: 0, total: 5 });
 
   const handleStartQuiz = (mode, diff) => {
     setQuizMode(mode);
