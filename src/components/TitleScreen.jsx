@@ -111,9 +111,11 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
               onClick={() => { audio.playClick(); setMode('spot_diff'); }}
               style={{
                 ...styles.optionCard,
+                position: 'relative',
                 ...(mode === 'spot_diff' ? styles.optionCardActive : {})
               }}
             >
+              <div style={styles.betaBadge}>ベータ版</div>
               <div style={styles.cardIcon}>🔍</div>
               <div style={styles.cardTitle}>宇宙<br />まちがいさがし</div>
               <div style={styles.cardDesc}>
@@ -336,6 +338,19 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     textAlign: 'center',
+  },
+  betaBadge: {
+    position: 'absolute',
+    top: '8px',
+    right: '8px',
+    background: 'linear-gradient(135deg, #ff4d6d, #ef476f)',
+    color: '#ffffff',
+    fontSize: '0.65rem',
+    fontWeight: '800',
+    padding: '2px 8px',
+    borderRadius: '10px',
+    boxShadow: '0 0 10px rgba(255, 77, 109, 0.5)',
+    letterSpacing: '1px',
   },
   optionCardActive: {
     borderColor: 'var(--color-primary)',

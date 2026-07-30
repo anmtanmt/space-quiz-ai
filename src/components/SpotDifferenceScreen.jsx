@@ -6,8 +6,12 @@ import { generateGame, SpaceObject } from '../data/spotDifferenceData';
 import { BADGE_POOL, getDynamicBadgeInfo, getBadgeBorderColor } from '../utils/badges';
 
 export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onViewCollection }) {
-  // 全シーンIDの定義
-  const ALL_SCENE_IDS = ['rocket_journey', 'alien_party', 'moon_sky', 'space_station', 'blackhole_comet', 'galaxy_drive'];
+  // 全シーンIDの定義 (9種類に拡張)
+  const ALL_SCENE_IDS = [
+    'rocket_journey', 'alien_party', 'moon_sky', 
+    'space_station', 'blackhole_comet', 'galaxy_drive',
+    'mars_base', 'space_walk', 'deep_space_nebula'
+  ];
   const [currentSceneId, setCurrentSceneId] = useState('');
   const [clearCount, setClearCount] = useState(0); // クリアしたイラストの総数
   const [stageIndex, setStageIndex] = useState(0); // 1セッション(3問)内の進行 (0, 1, 2)
@@ -43,7 +47,7 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
       return;
     }
 
-    const newGame = generateGame(currentSceneId, difficulty);
+    const newGame = generateGame(currentSceneId, difficulty, stageIndex);
     setGameData(newGame);
     setFoundIds([]);
     setWrongClicks([]);
@@ -60,7 +64,7 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
     }, 1800);
 
     return () => clearTimeout(timer);
-  }, [currentSceneId]);
+  }, [currentSceneId, stageIndex]);
 
   // 2. 音声読み上げガイド（5歳児向け）
   const speakGuideText = (sceneName, diff) => {
@@ -368,10 +372,23 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
         </button>
 
         <div style={styles.titleArea}>
-          <div style={styles.difficultyTag}>
-            {difficulty === 'easy' && '🔰 やさしい'}
-            {difficulty === 'medium' && '⭐ ふつう'}
-            {difficulty === 'hard' && '🔥 むずかしい'}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={styles.difficultyTag}>
+              {difficulty === 'easy' && '🔰 やさしい'}
+              {difficulty === 'medium' && '⭐ ふつう'}
+              {difficulty === 'hard' && '🔥 むずかしい'}
+            </div>
+            <span style={{
+              background: 'linear-gradient(135deg, #ff4d6d, #ef476f)',
+              color: '#fff',
+              fontSize: '0.7rem',
+              fontWeight: '800',
+              padding: '2px 8px',
+              borderRadius: '10px',
+              letterSpacing: '1px'
+            }}>
+              ベータ版
+            </span>
           </div>
           <h2 style={styles.stageTitle}>
             まちがいさがし {stageIndex + 1} / 3 もんめ：<span dangerouslySetInnerHTML={{ __html: gameData.nameRuby }} />

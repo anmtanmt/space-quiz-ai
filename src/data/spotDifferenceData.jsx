@@ -16,6 +16,8 @@ export function SVGStar({ color = '#ffb703', angle = 0 }) {
         strokeWidth="2.5"
         strokeLinejoin="round"
       />
+      {/* キラッと光る中心ハイライト */}
+      <circle cx="25" cy="22" r="3" fill="#ffffff" opacity="0.7" />
     </svg>
   );
 }
@@ -27,11 +29,14 @@ export function SVGMoon({ isSmile = true, hasHat = true, craterCount = 3, color 
       {/* 月の本体 */}
       <circle cx="50" cy="50" r="45" fill={color} stroke="#ffffff" strokeWidth="3" />
       
+      {/* 月の表面グラデーション風ハイライト */}
+      <ellipse cx="40" cy="35" rx="30" ry="25" fill="#ffffff" opacity="0.15" />
+
       {/* クレーター */}
-      {craterCount > 0 && <circle cx="30" cy="35" r="7" fill="rgba(0,0,0,0.08)" />}
-      {craterCount > 1 && <circle cx="40" cy="72" r="5" fill="rgba(0,0,0,0.08)" />}
-      {craterCount > 2 && <circle cx="70" cy="30" r="8" fill="rgba(0,0,0,0.08)" />}
-      {craterCount > 3 && <circle cx="75" cy="65" r="6" fill="rgba(0,0,0,0.08)" />}
+      {craterCount > 0 && <circle cx="30" cy="35" r="7" fill="rgba(0,0,0,0.08)" stroke="rgba(0,0,0,0.05)" strokeWidth="1" />}
+      {craterCount > 1 && <circle cx="40" cy="72" r="5" fill="rgba(0,0,0,0.08)" stroke="rgba(0,0,0,0.05)" strokeWidth="1" />}
+      {craterCount > 2 && <circle cx="70" cy="30" r="8" fill="rgba(0,0,0,0.08)" stroke="rgba(0,0,0,0.05)" strokeWidth="1" />}
+      {craterCount > 3 && <circle cx="75" cy="65" r="6" fill="rgba(0,0,0,0.08)" stroke="rgba(0,0,0,0.05)" strokeWidth="1" />}
 
       {/* 目 */}
       <circle cx="40" cy="45" r="4" fill="#1b1b3a" />
@@ -45,8 +50,8 @@ export function SVGMoon({ isSmile = true, hasHat = true, craterCount = 3, color 
       )}
 
       {/* ほっぺ */}
-      <circle cx="34" cy="52" r="4" fill="#ff85a1" opacity="0.6" />
-      <circle cx="71" cy="52" r="4" fill="#ff85a1" opacity="0.6" />
+      <circle cx="34" cy="52" r="4" fill="#ff85a1" opacity="0.7" />
+      <circle cx="71" cy="52" r="4" fill="#ff85a1" opacity="0.7" />
 
       {/* とんがり帽子 */}
       {hasHat && (
@@ -108,7 +113,7 @@ export function SVGUfo({ color = '#06d6a0', lightColor = '#ffd166', hasAntenna =
       )}
 
       {/* キャノピー */}
-      <path d="M 30 55 C 30 20, 80 20, 80 55 Z" fill="rgba(224, 251, 252, 0.6)" stroke="#ffffff" strokeWidth="2.5" />
+      <path d="M 30 55 C 30 20, 80 20, 80 55 Z" fill="rgba(224, 251, 252, 0.65)" stroke="#ffffff" strokeWidth="2.5" />
 
       {/* ガラスの中の宇宙人 */}
       {hasAlienInside && (
@@ -117,7 +122,7 @@ export function SVGUfo({ color = '#06d6a0', lightColor = '#ffd166', hasAntenna =
           <circle cx="-5" cy="-2" r="3" fill="#000" />
           <circle cx="5" cy="-2" r="3" fill="#000" />
           <path d="M -6 5 Q 0 10 6 5" fill="none" stroke="#000" strokeWidth="2" />
-          {/* 小さな触覚 */}
+          {/* 小さな触角 */}
           <line x1="0" y1="-15" x2="0" y2="-22" stroke="#ffd166" strokeWidth="3" />
           <circle cx="0" cy="-23" r="3" fill="#ef476f" />
         </g>
@@ -177,7 +182,7 @@ export function SVGAstronaut({ visorColor = '#118ab2', hasFlag = true, flagColor
       {/* バイザー */}
       <rect x="43" y="20" width="30" height="18" rx="9" fill={visorColor} stroke="#ffffff" strokeWidth="2" />
       {/* 反射光 */}
-      <ellipse cx="65" cy="24" rx="4" ry="2" fill="#ffffff" opacity="0.6" />
+      <ellipse cx="65" cy="24" rx="4" ry="2" fill="#ffffff" opacity="0.7" />
     </svg>
   );
 }
@@ -406,6 +411,91 @@ export function SVGBlackHole({ color = '#7209b7', gasColor = 'rgba(114,9,183,0.3
   );
 }
 
+// ✨ 新パーツ: 月の車・探査車 (SVGLunarRover)
+export function SVGLunarRover({ bodyColor = '#e9ecef', wheelColor = '#343a40', hasFlag = true, antennaCount = 1, angle = 0 }) {
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 120 100" style={{ transform: `rotate(${angle}deg)`, overflow: 'visible' }}>
+      {/* メッシュタイヤ (4輪) */}
+      <circle cx="25" cy="72" r="14" fill={wheelColor} stroke="#ffffff" strokeWidth="2" />
+      <circle cx="25" cy="72" r="8" fill="#6c757d" />
+      <line x1="25" y1="58" x2="25" y2="86" stroke="#ffffff" strokeWidth="1.5" />
+      
+      <circle cx="50" cy="72" r="14" fill={wheelColor} stroke="#ffffff" strokeWidth="2" />
+      <circle cx="50" cy="72" r="8" fill="#6c757d" />
+      <line x1="50" y1="58" x2="50" y2="86" stroke="#ffffff" strokeWidth="1.5" />
+
+      <circle cx="85" cy="72" r="14" fill={wheelColor} stroke="#ffffff" strokeWidth="2" />
+      <circle cx="85" cy="72" r="8" fill="#6c757d" />
+      <line x1="85" y1="58" x2="85" y2="86" stroke="#ffffff" strokeWidth="1.5" />
+
+      {/* サスペンション・シャーシ */}
+      <rect x="20" y="55" width="70" height="10" rx="3" fill="#495057" stroke="#ffffff" strokeWidth="1.5" />
+
+      {/* ローバー車体 */}
+      <rect x="25" y="30" width="60" height="28" rx="6" fill={bodyColor} stroke="#ffffff" strokeWidth="2.5" />
+      <rect x="32" y="36" width="20" height="16" rx="3" fill="#118ab2" stroke="#ffffff" strokeWidth="1.5" />
+
+      {/* パラボラアンテナ */}
+      <path d="M 70 30 L 80 15 L 75 10 Z" fill="#ffd166" stroke="#ffffff" strokeWidth="1.5" />
+      {antennaCount > 1 && (
+        <line x1="55" y1="30" x2="55" y2="12" stroke="#ffffff" strokeWidth="2" />
+      )}
+
+      {/* 日本の国旗/探査旗 */}
+      {hasFlag && (
+        <g transform="translate(30, 8)">
+          <line x1="0" y1="0" x2="0" y2="22" stroke="#ffffff" strokeWidth="2" />
+          <rect x="0" y="0" width="16" height="10" fill="#ffffff" stroke="#cccccc" strokeWidth="1" />
+          <circle cx="8" cy="5" r="3" fill="#ef476f" />
+        </g>
+      )}
+    </svg>
+  );
+}
+
+// ✨ 新パーツ: 宇宙望遠鏡 (SVGTelescope)
+export function SVGTelescope({ mirrorColor = '#ffb703', panelColor = '#118ab2', angle = -20 }) {
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 130 110" style={{ transform: `rotate(${angle}deg)`, overflow: 'visible' }}>
+      {/* 太陽光遮へいサンシールド (多層シート) */}
+      <path d="M 10 70 L 120 50 L 105 85 L 5 95 Z" fill="#e9ecef" stroke="#ffffff" strokeWidth="2" />
+      <path d="M 12 73 L 118 53 L 103 88 L 7 98 Z" fill="#ced4da" opacity="0.7" />
+
+      {/* 太陽電池パネル */}
+      <rect x="15" y="30" width="25" height="40" rx="3" fill={panelColor} stroke="#ffffff" strokeWidth="2" transform="rotate(10 25 50)" />
+      <line x1="15" y1="50" x2="40" y2="50" stroke="#ffffff" strokeWidth="1.5" transform="rotate(10 25 50)" />
+
+      {/* 主鏡 (金色のハニカム鏡) */}
+      <g transform="translate(65, 30)">
+        <polygon points="20,0 35,10 35,30 20,40 5,30 5,10" fill={mirrorColor} stroke="#ffffff" strokeWidth="2" />
+        <polygon points="-5,15 10,25 10,45 -5,55 -20,45 -20,25" fill={mirrorColor} stroke="#ffffff" strokeWidth="2" />
+        <polygon points="45,15 60,25 60,45 45,55 30,45 30,25" fill={mirrorColor} stroke="#ffffff" strokeWidth="2" />
+        {/* 副鏡用タワー */}
+        <line x1="20" y1="20" x2="-10" y2="-10" stroke="#ffffff" strokeWidth="2" />
+        <circle cx="-10" cy="-10" r="4" fill="#ffffff" />
+      </g>
+    </svg>
+  );
+}
+
+// ✨ 新パーツ: 宇宙の星雲 (SVGNebula)
+export function SVGNebula({ color1 = '#7209b7', color2 = '#4cc9f0', starCount = 4, angle = 0 }) {
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 140 120" style={{ transform: `rotate(${angle}deg)`, overflow: 'visible' }}>
+      {/* 星雲の幻想的な雲状渦 */}
+      <path d="M 20 60 C 20 20, 90 10, 120 40 C 140 70, 90 110, 50 100 C 10 90, 20 70, 20 60 Z" fill={color1} opacity="0.45" />
+      <path d="M 40 50 C 40 30, 80 25, 100 45 C 115 65, 80 90, 50 80 Z" fill={color2} opacity="0.55" />
+      <circle cx="70" cy="55" r="18" fill="#ffffff" opacity="0.2" />
+
+      {/* 星雲内の輝く星たち */}
+      {starCount > 0 && <polygon points="70,35 73,42 80,42 74,46 76,53 70,49 64,53 66,46 60,42 67,42" fill="#ffd166" />}
+      {starCount > 1 && <circle cx="35" cy="70" r="3.5" fill="#ffffff" />}
+      {starCount > 2 && <circle cx="105" cy="40" r="4.5" fill="#66fcf1" />}
+      {starCount > 3 && <circle cx="90" cy="85" r="3" fill="#ff85a1" />}
+    </svg>
+  );
+}
+
 
 // ==========================================
 // 2. メインの描画ラッパーコンポーネント
@@ -461,6 +551,12 @@ export function SpaceObject({ type, size, x, y, angle, properties, isDiffMode = 
         return <SVGComet color={props.color} tailColor={props.tailColor} tailCount={props.tailCount} angle={angle} />;
       case 'blackhole':
         return <SVGBlackHole color={props.color} gasColor={props.gasColor} diskScale={props.diskScale} angle={angle} />;
+      case 'lunar_rover':
+        return <SVGLunarRover bodyColor={props.bodyColor} wheelColor={props.wheelColor} hasFlag={props.hasFlag} antennaCount={props.antennaCount} angle={angle} />;
+      case 'telescope':
+        return <SVGTelescope mirrorColor={props.mirrorColor} panelColor={props.panelColor} angle={angle} />;
+      case 'nebula':
+        return <SVGNebula color1={props.color1} color2={props.color2} starCount={props.starCount} angle={angle} />;
       default:
         return null;
     }
@@ -471,7 +567,7 @@ export function SpaceObject({ type, size, x, y, angle, properties, isDiffMode = 
 
 
 // ==========================================
-// 3. 宇宙シーンの基本配置データ
+// 3. 宇宙シーンの基本配置データ (9種類に拡張)
 // ==========================================
 
 const SCENE_TEMPLATES = [
@@ -567,15 +663,60 @@ const SCENE_TEMPLATES = [
       { id: 'star_gal2', type: 'star', x: 650, y: 90, size: 45, angle: -10, properties: { color: '#ffd166' } },
       { id: 'star_small1', type: 'star', x: 100, y: 380, size: 30, angle: 20, properties: { color: '#ffffff' } }
     ]
+  },
+  // 🌟 追加シーン 7: 火星基地と探査車
+  {
+    id: 'mars_base',
+    name: 'かせい基地と つきのくるま',
+    nameRuby: '<ruby>火星<rt>かせい</rt></ruby>き地と つきのくるま',
+    bg: '#1a0b12',
+    objects: [
+      { id: 'mars_bg', type: 'planet', x: 140, y: 380, size: 160, angle: 0, properties: { planetType: 'mars', color: '#e76f51' } },
+      { id: 'rover', type: 'lunar_rover', x: 480, y: 330, size: 130, angle: 0, properties: { bodyColor: '#e9ecef', wheelColor: '#343a40', hasFlag: true, antennaCount: 1 } },
+      { id: 'astronaut_mars', type: 'astronaut', x: 720, y: 280, size: 110, angle: -15, properties: { visorColor: '#ffb703', hasFlag: true, flagColor: '#ef476f' } },
+      { id: 'star_red1', type: 'star', x: 380, y: 100, size: 55, angle: 10, properties: { color: '#e76f51' } },
+      { id: 'star_yellow1', type: 'star', x: 650, y: 90, size: 45, angle: -5, properties: { color: '#ffd166' } },
+      { id: 'comet_mars', type: 'comet', x: 220, y: 140, size: 110, angle: -35, properties: { color: '#ff8500', tailColor: 'rgba(255,133,0,0.35)', tailCount: 2 } }
+    ]
+  },
+  // 🌟 追加シーン 8: 深宇宙の宇宙遊泳
+  {
+    id: 'space_walk',
+    name: 'ふかふか 宇宙ゆうえい',
+    nameRuby: 'ふかふか <ruby>宇宙<rt>うちゅう</rt></ruby>ゆうえい',
+    bg: '#080d21',
+    objects: [
+      { id: 'nebula_bg', type: 'nebula', x: 260, y: 220, size: 170, angle: 10, properties: { color1: '#7209b7', color2: '#4cc9f0', starCount: 4 } },
+      { id: 'astronaut_walk', type: 'astronaut', x: 520, y: 250, size: 135, angle: 30, properties: { visorColor: '#66fcf1', hasFlag: false, flagColor: '#ffb703' } },
+      { id: 'ufo_watch', type: 'ufo', x: 760, y: 160, size: 115, angle: -10, properties: { color: '#06d6a0', lightColor: '#ffd166', hasAntenna: true, hasAlienInside: true } },
+      { id: 'star_walk1', type: 'star', x: 120, y: 390, size: 60, angle: -20, properties: { color: '#66fcf1' } },
+      { id: 'star_walk2', type: 'star', x: 740, y: 390, size: 45, angle: 15, properties: { color: '#ffffff' } },
+      { id: 'robot_walk', type: 'robot', x: 300, y: 390, size: 95, angle: -15, properties: { color: '#ffb703', hasAntenna: true, eyeCount: 2, bodyColor: '#ffffff' } }
+    ]
+  },
+  // 🌟 追加シーン 9: 巨大望遠鏡と星雲
+  {
+    id: 'deep_space_nebula',
+    name: '大望遠鏡と かがやく星雲',
+    nameRuby: '<ruby>大望遠鏡<rt>だいぼうえんきょう</rt></ruby>と かがやく<ruby>星雲<rt>せいいん</rt></ruby>',
+    bg: '#0b051b',
+    objects: [
+      { id: 'telescope_main', type: 'telescope', x: 250, y: 240, size: 150, angle: -15, properties: { mirrorColor: '#ffb703', panelColor: '#118ab2' } },
+      { id: 'nebula_pink', type: 'nebula', x: 650, y: 220, size: 180, angle: -10, properties: { color1: '#ef476f', color2: '#ffd166', starCount: 4 } },
+      { id: 'satellite_deep', type: 'satellite', x: 450, y: 370, size: 105, angle: 25, properties: { hasDoublePanel: true, hasSignal: true } },
+      { id: 'star_deep1', type: 'star', x: 110, y: 90, size: 55, angle: 0, properties: { color: '#ffb703' } },
+      { id: 'star_deep2', type: 'star', x: 480, y: 90, size: 40, angle: 45, properties: { color: '#ffffff' } },
+      { id: 'planet_ring_deep', type: 'planet', x: 780, y: 400, size: 120, angle: 15, properties: { planetType: 'saturn', hasRing: true, color: '#4cc9f0', ringColor: '#ffffff' } }
+    ]
   }
 ];
 
 
 // ==========================================
-// 4. まちがい生成関数 (難易度に応じた変更を作成)
+// 4. まちがい生成関数 (段階的難化グラデーション対応)
 // ==========================================
 
-export function generateGame(sceneId, difficulty) {
+export function generateGame(sceneId, difficulty, stageIndex = 0) {
   const template = SCENE_TEMPLATES.find(s => s.id === sceneId) || SCENE_TEMPLATES[0];
   const scene = {
     ...template,
@@ -585,17 +726,29 @@ export function generateGame(sceneId, difficulty) {
     }))
   };
 
+  // 全体の間違い個数設定
   let diffCount = 3;
   if (difficulty === 'medium') diffCount = 4;
   if (difficulty === 'hard') diffCount = 5;
 
-  const eligibleObjects = scene.objects.filter(obj => {
-    if (difficulty === 'easy') {
-      return obj.size >= 70;
-    }
-    return true;
-  });
+  // 段階的難度 (stageIndex: 0 = 1問目, 1 = 2問目, 2 = 3問目)
+  // stageIndex に応じて、難しさのプロファイル（候補オブジェクトの選定＆変化の内容）を調整
+  let eligibleObjects = [...scene.objects];
 
+  if (stageIndex === 0) {
+    // 【1問目】大きめの主要オブジェクト（size >= 100）を最優先にし、視覚的に大きな違いを生成
+    const largeObjs = scene.objects.filter(obj => obj.size >= 100);
+    eligibleObjects = largeObjs.length >= diffCount ? largeObjs : scene.objects;
+  } else if (stageIndex === 1) {
+    // 【2問目】標準〜中型オブジェクト（70〜130）を中心にバランスよく選定
+    eligibleObjects = scene.objects;
+  } else {
+    // 【3問目】小型要素（size < 80）やディテール変化を含め、発見難度の高いオブジェクトを最優先選定
+    const smallOrDetailObjs = scene.objects.filter(obj => obj.size <= 110);
+    eligibleObjects = smallOrDetailObjs.length >= diffCount ? smallOrDetailObjs : scene.objects;
+  }
+
+  // 候補のシャッフル
   const shuffled = [...eligibleObjects].sort(() => 0.5 - Math.random());
   const selectedObjects = shuffled.slice(0, diffCount);
 
@@ -605,11 +758,11 @@ export function generateGame(sceneId, difficulty) {
 
     switch (obj.type) {
       case 'star':
-        if (Math.random() < 0.4 && difficulty !== 'easy') {
+        if (stageIndex === 2 || (Math.random() < 0.4 && difficulty !== 'easy')) {
           diffProps = { visible: false };
           description = '星が消えている';
         } else {
-          const colors = ['#ef476f', '#06d6a0', '#118ab2', '#ffffff'];
+          const colors = ['#ef476f', '#06d6a0', '#118ab2', '#ffffff', '#ff85a1'];
           const filteredColors = colors.filter(c => c !== obj.properties.color);
           const nextColor = filteredColors[Math.floor(Math.random() * filteredColors.length)];
           diffProps = { color: nextColor };
@@ -619,10 +772,10 @@ export function generateGame(sceneId, difficulty) {
 
       case 'moon':
         const moonRnd = Math.random();
-        if (moonRnd < 0.35) {
+        if (stageIndex === 0 || moonRnd < 0.4) {
           diffProps = { isSmile: false };
           description = 'おつきさまの お口のかたちが ちがう';
-        } else if (moonRnd < 0.7 && obj.properties.hasHat) {
+        } else if (moonRnd < 0.75 && obj.properties.hasHat) {
           diffProps = { hasHat: false };
           description = 'おつきさまの ぼうしが ない';
         } else {
@@ -633,12 +786,12 @@ export function generateGame(sceneId, difficulty) {
 
       case 'rocket':
         const rocketRnd = Math.random();
-        if (rocketRnd < 0.3) {
+        if (stageIndex === 0 || rocketRnd < 0.35) {
           diffProps = { color: '#118ab2', wingColor: '#ef476f' };
           description = 'ロケットの色が ちがう';
-        } else if (rocketRnd < 0.6) {
+        } else if (rocketRnd < 0.7) {
           diffProps = { windowCount: obj.properties.windowCount === 2 ? 1 : 2 };
-          description = 'ロケットの まどの数が ちがう';
+          description = 'ロケットの まどもの数が ちがう';
         } else {
           diffProps = { hasFire: false };
           description = 'ロケットの おしりの ほのおが ない';
@@ -647,7 +800,7 @@ export function generateGame(sceneId, difficulty) {
 
       case 'ufo':
         const ufoRnd = Math.random();
-        if (ufoRnd < 0.35) {
+        if (stageIndex === 0 || ufoRnd < 0.35) {
           diffProps = { color: '#ef476f' };
           description = 'UFOの色が ちがう';
         } else if (ufoRnd < 0.7 && obj.properties.hasAntenna) {
@@ -661,7 +814,7 @@ export function generateGame(sceneId, difficulty) {
 
       case 'astronaut':
         const astroRnd = Math.random();
-        if (astroRnd < 0.4 && obj.properties.hasFlag) {
+        if (astroRnd < 0.5 && obj.properties.hasFlag) {
           diffProps = { hasFlag: false };
           description = '宇宙飛行士の はたが ない';
         } else {
@@ -673,7 +826,7 @@ export function generateGame(sceneId, difficulty) {
 
       case 'alien':
         const alienRnd = Math.random();
-        if (alienRnd < 0.4) {
+        if (stageIndex >= 1 || alienRnd < 0.5) {
           diffProps = { eyeCount: obj.properties.eyeCount === 3 ? 1 : 3 };
           description = '宇宙人の 目の数が ちがう';
         } else {
@@ -685,7 +838,7 @@ export function generateGame(sceneId, difficulty) {
 
       case 'planet':
         const planetRnd = Math.random();
-        if (planetRnd < 0.4 && obj.properties.planetType === 'saturn') {
+        if (stageIndex === 0 || (planetRnd < 0.5 && obj.properties.planetType === 'saturn')) {
           diffProps = { hasRing: false };
           description = '土星の わっかが ない';
         } else {
@@ -708,7 +861,7 @@ export function generateGame(sceneId, difficulty) {
 
       case 'robot':
         const botRnd = Math.random();
-        if (botRnd < 0.4 && obj.properties.hasAntenna) {
+        if (botRnd < 0.5 && obj.properties.hasAntenna) {
           diffProps = { hasAntenna: false };
           description = 'ロボットの アンテナが ない';
         } else {
@@ -736,6 +889,39 @@ export function generateGame(sceneId, difficulty) {
         } else {
           diffProps = { color: '#ff8500' };
           description = 'ブラックホールの まわりの 色が ちがう';
+        }
+        break;
+
+      case 'lunar_rover':
+        const roverRnd = Math.random();
+        if (roverRnd < 0.5 && obj.properties.hasFlag) {
+          diffProps = { hasFlag: false };
+          description = 'つきのくるまの はたが ない';
+        } else {
+          diffProps = { bodyColor: '#ffb703' };
+          description = 'つきのくるまの 色が ちがう';
+        }
+        break;
+
+      case 'telescope':
+        const teleRnd = Math.random();
+        if (teleRnd < 0.5) {
+          diffProps = { mirrorColor: '#ef476f' };
+          description = 'うちゅう望遠鏡の カガミの色が ちがう';
+        } else {
+          diffProps = { panelColor: '#ffd166' };
+          description = 'うちゅう望遠鏡の パネルの色が ちがう';
+        }
+        break;
+
+      case 'nebula':
+        const nebRnd = Math.random();
+        if (nebRnd < 0.5) {
+          diffProps = { color2: '#ff85a1' };
+          description = '星雲の ひかりの色が ちがう';
+        } else {
+          diffProps = { starCount: 1 };
+          description = '星雲の なかの 星の数が ちがう';
         }
         break;
 
