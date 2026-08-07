@@ -260,14 +260,14 @@ export default function CollectionScreen({ initialBadgeId, onBackToTitle }) {
                     ...styles.badgeEmoji,
                     filter: isEarned ? 'none' : 'grayscale(80%) opacity(0.45)'
                   }}>
-                    {dynamicBadge.emoji}
+                    {isEarned ? dynamicBadge.emoji : '❓'}
                   </span>
                 </div>
                 <span style={{
                   ...styles.badgeName,
                   color: isEarned ? '#fff' : 'rgba(255, 255, 255, 0.45)'
                 }}>
-                  {isEarned ? dynamicBadge.name : `🔒 ${dynamicBadge.name}`}
+                  {isEarned ? dynamicBadge.name : '🔒 ？？？？？'}
                 </span>
                 {isEarned && earnedInfo.count > 1 && (
                   <span style={styles.badgeLoopCount}>×{earnedInfo.count}</span>
@@ -280,22 +280,30 @@ export default function CollectionScreen({ initialBadgeId, onBackToTitle }) {
 
       {selectedBadge && ReactDOM.createPortal(
         (() => {
+          const isEarned = selectedBadge.isEarned !== false;
+
           // 完成プロジェクト表示モード時の動的値の定義
           const activePart = selectedBadge.isCompletedProjectView 
             ? selectedBadge.projectParts[modalPartIdx]
             : null;
           
-          const displayName = selectedBadge.isCompletedProjectView
-            ? (modalPartIdx === 4 ? `${selectedBadge.name}` : `${selectedBadge.name.replace('（かんせい！）', '')}の ${activePart.name}`)
-            : selectedBadge.name;
+          const displayName = !isEarned
+            ? '🔒 ？？？？？'
+            : (selectedBadge.isCompletedProjectView
+                ? (modalPartIdx === 4 ? `${selectedBadge.name}` : `${selectedBadge.name.replace('（かんせい！）', '')}の ${activePart.name}`)
+                : selectedBadge.name);
           
-          const displayDesc = selectedBadge.isCompletedProjectView
-            ? activePart.desc
-            : selectedBadge.desc;
+          const displayDesc = !isEarned
+            ? '？？？？？？？？？？\n（なぞに つつまれた ひみつのバッジ！ クイズをあそんで ゲットしよう！）'
+            : (selectedBadge.isCompletedProjectView
+                ? activePart.desc
+                : selectedBadge.desc);
           
-          const displayEmoji = selectedBadge.isCompletedProjectView
-            ? activePart.emoji
-            : selectedBadge.emoji;
+          const displayEmoji = !isEarned
+            ? '❓'
+            : (selectedBadge.isCompletedProjectView
+                ? activePart.emoji
+                : selectedBadge.emoji);
             
           return (
             <div style={styles.overlay} onClick={() => { setSelectedBadge(null); setIsPhotoMaximized(false); }}>
@@ -303,35 +311,39 @@ export default function CollectionScreen({ initialBadgeId, onBackToTitle }) {
                 <div 
                   style={{ 
                     ...styles.modalBadgeCircle, 
-                    backgroundColor: selectedBadge.color || 'rgba(255,255,255,0.1)',
-                    borderColor: selectedBadge.borderColor || '#fff',
-                    cursor: 'pointer',
+                    backgroundColor: isEarned ? (selectedBadge.color || 'rgba(255,255,255,0.1)') : 'rgba(255,255,255,0.05)',
+                    borderColor: isEarned ? (selectedBadge.borderColor || '#fff') : 'rgba(255,255,255,0.2)',
+                    cursor: isEarned ? 'pointer' : 'default',
                     position: 'relative'
                   }}
                   onClick={() => {
-                    audio.playClick();
-                    setIsPhotoMaximized(true);
+                    if (isEarned) {
+                      audio.playClick();
+                      setIsPhotoMaximized(true);
+                    }
                   }}
                 >
                   <span style={styles.modalBadgeEmoji}>{displayEmoji}</span>
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '-6px',
-                    right: '-6px',
-                    backgroundColor: 'var(--color-accent)',
-                    color: '#000',
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    fontSize: '0.95rem',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                    border: '2px solid #fff'
-                  }}>
-                    {selectedBadge.image ? '📸' : '🔍'}
-                  </div>
+                  {isEarned && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '-6px',
+                      right: '-6px',
+                      backgroundColor: 'var(--color-accent)',
+                      color: '#000',
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      fontSize: '0.95rem',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                      border: '2px solid #fff'
+                    }}>
+                      📸
+                    </div>
+                  )}
                 </div>
 
                 {/* 図鑑パーツ切り替えタブ（完成プロジェクトの場合のみ表示） */}
@@ -362,12 +374,10 @@ export default function CollectionScreen({ initialBadgeId, onBackToTitle }) {
                   </div>
                 )}
 
-                <h2 style={styles.modalTitle}>
-                  {selectedBadge.isEarned === false ? `🔒 ${selectedBadge.name}` : displayName}
-                </h2>
-                <p style={styles.modalDesc}>{displayDesc}</p>
+                <h2 style={styles.modalTitle}>{displayName}</h2>
+                <p style={{ ...styles.modalDesc, whiteSpace: 'pre-line' }}>{displayDesc}</p>
                 
-                {selectedBadge.isEarned === false ? (
+                {!isEarned ? (
                   <div style={{
                     backgroundColor: 'rgba(255, 255, 255, 0.05)',
                     border: '1px dashed rgba(255, 255, 255, 0.2)',
@@ -386,6 +396,9 @@ export default function CollectionScreen({ initialBadgeId, onBackToTitle }) {
                   <div style={styles.earnedStats}>
                     <p style={styles.statsText}>
                       🏅 ゲットした回数: <span style={styles.statsHighlight}>{selectedBadge.count}回</span>
+                    </p>
+                    <p style={{ color: 'var(--color-primary)', fontSize: '0.88rem', margin: '4px 0 8px 0', textAlign: 'center', fontWeight: 'bold' }}>
+                      ✨ アイコンをタップすると、とくべつなカードがみれるよ！
                     </p>
                     {selectedBadge.earnedDetails && selectedBadge.earnedDetails.length > 0 && (
                       <div style={styles.dateList}>
@@ -426,20 +439,68 @@ export default function CollectionScreen({ initialBadgeId, onBackToTitle }) {
               <img src={selectedBadge.image} alt={selectedBadge.name} style={styles.maximizedPhoto} />
             ) : (
               <div style={{
-                width: '240px',
-                height: '240px',
-                borderRadius: '50%',
-                backgroundColor: selectedBadge.color || '#4cc9f0',
+                width: '260px',
+                height: '260px',
+                borderRadius: '24px',
+                background: `radial-gradient(circle at 50% 45%, ${selectedBadge.color || '#4cc9f0'}66 0%, rgba(15, 23, 42, 0.95) 85%)`,
+                border: '3px solid #ffd166',
+                boxShadow: `0 0 30px ${selectedBadge.color || '#4cc9f0'}88, inset 0 0 20px rgba(255,255,255,0.2)`,
                 display: 'flex',
+                flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
                 margin: '0 auto 16px auto',
-                boxShadow: `0 0 30px ${selectedBadge.color || '#4cc9f0'}aa`,
-                border: '4px solid #fff'
+                position: 'relative',
+                overflow: 'hidden'
               }}>
-                <span style={{ fontSize: '7.5rem', filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.5))' }}>
-                  {selectedBadge.isCompletedProjectView && selectedBadge.projectParts ? selectedBadge.projectParts[modalPartIdx].emoji : selectedBadge.emoji}
-                </span>
+                {/* 背景の宇宙カードタグ */}
+                <div style={{
+                  position: 'absolute',
+                  top: '12px',
+                  backgroundColor: 'rgba(255, 209, 102, 0.2)',
+                  border: '1px solid #ffd166',
+                  borderRadius: '12px',
+                  padding: '2px 10px',
+                  fontSize: '0.75rem',
+                  color: '#ffd166',
+                  fontWeight: 'bold',
+                  letterSpacing: '0.08em',
+                  zIndex: 2
+                }}>
+                  ⭐ SPACE SPECIAL CARD ⭐
+                </div>
+
+                {/* オーラ円とアイコン */}
+                <div style={{
+                  zIndex: 2,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  width: '140px',
+                  height: '140px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  border: `3px solid ${selectedBadge.color || '#fff'}`,
+                  boxShadow: `0 0 20px ${selectedBadge.color || '#fff'}88`
+                }}>
+                  <span style={{ fontSize: '6.2rem', filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.6))' }}>
+                    {selectedBadge.isCompletedProjectView && selectedBadge.projectParts ? selectedBadge.projectParts[modalPartIdx].emoji : selectedBadge.emoji}
+                  </span>
+                </div>
+
+                {/* 下部キラキラテキスト */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: '10px',
+                  zIndex: 2,
+                  fontSize: '0.85rem',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+                  letterSpacing: '0.05em'
+                }}>
+                  ✨ LUXURY COLLECTION ✨
+                </div>
               </div>
             )}
             <div style={styles.maximizedTitle}>

@@ -74,11 +74,77 @@ export function getProjectStatus(badgeId, count) {
   };
 }
 
+const VARIED_REAL_PHOTOS = {
+  planets: [
+    '/assets/images/quiz/earth.png',
+    '/assets/images/quiz/mars.png',
+    '/assets/images/quiz/jupiter.png',
+    '/assets/images/quiz/saturn.png',
+    '/assets/images/quiz/mercury.png',
+    '/assets/images/quiz/uranus.png',
+    '/assets/images/quiz/neptune.png',
+    '/assets/images/quiz/pluto.png',
+    '/assets/images/quiz/moon.png',
+    '/assets/images/badges/venus.png'
+  ],
+  vehicles: [
+    '/assets/images/quiz/rocket_h3.png',
+    '/assets/images/quiz/iss.png',
+    '/images/p_hubble.png',
+    '/images/p_jwst.png',
+    '/images/p_artemis.png',
+    '/images/p_voyager.png',
+    '/images/p_lunar_rover.png',
+    '/images/p_hayabusa2.png',
+    '/assets/images/quiz/space_suit.png'
+  ],
+  satellites: [
+    '/assets/images/quiz/europa.png',
+    '/assets/images/quiz/titan.png',
+    '/assets/images/quiz/io.png',
+    '/assets/images/quiz/akatsuki.png',
+    '/assets/images/quiz/kaguya.png',
+    '/assets/images/quiz/juno.png',
+    '/assets/images/quiz/mir.png',
+    '/images/p_voyager.png',
+    '/images/p_iss.png'
+  ],
+  astronomers: [
+    '/assets/images/badges/galileo.png',
+    '/assets/images/badges/copernicus.png',
+    '/assets/images/badges/newton.png',
+    '/assets/images/badges/einstein.png',
+    '/assets/images/badges/le_verrier.png'
+  ],
+  space: [
+    '/assets/images/quiz/milky_way.png',
+    '/assets/images/quiz/black_hole.png',
+    '/assets/images/quiz/orion.png',
+    '/assets/images/badges/gemini.png',
+    '/assets/images/quiz/sun.png'
+  ]
+};
+
+function getVariedPhotoForBadge(badge) {
+  if (badge.image) return badge.image;
+  const list = VARIED_REAL_PHOTOS[badge.category] || VARIED_REAL_PHOTOS.planets;
+  let hash = 0;
+  for (let i = 0; i < badge.id.length; i++) {
+    hash = (hash << 5) - hash + badge.id.charCodeAt(i);
+    hash |= 0;
+  }
+  const index = Math.abs(hash) % list.length;
+  return list[index];
+}
+
 /**
- * 獲得回数に応じてバッジ情報（絵文字、名前、説明）を動的に差し替えて返す
+ * 獲得回数に応じてバッジ情報（絵文字、名前、説明、実写画像）を動的に差し替えて返す
  */
 export function getDynamicBadgeInfo(badge, count = 1) {
   if (!badge) return null;
+
+  // 実写写真画像の確定（指定がある場合はその画像、未指定の場合はIDハッシュによるバリエーション豊かなリアル写真）
+  const realImage = getVariedPhotoForBadge(badge);
 
   if (badge.id === 'b_test_4' || badge.id === 'b_test_3') {
     const status = getProjectStatus(badge.id, count);
@@ -94,13 +160,16 @@ export function getDynamicBadgeInfo(badge, count = 1) {
           desc: part.desc,
           image: status.currentPartIndex === 4
             ? '/images/' + PROJECT_IMAGE_MAP[status.currentProject.id]
-            : null
+            : realImage
         };
       }
     }
   }
 
-  return badge;
+  return {
+    ...badge,
+    image: realImage
+  };
 }
 
 /**

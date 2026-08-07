@@ -1,4 +1,4 @@
-const CACHE_NAME = 'space-quiz-ai-v4';
+const CACHE_NAME = 'space-quiz-ai-v5';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -18,7 +18,7 @@ self.addEventListener('message', (event) => {
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Opened cache v4 and caching static assets');
+      console.log('Opened cache v5 and caching static assets');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
