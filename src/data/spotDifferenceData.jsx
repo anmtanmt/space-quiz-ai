@@ -142,7 +142,7 @@ export function SVGUfo({ color = '#06d6a0', lightColor = '#ffd166', hasAntenna =
 }
 
 // 宇宙飛行士
-export function SVGAstronaut({ visorColor = '#118ab2', hasFlag = true, flagColor = '#ffb703', angle = 0 }) {
+export function SVGAstronaut({ visorColor = '#118ab2', helmetColor = '#ffffff', hasFlag = true, flagColor = '#ffb703', angle = 0 }) {
   return (
     <svg width="100%" height="100%" viewBox="0 0 110 110" style={{ transform: `rotate(${angle}deg)`, overflow: 'visible' }}>
       {/* ライフサポートパック */}
@@ -176,8 +176,8 @@ export function SVGAstronaut({ visorColor = '#118ab2', hasFlag = true, flagColor
       <path d="M 75 50 Q 90 55 90 62" fill="none" stroke="#f8f9fa" strokeWidth="12" strokeLinecap="round" />
       <path d="M 75 50 Q 90 55 90 62" fill="none" stroke="#ffffff" strokeWidth="8" strokeLinecap="round" />
 
-      {/* 頭 */}
-      <circle cx="58" cy="32" r="22" fill="#ffffff" stroke="#cccccc" strokeWidth="3" />
+      {/* 頭（ヘルメット本体） */}
+      <circle cx="58" cy="32" r="22" fill={helmetColor} stroke="#cccccc" strokeWidth="3" />
       
       {/* バイザー */}
       <rect x="43" y="20" width="30" height="18" rx="9" fill={visorColor} stroke="#ffffff" strokeWidth="2" />
@@ -397,11 +397,11 @@ export function SVGComet({ color = '#00bbf9', tailColor = 'rgba(0,187,249,0.3)',
 export function SVGBlackHole({ color = '#7209b7', gasColor = 'rgba(114,9,183,0.35)', diskScale = 1.0, angle = 0 }) {
   return (
     <svg width="100%" height="100%" viewBox="0 0 120 120" style={{ transform: `rotate(${angle}deg)`, overflow: 'visible' }}>
-      {/* 降着円盤 */}
+      {/* 降着円盤（外周の巨大な光る渦） */}
       <g transform={`scale(${diskScale})`} style={{ transformOrigin: 'center' }}>
-        <ellipse cx="60" cy="60" rx="55" ry="18" fill="none" stroke={gasColor} strokeWidth="15" strokeLinecap="round" opacity="0.6" transform="rotate(-15 60 60)" />
-        <ellipse cx="60" cy="60" rx="45" ry="12" fill="none" stroke="#f72585" strokeWidth="6" opacity="0.8" transform="rotate(-15 60 60)" />
-        <ellipse cx="60" cy="60" rx="35" ry="8" fill="none" stroke="#ffd166" strokeWidth="3" transform="rotate(-15 60 60)" />
+        <ellipse cx="60" cy="60" rx="55" ry="18" fill="none" stroke={color} strokeWidth="15" strokeLinecap="round" opacity="0.75" transform="rotate(-15 60 60)" />
+        <ellipse cx="60" cy="60" rx="45" ry="12" fill="none" stroke={color === '#7209b7' ? '#f72585' : '#ffffff'} strokeWidth="6" opacity="0.9" transform="rotate(-15 60 60)" />
+        <ellipse cx="60" cy="60" rx="35" ry="8" fill="none" stroke="#ffd166" strokeWidth="4" transform="rotate(-15 60 60)" />
       </g>
       
       {/* 中心のブラックホール */}
@@ -538,7 +538,7 @@ export function SpaceObject({ type, size, x, y, angle, properties, isDiffMode = 
       case 'ufo':
         return <SVGUfo color={props.color} lightColor={props.lightColor} hasAntenna={props.hasAntenna} hasAlienInside={props.hasAlienInside} angle={angle} />;
       case 'astronaut':
-        return <SVGAstronaut visorColor={props.visorColor} hasFlag={props.hasFlag} flagColor={props.flagColor} angle={angle} />;
+        return <SVGAstronaut visorColor={props.visorColor} helmetColor={props.helmetColor} hasFlag={props.hasFlag} flagColor={props.flagColor} angle={angle} />;
       case 'alien':
         return <SVGAlien color={props.color} eyeCount={props.eyeCount} legCount={props.legCount} angle={angle} />;
       case 'planet':
@@ -732,18 +732,14 @@ export function generateGame(sceneId, difficulty, stageIndex = 0) {
   if (difficulty === 'hard') diffCount = 5;
 
   // 段階的難度 (stageIndex: 0 = 1問目, 1 = 2問目, 2 = 3問目)
-  // stageIndex に応じて、難しさのプロファイル（候補オブジェクトの選定＆変化の内容）を調整
   let eligibleObjects = [...scene.objects];
 
   if (stageIndex === 0) {
-    // 【1問目】大きめの主要オブジェクト（size >= 100）を最優先にし、視覚的に大きな違いを生成
     const largeObjs = scene.objects.filter(obj => obj.size >= 100);
     eligibleObjects = largeObjs.length >= diffCount ? largeObjs : scene.objects;
   } else if (stageIndex === 1) {
-    // 【2問目】標準〜中型オブジェクト（70〜130）を中心にバランスよく選定
     eligibleObjects = scene.objects;
   } else {
-    // 【3問目】小型要素（size < 80）やディテール変化を含め、発見難度の高いオブジェクトを最優先選定
     const smallOrDetailObjs = scene.objects.filter(obj => obj.size <= 110);
     eligibleObjects = smallOrDetailObjs.length >= diffCount ? smallOrDetailObjs : scene.objects;
   }
@@ -751,6 +747,81 @@ export function generateGame(sceneId, difficulty, stageIndex = 0) {
   // 候補のシャッフル
   const shuffled = [...eligibleObjects].sort(() => 0.5 - Math.random());
   const selectedObjects = shuffled.slice(0, diffCount);
+
+  // 暗い宇宙背景の上でも一目で識別できる超・高対比ビビッドカラーセット
+  const HIGH_CONTRAST_COLORS = ['#ff4d6d', '#66fcf1', '#ffd166', '#ffffff', '#ff8500', '#06d6a0'];
+
+  // 差分が確実に発生し、かつ視覚的に一目で識別できるか判定・補正する検証関数
+  const validateAndFixDiff = (targetObj, initialDiffProps, initialDesc) => {
+    let finalProps = { ...initialDiffProps };
+    let finalDesc = initialDesc;
+
+    // 適用前のプロパティ値（未定義の場合はデフォルト値を補完して取得）
+    const getEffectiveValue = (propKey) => {
+      if (targetObj.properties[propKey] !== undefined) {
+        return targetObj.properties[propKey];
+      }
+      // 各プロパティのコンポーネント内デフォルト値
+      const defaults = {
+        hasRing: true,
+        hasHat: true,
+        hasFlag: true,
+        hasAntenna: true,
+        hasFire: true,
+        hasDoublePanel: true,
+        hasSignal: true,
+        isSmile: true,
+        visible: true,
+        craterCount: 3,
+        windowCount: 2,
+        eyeCount: 2,
+        diskScale: 1.0,
+        tailCount: 2,
+        starCount: 4,
+        color: '#ffd166',
+        visorColor: '#118ab2',
+        lightColor: '#ffd166',
+        wingColor: '#118ab2',
+        bodyColor: '#e9ecef',
+        mirrorColor: '#ffb703',
+        panelColor: '#118ab2',
+        color1: '#7209b7',
+        color2: '#4cc9f0'
+      };
+      return defaults[propKey];
+    };
+
+    // 適用前後の実効値を比較
+    let hasActualChange = false;
+    for (const key of Object.keys(finalProps)) {
+      const beforeVal = getEffectiveValue(key);
+      const afterVal = finalProps[key];
+      if (beforeVal !== afterVal) {
+        hasActualChange = true;
+        break;
+      }
+    }
+
+    // 万が一プロパティの実質的な変化がゼロだった場合、100%高対比なフォールバックを強制セット
+    if (!hasActualChange) {
+      if (targetObj.properties.color || targetObj.properties.bodyColor || targetObj.properties.mirrorColor) {
+        const curColor = targetObj.properties.color || targetObj.properties.bodyColor || targetObj.properties.mirrorColor;
+        const filtered = HIGH_CONTRAST_COLORS.filter(c => c.toLowerCase() !== String(curColor).toLowerCase());
+        const nextColor = filtered[0] || '#ff4d6d';
+
+        if (targetObj.properties.color !== undefined) finalProps = { color: nextColor };
+        else if (targetObj.properties.bodyColor !== undefined) finalProps = { bodyColor: nextColor };
+        else if (targetObj.properties.mirrorColor !== undefined) finalProps = { mirrorColor: nextColor };
+        
+        finalDesc = '色が ちがうよ';
+      } else {
+        finalProps = { visible: false };
+        finalDesc = 'なにかが 消えているよ';
+      }
+    }
+
+    return { diffProps: finalProps, description: finalDesc };
+  };
 
   const differences = selectedObjects.map((obj, index) => {
     let diffProps = {};
@@ -762,8 +833,7 @@ export function generateGame(sceneId, difficulty, stageIndex = 0) {
           diffProps = { visible: false };
           description = '星が消えている';
         } else {
-          const colors = ['#ef476f', '#06d6a0', '#118ab2', '#ffffff', '#ff85a1'];
-          const filteredColors = colors.filter(c => c !== obj.properties.color);
+          const filteredColors = HIGH_CONTRAST_COLORS.filter(c => c !== obj.properties.color);
           const nextColor = filteredColors[Math.floor(Math.random() * filteredColors.length)];
           diffProps = { color: nextColor };
           description = '星の色がちがう';
@@ -772,77 +842,95 @@ export function generateGame(sceneId, difficulty, stageIndex = 0) {
 
       case 'moon':
         const moonRnd = Math.random();
-        if (stageIndex === 0 || moonRnd < 0.4) {
-          diffProps = { isSmile: false };
+        if (moonRnd < 0.4) {
+          const currentSmile = obj.properties.isSmile !== false; // 未指定なら true
+          diffProps = { isSmile: !currentSmile };
           description = 'おつきさまの お口のかたちが ちがう';
-        } else if (moonRnd < 0.75 && obj.properties.hasHat) {
+        } else if (moonRnd < 0.75 && obj.properties.hasHat !== false) {
           diffProps = { hasHat: false };
           description = 'おつきさまの ぼうしが ない';
-        } else {
+        } else if ((obj.properties.craterCount ?? 3) > 0) {
           diffProps = { craterCount: 0 };
           description = 'おつきさまの もようが ない';
+        } else {
+          diffProps = { color: obj.properties.color === '#ffd166' ? '#ff4d6d' : '#ffd166' };
+          description = 'おつきさまの 色が ちがう';
         }
         break;
 
       case 'rocket':
         const rocketRnd = Math.random();
-        if (stageIndex === 0 || rocketRnd < 0.35) {
-          diffProps = { color: '#118ab2', wingColor: '#ef476f' };
+        if (rocketRnd < 0.4) {
+          const nextColor = obj.properties.color === '#ef476f' ? '#66fcf1' : '#ef476f';
+          const nextWing = obj.properties.wingColor === '#118ab2' ? '#ffd166' : '#118ab2';
+          diffProps = { color: nextColor, wingColor: nextWing };
           description = 'ロケットの色が ちがう';
-        } else if (rocketRnd < 0.7) {
-          diffProps = { windowCount: obj.properties.windowCount === 2 ? 1 : 2 };
+        } else if (rocketRnd < 0.75 && (obj.properties.windowCount ?? 2) > 0) {
+          const curWins = obj.properties.windowCount ?? 2;
+          diffProps = { windowCount: curWins === 2 ? 1 : (curWins === 1 ? 2 : 1) };
           description = 'ロケットの まどもの数が ちがう';
-        } else {
+        } else if (obj.properties.hasFire !== false) {
           diffProps = { hasFire: false };
           description = 'ロケットの おしりの ほのおが ない';
+        } else {
+          diffProps = { color: '#66fcf1' };
+          description = 'ロケットの色が ちがう';
         }
         break;
 
       case 'ufo':
         const ufoRnd = Math.random();
-        if (stageIndex === 0 || ufoRnd < 0.35) {
-          diffProps = { color: '#ef476f' };
+        if (ufoRnd < 0.4) {
+          const nextColor = obj.properties.color === '#06d6a0' ? '#ff4d6d' : '#06d6a0';
+          diffProps = { color: nextColor };
           description = 'UFOの色が ちがう';
-        } else if (ufoRnd < 0.7 && obj.properties.hasAntenna) {
+        } else if (ufoRnd < 0.75 && obj.properties.hasAntenna !== false) {
           diffProps = { hasAntenna: false };
           description = 'UFOの アンテナが ない';
         } else {
-          diffProps = { lightColor: '#ef476f' };
+          const nextLight = obj.properties.lightColor === '#ffd166' ? '#ff4d6d' : '#ffd166';
+          diffProps = { lightColor: nextLight };
           description = 'UFOの ライトの色が ちがう';
         }
         break;
 
       case 'astronaut':
         const astroRnd = Math.random();
-        if (astroRnd < 0.5 && obj.properties.hasFlag) {
+        if (astroRnd < 0.5 && obj.properties.hasFlag === true) {
           diffProps = { hasFlag: false };
           description = '宇宙飛行士の はたが ない';
         } else {
-          const nextVisor = obj.properties.visorColor === '#ffb703' ? '#ef476f' : '#ffb703';
-          diffProps = { visorColor: nextVisor };
+          const filteredColors = ['#ff4d6d', '#66fcf1', '#ffd166', '#ff8500'].filter(c => c !== obj.properties.visorColor && c !== obj.properties.helmetColor);
+          const nextColor = filteredColors[0] || '#ff4d6d';
+          diffProps = { visorColor: nextColor, helmetColor: nextColor };
           description = '宇宙飛行士の ヘルメットの色が ちがう';
         }
         break;
 
       case 'alien':
         const alienRnd = Math.random();
-        if (stageIndex >= 1 || alienRnd < 0.5) {
-          diffProps = { eyeCount: obj.properties.eyeCount === 3 ? 1 : 3 };
+        if (alienRnd < 0.5 && obj.properties.eyeCount !== undefined) {
+          diffProps = { eyeCount: obj.properties.eyeCount === 3 ? 1 : (obj.properties.eyeCount === 1 ? 3 : 1) };
           description = '宇宙人の 目の数が ちがう';
         } else {
-          const nextColor = obj.properties.color === '#ffd166' ? '#06d6a0' : '#ffd166';
+          const filtered = HIGH_CONTRAST_COLORS.filter(c => c !== obj.properties.color);
+          const nextColor = filtered[Math.floor(Math.random() * filtered.length)];
           diffProps = { color: nextColor };
           description = '宇宙人の 体の色が ちがう';
         }
         break;
 
       case 'planet':
+        // 土星 (saturn) かつ輪を持っている場合のみ「輪を消す」処理を適用。それ以外の惑星は必ずハッキリした色変更。
+        const isSaturnWithRing = obj.properties.planetType === 'saturn' && obj.properties.hasRing !== false;
         const planetRnd = Math.random();
-        if (stageIndex === 0 || (planetRnd < 0.5 && obj.properties.planetType === 'saturn')) {
+
+        if (isSaturnWithRing && planetRnd < 0.6) {
           diffProps = { hasRing: false };
           description = '土星の わっかが ない';
         } else {
-          const nextColor = obj.properties.color === '#118ab2' ? '#ef476f' : '#118ab2';
+          const filtered = ['#ef476f', '#66fcf1', '#ffd166', '#ff8500', '#ffffff'].filter(c => c !== obj.properties.color);
+          const nextColor = filtered[Math.floor(Math.random() * filtered.length)];
           diffProps = { color: nextColor };
           description = 'わくせいの 色が ちがう';
         }
@@ -850,33 +938,39 @@ export function generateGame(sceneId, difficulty, stageIndex = 0) {
 
       case 'satellite':
         const satRnd = Math.random();
-        if (satRnd < 0.5) {
+        if (satRnd < 0.5 && obj.properties.hasDoublePanel !== false) {
           diffProps = { hasDoublePanel: false };
           description = '人工衛星の はねが かたほうない';
-        } else {
+        } else if (obj.properties.hasSignal !== false) {
           diffProps = { hasSignal: false };
           description = '人工衛星の でんぱが でていない';
+        } else {
+          diffProps = { hasDoublePanel: !(obj.properties.hasDoublePanel !== false) };
+          description = '人工衛星の はねのかたちが ちがう';
         }
         break;
 
       case 'robot':
         const botRnd = Math.random();
-        if (botRnd < 0.5 && obj.properties.hasAntenna) {
+        if (botRnd < 0.5 && obj.properties.hasAntenna !== false) {
           diffProps = { hasAntenna: false };
           description = 'ロボットの アンテナが ない';
         } else {
-          diffProps = { eyeCount: obj.properties.eyeCount === 2 ? 1 : 2 };
+          const curEyes = obj.properties.eyeCount ?? 2;
+          diffProps = { eyeCount: curEyes === 2 ? 1 : 2 };
           description = 'ロボットの 目の数が ちがう';
         }
         break;
 
       case 'comet':
         const cometRnd = Math.random();
-        if (cometRnd < 0.5) {
-          diffProps = { tailCount: obj.properties.tailCount === 2 ? 1 : 2 };
+        if (cometRnd < 0.5 && (obj.properties.tailCount ?? 2) > 0) {
+          const curTails = obj.properties.tailCount ?? 2;
+          diffProps = { tailCount: curTails === 2 ? 1 : 2 };
           description = 'ほうき星の しっぽの 数が ちがう';
         } else {
-          diffProps = { color: '#ffb703' };
+          const filtered = ['#ffd166', '#66fcf1', '#ff4d6d', '#ff8500'].filter(c => c !== obj.properties.color);
+          diffProps = { color: filtered[0] || '#ff4d6d' };
           description = 'ほうき星の 色が ちがう';
         }
         break;
@@ -884,21 +978,24 @@ export function generateGame(sceneId, difficulty, stageIndex = 0) {
       case 'blackhole':
         const bhRnd = Math.random();
         if (bhRnd < 0.5) {
-          diffProps = { diskScale: 0.6 };
+          const curScale = obj.properties.diskScale ?? 1.0;
+          diffProps = { diskScale: curScale === 1.0 ? 0.6 : 1.2 };
           description = 'ブラックホールの まわりの 渦の大きさが ちがう';
         } else {
-          diffProps = { color: '#ff8500' };
+          const filtered = ['#ff8500', '#ff4d6d', '#66fcf1', '#ffd166'].filter(c => c !== obj.properties.color);
+          diffProps = { color: filtered[0] || '#ff4d6d' };
           description = 'ブラックホールの まわりの 色が ちがう';
         }
         break;
 
       case 'lunar_rover':
         const roverRnd = Math.random();
-        if (roverRnd < 0.5 && obj.properties.hasFlag) {
+        if (roverRnd < 0.5 && obj.properties.hasFlag !== false) {
           diffProps = { hasFlag: false };
           description = 'つきのくるまの はたが ない';
         } else {
-          diffProps = { bodyColor: '#ffb703' };
+          const filtered = ['#ff4d6d', '#ffd166', '#66fcf1', '#ff8500'].filter(c => c !== obj.properties.bodyColor);
+          diffProps = { bodyColor: filtered[0] || '#ff4d6d' };
           description = 'つきのくるまの 色が ちがう';
         }
         break;
@@ -906,10 +1003,12 @@ export function generateGame(sceneId, difficulty, stageIndex = 0) {
       case 'telescope':
         const teleRnd = Math.random();
         if (teleRnd < 0.5) {
-          diffProps = { mirrorColor: '#ef476f' };
+          const filtered = ['#ff4d6d', '#66fcf1', '#ffd166', '#ffffff'].filter(c => c !== obj.properties.mirrorColor);
+          diffProps = { mirrorColor: filtered[0] || '#ff4d6d' };
           description = 'うちゅう望遠鏡の カガミの色が ちがう';
         } else {
-          diffProps = { panelColor: '#ffd166' };
+          const filtered = ['#ffd166', '#ff4d6d', '#66fcf1', '#ff8500'].filter(c => c !== obj.properties.panelColor);
+          diffProps = { panelColor: filtered[0] || '#ffd166' };
           description = 'うちゅう望遠鏡の パネルの色が ちがう';
         }
         break;
@@ -917,20 +1016,24 @@ export function generateGame(sceneId, difficulty, stageIndex = 0) {
       case 'nebula':
         const nebRnd = Math.random();
         if (nebRnd < 0.5) {
-          diffProps = { color2: '#ff85a1' };
+          const filtered = ['#ff4d6d', '#66fcf1', '#ffd166', '#ff8500'].filter(c => c !== obj.properties.color2);
+          diffProps = { color2: filtered[0] || '#ff4d6d' };
           description = '星雲の ひかりの色が ちがう';
         } else {
-          diffProps = { starCount: 1 };
+          const curStars = obj.properties.starCount ?? 4;
+          diffProps = { starCount: curStars === 4 ? 1 : 4 };
           description = '星雲の なかの 星の数が ちがう';
         }
         break;
 
       default:
-        diffProps = { color: '#ffffff' };
+        diffProps = { color: '#ff4d6d' };
         description = 'なにかが ちがうよ';
     }
 
-    obj.properties.diffProps = diffProps;
+    // 差分が確実に発生し、かつ視覚的に識別可能か検証し、安全補正を実施
+    const checked = validateAndFixDiff(obj, diffProps, description);
+    obj.properties.diffProps = checked.diffProps;
 
     return {
       id: obj.id,
@@ -938,7 +1041,7 @@ export function generateGame(sceneId, difficulty, stageIndex = 0) {
       x: obj.x,
       y: obj.y,
       size: obj.size,
-      description,
+      description: checked.description,
       found: false
     };
   });
@@ -953,3 +1056,4 @@ export const spotDifferenceData = {
   SCENE_TEMPLATES,
   generateGame
 };
+
