@@ -634,6 +634,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
   };
 
   const handleNext = () => {
+    if (isTransitioning) return;
     audio.playClick();
     setSelectedAnswer(null);
     setShowExplanation(false);

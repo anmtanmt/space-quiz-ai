@@ -11,6 +11,29 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
   const [isPhotoMaximized, setIsPhotoMaximized] = useState(false);
   const earnedRef = useRef(false);
 
+  // マウント直後の誤タップ（チャタリング・タップ突き抜け）防止ガード
+  const [isTransitioning, setIsTransitioning] = useState(true);
+  const transitionTimerRef = useRef(null);
+
+  useEffect(() => {
+    // 600ms の入力ロックを設定
+    transitionTimerRef.current = setTimeout(() => {
+      setIsTransitioning(false);
+    }, 600);
+
+    return () => {
+      if (transitionTimerRef.current) {
+        clearTimeout(transitionTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleSafeAction = (actionFn) => {
+    if (isTransitioning) return;
+    audio.playClick();
+    actionFn();
+  };
+
   useEffect(() => {
     if (earnedRef.current) return;
     earnedRef.current = true;
@@ -260,21 +283,21 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
       <div style={styles.actionRow}>
         <button 
           className="btn-action btn-primary" 
-          onClick={() => { audio.playClick(); onPlayAgain(); }} 
+          onClick={() => handleSafeAction(onPlayAgain)} 
           style={styles.actionBtn}
         >
           🔄 もういちど あそぶ
         </button>
         <button 
           className="btn-action btn-accent" 
-          onClick={() => { audio.playClick(); onViewCollection(newBadge ? newBadge.id : null); }} 
+          onClick={() => handleSafeAction(() => onViewCollection(newBadge ? newBadge.id : null))} 
           style={styles.actionBtn}
         >
           🏆 バッジコレクション
         </button>
         <button 
           className="btn-action btn-back" 
-          onClick={() => { audio.playClick(); onBackToTitle(); }} 
+          onClick={() => handleSafeAction(onBackToTitle)} 
           style={styles.actionBtn}
         >
           🏠 タイトルにもどる
