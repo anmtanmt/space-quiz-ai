@@ -164,43 +164,17 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
                   ? '🎉 合格おめでとう！ ついに探査機（たんさきき）が「かんせい」したよ！'
                   : '🏅 合格おめでとう！ 組み立てパーツを ゲットしたよ！'}
               </p>
-              <div className="badge-wrapper star-pop" style={styles.badgeWrapper}>
+              <div className="badge-wrapper star-pop" style={{ ...styles.badgeWrapper, cursor: 'default' }}>
                 <div 
                   style={{
                     ...styles.badgeCircle,
                     backgroundColor: newBadge.color || 'rgba(255,255,255,0.1)',
                     borderColor: newBadge.borderColor || '#fff',
-                    cursor: newBadge.image ? 'pointer' : 'default',
+                    cursor: 'default',
                     position: 'relative'
-                  }}
-                  onClick={() => {
-                    if (newBadge.image) {
-                      audio.playClick();
-                      setIsPhotoMaximized(true);
-                    }
                   }}
                 >
                   <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
-                  {newBadge.image && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '-4px',
-                      right: '-4px',
-                      backgroundColor: 'var(--color-accent)',
-                      color: '#000',
-                      borderRadius: '50%',
-                      width: '26px',
-                      height: '26px',
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      fontSize: '0.85rem',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                      border: '2px solid #fff'
-                    }}>
-                      📸
-                    </div>
-                  )}
                 </div>
                 <h3 style={styles.badgeName}>
                   {newBadge.name} {newBadge.count > 1 && `×${newBadge.count}`}
@@ -234,24 +208,20 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
               </p>
               <div 
                 className="badge-wrapper star-pop" 
-                style={{ ...styles.badgeWrapper, cursor: 'pointer' }}
-                onClick={() => { audio.playClick(); onViewCollection(newBadge.id); }}
-                title="タップすると コレクションで くわしく みれるよ！"
+                style={{ ...styles.badgeWrapper, cursor: 'default' }}
               >
                 {newBadge.image ? (
                   <div 
-                    style={styles.realPhotoContainer}
-                    onClick={(e) => { e.stopPropagation(); audio.playClick(); setIsPhotoMaximized(true); }}
-                    title="タップすると おおきくなるよ！"
+                    style={{ ...styles.realPhotoContainer, cursor: 'default' }}
                   >
                     <img src={newBadge.image} alt={newBadge.name} style={styles.realPhoto} />
-                    <div style={styles.zoomHint}>🔍 タップでおおきくなるよ！</div>
                   </div>
                 ) : (
                   <div style={{
                     ...styles.badgeCircle,
                     backgroundColor: newBadge.color,
-                    borderColor: newBadge.borderColor || '#fff'
+                    borderColor: newBadge.borderColor || '#fff',
+                    cursor: 'default'
                   }}>
                     <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
                   </div>
@@ -336,7 +306,7 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
             <button 
               className="btn-action btn-primary" 
               onClick={() => { audio.playClick(); setIsPhotoMaximized(false); }}
-              style={{ marginTop: '16px', padding: '10px 30px' }}
+              style={{ marginTop: '16px', padding: '14px 40px', minWidth: '200px', minHeight: '52px', fontSize: '1.15rem', fontWeight: 'bold', borderRadius: '24px' }}
             >
               とじる
             </button>

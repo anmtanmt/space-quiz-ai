@@ -1179,13 +1179,15 @@ const styles = {
   },
   modalCloseButton: {
     marginTop: '20px',
-    padding: '10px 24px',
-    fontSize: '1.1rem',
+    padding: '14px 40px',
+    minWidth: '200px',
+    minHeight: '52px',
+    fontSize: '1.15rem',
     fontWeight: '700',
     color: '#fff',
     background: 'rgba(255, 255, 255, 0.15)',
     border: '1px solid rgba(255, 255, 255, 0.3)',
-    borderRadius: '12px',
+    borderRadius: '24px',
     cursor: 'pointer',
   }
 };

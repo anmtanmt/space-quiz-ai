@@ -538,7 +538,7 @@ export default function CollectionScreen({ initialBadgeId, onBackToTitle }) {
             <button 
               className="btn-action btn-primary" 
               onClick={() => { audio.playClick(); setIsPhotoMaximized(false); }}
-              style={{ marginTop: '16px', padding: '10px 30px' }}
+              style={styles.closeBtn}
             >
               とじる
             </button>
@@ -850,8 +850,14 @@ const styles = {
     marginBottom: '16px',
   },
   closeBtn: {
-    padding: '8px 24px',
-    fontSize: '1.0rem',
+    padding: '14px 40px',
+    minWidth: '200px',
+    minHeight: '52px',
+    fontSize: '1.15rem',
+    fontWeight: 'bold',
+    borderRadius: '24px',
+    marginTop: '16px',
+    boxShadow: '0 6px 16px rgba(0, 0, 0, 0.4)',
   },
   realPhotoContainer: {
     width: '180px',

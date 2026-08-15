@@ -690,14 +690,12 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
 
             {newBadge && (
               <div 
-                onClick={() => { audio.playClick(); onViewCollection(newBadge.id); }}
                 style={{
                   ...styles.badgeRewardBox,
                   borderColor: newBadge.borderColor || '#ffb703',
                   background: 'rgba(255, 255, 255, 0.08)',
-                  cursor: 'pointer'
+                  cursor: 'default'
                 }}
-                title="タップすると コレクションで くわしく みれるよ！"
               >
                 <div 
                   style={{
@@ -715,35 +713,8 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
                     flexShrink: 0,
                     position: 'relative'
                   }}
-                  onClick={(e) => {
-                    if (newBadge.image) {
-                      e.stopPropagation();
-                      audio.playClick();
-                      setIsPhotoMaximized(true);
-                    }
-                  }}
                 >
                   {newBadge.emoji}
-                  {newBadge.image && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '-2px',
-                      right: '-2px',
-                      backgroundColor: 'var(--color-accent)',
-                      color: '#000',
-                      borderRadius: '50%',
-                      width: '26px',
-                      height: '26px',
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      fontSize: '0.85rem',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                      border: '2px solid #fff'
-                    }}>
-                      📸
-                    </div>
-                  )}
                 </div>
 
                 <div style={{ textAlign: 'left', flex: 1 }}>
@@ -810,7 +781,7 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
             <button 
               className="btn-action btn-primary" 
               onClick={() => { audio.playClick(); setIsPhotoMaximized(false); }}
-              style={{ marginTop: '16px', padding: '10px 30px' }}
+              style={{ marginTop: '16px', padding: '14px 40px', minWidth: '200px', minHeight: '52px', fontSize: '1.15rem', fontWeight: 'bold', borderRadius: '24px' }}
             >
               とじる
             </button>
