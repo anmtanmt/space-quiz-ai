@@ -81,14 +81,18 @@ const VARIED_REAL_PHOTOS = {
     '/assets/images/quiz/jupiter.png',
     '/assets/images/quiz/saturn.png',
     '/assets/images/quiz/mercury.png',
+    '/assets/images/badges/uranus_tilted.jpg',
     '/assets/images/quiz/uranus.png',
     '/assets/images/quiz/neptune.png',
     '/assets/images/quiz/pluto.png',
     '/assets/images/quiz/moon.png',
-    '/assets/images/badges/venus.png'
+    '/assets/images/badges/venus.png',
+    '/assets/images/badges/ceres.jpg',
+    '/assets/images/badges/haumea.jpg'
   ],
   vehicles: [
     '/assets/images/quiz/rocket_h3.png',
+    '/assets/images/badges/sputnik.jpg',
     '/assets/images/quiz/iss.png',
     '/images/p_hubble.png',
     '/images/p_jwst.png',
@@ -99,6 +103,9 @@ const VARIED_REAL_PHOTOS = {
     '/assets/images/quiz/space_suit.png'
   ],
   satellites: [
+    '/assets/images/badges/phobos_stickney.jpg',
+    '/assets/images/badges/enceladus.jpg',
+    '/assets/images/badges/mimas.jpg',
     '/assets/images/quiz/europa.png',
     '/assets/images/quiz/titan.png',
     '/assets/images/quiz/io.png',
@@ -114,7 +121,8 @@ const VARIED_REAL_PHOTOS = {
     '/assets/images/badges/copernicus.png',
     '/assets/images/badges/newton.png',
     '/assets/images/badges/einstein.png',
-    '/assets/images/badges/le_verrier.png'
+    '/assets/images/badges/le_verrier.png',
+    '/assets/images/badges/ceres.jpg'
   ],
   space: [
     '/assets/images/quiz/milky_way.png',
