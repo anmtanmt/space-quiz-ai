@@ -63,7 +63,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
         {/* モード選択 */}
         <div style={styles.group}>
           <h2 style={styles.groupTitle}>🧭 クイズの モードを えらぼう</h2>
-          <div style={styles.optionsRow}>
+          <div className="options-row-mode" style={styles.optionsRow}>
             <button
               onClick={() => { audio.playClick(); setMode('ai'); }}
               style={{
@@ -130,7 +130,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
           {mode === 'test' ? (
             <>
               <h2 style={styles.groupTitle}>⭐ チャレンジする きゅうを えらぼう</h2>
-              <div style={styles.optionsRow}>
+              <div className="options-row-diff" style={styles.optionsRow}>
                 <button
                   onClick={() => { audio.playClick(); setDifficulty('4'); }}
                   style={{
@@ -170,7 +170,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
           ) : (
             <>
               <h2 style={styles.groupTitle}>⭐ むずかしさを えらぼう</h2>
-              <div style={styles.optionsRow}>
+              <div className="options-row-diff" style={styles.optionsRow}>
                 <button
                   onClick={() => { audio.playClick(); setDifficulty('easy'); }}
                   style={{

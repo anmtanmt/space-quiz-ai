@@ -825,7 +825,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
         </div>
 
         {/* 選択肢（3択または4択） */}
-        <div style={styles.choicesBox}>
+        <div className="quiz-choices-box" style={styles.choicesBox}>
           {currentQuiz.choices.map((choice, index) => {
             const choiceBtnStyle = isFourChoices ? {
               padding: isTightLayout ? '8px 16px' : '12px 20px',
@@ -852,7 +852,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
 
         {/* 回答後の解説エリア */}
         {showExplanation && (
-          <div className="star-pop" style={{
+          <div className="star-pop explanation-box" style={{
             ...styles.explanationBox,
             ...(currentQuiz.choices.length === 4 ? { padding: '16px', bottom: '0' } : {})
           }}>

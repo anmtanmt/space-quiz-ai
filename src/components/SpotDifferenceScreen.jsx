@@ -433,7 +433,7 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
 
       {/* メインの比較キャンバス領域 */}
       {phase !== 'READY' && (
-        <div style={styles.gameBody}>
+        <div className="spot-diff-game-body" style={styles.gameBody}>
           {/* 左側：もとのえ */}
           <div 
             ref={leftCanvasRef}
