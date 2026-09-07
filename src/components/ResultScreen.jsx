@@ -43,7 +43,7 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
 
     if (testModeActive) {
       // 天文宇宙検定モード
-      const passed = score >= 4; // 5問中4問以上で合格
+      const passed = score >= 3; // 5問中3問以上で合格
       setIsTestPassed(passed);
 
       if (passed) {
@@ -114,7 +114,7 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
   const getFeedback = () => {
     if (mode === 'test') {
       const gradeText = difficulty === '3' ? '3きゅう' : '4きゅう';
-      if (score >= 4) {
+      if (score >= 3) {
         return {
           text: `おめでとう！ てんもん宇宙けんてい ${gradeText} に「ごうかく」したよ！ 🎓`,
           color: 'var(--color-accent)'
@@ -192,7 +192,7 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
               </div>
               <h3 style={{ ...styles.badgeName, color: 'rgba(255, 255, 255, 0.4)' }}>？？？ 合格バッジ</h3>
               <p style={{ ...styles.badgeDesc, color: 'var(--color-accent)', fontWeight: '700' }}>
-                5もんのうち 4もんいじょう せいかいすると「ごうかく」バッジが もらえるよ！
+                5もんのうち 3もんいじょう せいかいすると「ごうかく」バッジが もらえるよ！
               </p>
             </div>
           </div>

@@ -872,7 +872,7 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
             />
             <button className="btn-action btn-primary" onClick={handleNext} style={styles.nextButton}>
               {currentIdx + 1 === totalQuestions
-                ? (mode === 'test' ? 'けっかを みる 🏁' : 'ごほうびを もらう 🎁')
+                ? 'けっかはっぴょう 🏁'
                 : 'つぎへ すすむ ➔'}
             </button>
           </div>

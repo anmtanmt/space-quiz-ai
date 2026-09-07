@@ -1,4 +1,4 @@
-const CACHE_NAME = 'space-quiz-ai-v10';
+const CACHE_NAME = 'space-quiz-ai-v12';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
