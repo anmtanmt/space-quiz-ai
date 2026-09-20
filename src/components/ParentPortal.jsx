@@ -1,12 +1,60 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
+import { useAuth } from '../contexts/AuthContext';
+import { redirectToCheckout, redirectToCustomerPortal } from '../services/stripe';
 
 export default function ParentPortal({ onBackToTitle }) {
+  const { user, profile, isConfigured, isPremium, signUp, signIn, signOut, upgradeToPremium, downgradeToFree } = useAuth();
   const [gateUnlocked, setGateUnlocked] = useState(false);
   const [mathQuestion, setMathQuestion] = useState({ q: '', a: 0 });
   const [gateInput, setGateInput] = useState('');
   const [gateError, setGateError] = useState('');
+
+  // 認証用状態
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [authSuccessMsg, setAuthSuccessMsg] = useState('');
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+
+  // プラン変更モーダル状態
+  const [showUpgradeConfirmModal, setShowUpgradeConfirmModal] = useState(false);
+  const [showDowngradeConfirmModal, setShowDowngradeConfirmModal] = useState(false);
+  const [planSuccessNotice, setPlanSuccessNotice] = useState('');
+
+  // 決済・プラン操作ハンドラー
+  const handleUpgradeClick = () => {
+    audio.playClick();
+    setPlanSuccessNotice('');
+    setShowUpgradeConfirmModal(true);
+  };
+
+  const handleConfirmUpgrade = async () => {
+    audio.playClick();
+    setShowUpgradeConfirmModal(false);
+    await upgradeToPremium();
+    setPlanSuccessNotice('🌟 宇宙博士プランに加入しました！すべてのゲームが無制限にあそび放題になります。');
+  };
+
+  const handlePortalClick = () => {
+    audio.playClick();
+    setPlanSuccessNotice('');
+    if (profile?.stripe_customer_id) {
+      redirectToCustomerPortal(profile.stripe_customer_id);
+    } else {
+      setShowDowngradeConfirmModal(true);
+    }
+  };
+
+  const handleConfirmDowngrade = async () => {
+    audio.playClick();
+    setShowDowngradeConfirmModal(false);
+    await downgradeToFree();
+    setPlanSuccessNotice('無料プランに変更しました。');
+  };
 
   // クイズ管理用の状態
   const [quizzes, setQuizzes] = useState([]);
@@ -189,6 +237,49 @@ export default function ParentPortal({ onBackToTitle }) {
     setTimeout(() => setShareMsg(''), 3000);
   };
 
+  // 認証ハンドラー
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    audio.playClick();
+    setAuthError('');
+    setAuthSuccessMsg('');
+
+    if (!authEmail || !authPassword) {
+      setAuthError('メールアドレスとパスワードを入力してください。');
+      return;
+    }
+    if (authPassword.length < 6) {
+      setAuthError('パスワードは6文字以上で入力してください。');
+      return;
+    }
+
+    setAuthSubmitting(true);
+    try {
+      if (isSignUpMode) {
+        await signUp(authEmail, authPassword);
+        setAuthSuccessMsg('アカウント登録が完了しました！');
+      } else {
+        await signIn(authEmail, authPassword);
+        setAuthSuccessMsg('ログインに成功しました！');
+      }
+      setAuthPassword('');
+    } catch (err) {
+      console.error(err);
+      setAuthError(err.message || '認証に失敗しました。入力内容をご確認ください。');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  const handleSignOutClick = async () => {
+    audio.playClick();
+    if (window.confirm('ログアウトしてもよろしいですか？')) {
+      await signOut();
+      setAuthSuccessMsg('');
+      setAuthError('');
+    }
+  };
+
   // --- 算数ゲートの画面 ---
   if (!gateUnlocked) {
     return (
@@ -240,6 +331,182 @@ export default function ParentPortal({ onBackToTitle }) {
       </div>
 
       <div className="scrollable-content" style={styles.portalBody}>
+          {/* ご利用プラン & サブスクリプション セクション */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeaderRow}>
+            <h2 style={styles.sectionTitle}>🌟 ご利用プラン ＆ プレミアム設定</h2>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={isPremium ? styles.planBadgePremium : styles.planBadgeFree}>
+                {isPremium ? '🌟 宇宙博士プラン（全モードあそび放題）' : '🌱 無料プラン（1日2回まで）'}
+              </span>
+              {!isConfigured && (
+                <span style={styles.offlineBadge}>⚙️ ローカル動作中</span>
+              )}
+            </div>
+          </div>
+
+          {/* プラン変更完了通知 */}
+          {planSuccessNotice && (
+            <div style={styles.planSuccessBanner}>
+              {planSuccessNotice}
+            </div>
+          )}
+
+          {/* サブスクリプション操作パネル（未ログインでも常に確認可能） */}
+          <div>
+            {!isPremium ? (
+              <div style={styles.premiumBox}>
+                <div style={styles.premiumBoxHeader}>
+                  <span style={{ fontSize: '1.6rem' }}>🌟</span>
+                  <div>
+                    <div style={styles.premiumBoxTitle}>宇宙博士プラン（全ゲームあそび放題）</div>
+                    <div style={styles.premiumBoxPrice}>月額 380円（税込） / いつでもワンタップ解約OK</div>
+                  </div>
+                </div>
+
+                <div style={styles.premiumFeaturesList}>
+                  <div style={styles.featureItem}>✅ <strong>AIのひみつクイズ</strong> が何回でも無制限！</div>
+                  <div style={styles.featureItem}>✅ <strong>てんもん宇宙けんてい</strong> も毎日あそび放題！</div>
+                  <div style={styles.featureItem}>✅ <strong>宇宙まちがいさがし</strong> も制限なし！</div>
+                  <div style={styles.featureItem}>✅ 契約縛りなし・いつでもワンタップで解約できる安心設計</div>
+                </div>
+
+                <div style={{ marginTop: '16px' }}>
+                  <button
+                    type="button"
+                    className="btn-action btn-accent"
+                    onClick={handleUpgradeClick}
+                    style={styles.subscribeBtn}
+                  >
+                    🌟 月額380円で 宇宙博士プランに加入する ➔
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={styles.activePlanBox}>
+                <div style={styles.activePlanTitle}>🌟 宇宙博士プランをご契約中です</div>
+                <div style={styles.activePlanDesc}>
+                  すべてのお子様向けゲームが<strong>【完全無制限】</strong>でプレイ可能です。<br />
+                  解約やクレジットカードの変更は、いつでも以下の公式ポータルから行えます。
+                </div>
+                <div style={{ marginTop: '14px' }}>
+                  <button
+                    type="button"
+                    className="btn-action"
+                    onClick={handlePortalClick}
+                    style={styles.portalBtn}
+                  >
+                    ⚙️ ご契約の確認・解約・カード変更（Customer Portal）
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 保護者アカウント管理 セクション */}
+        <div style={styles.section}>
+          <div style={styles.sectionHeaderRow}>
+            <h2 style={styles.sectionTitle}>👤 保護者アカウント管理</h2>
+          </div>
+
+          {user ? (
+            // ログイン済み状態
+            <div style={styles.accountCard}>
+              <div style={styles.accountInfoRow}>
+                <div>
+                  <div style={styles.userEmailLabel}>ログイン中のアカウント</div>
+                  <div style={styles.userEmail}>{user.email}</div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-action"
+                  onClick={handleSignOutClick}
+                  style={styles.signOutBtn}
+                >
+                  ログアウト
+                </button>
+              </div>
+            </div>
+          ) : (
+            // 未ログイン状態
+            <div style={styles.authCard}>
+              <p style={styles.authDesc}>
+                保護者アカウントを作成すると、お子様のAIクイズ利用状況が安全に管理され、端末移行や有料プラン（無制限）への変更が可能になります。<br />
+                <span style={{ fontSize: '0.85rem', color: '#8e96b8' }}>
+                  ※ ログインしなくても、1日2回まで無料ですぐにあそべます。
+                </span>
+              </p>
+
+              {/* ログイン / 新規登録 切り替えタブ */}
+              <div style={styles.authTabContainer}>
+                <button
+                  type="button"
+                  onClick={() => { audio.playClick(); setIsSignUpMode(false); setAuthError(''); setAuthSuccessMsg(''); }}
+                  style={{
+                    ...styles.authTabBtn,
+                    ...(isSignUpMode ? {} : styles.authTabBtnActive)
+                  }}
+                >
+                  ログイン
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { audio.playClick(); setIsSignUpMode(true); setAuthError(''); setAuthSuccessMsg(''); }}
+                  style={{
+                    ...styles.authTabBtn,
+                    ...(isSignUpMode ? styles.authTabBtnActive : {})
+                  }}
+                >
+                  新しくアカウントを作る
+                </button>
+              </div>
+
+              {/* フォーム */}
+              <form onSubmit={handleAuthSubmit} style={styles.authForm}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>メールアドレス:</label>
+                  <input
+                    type="email"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    placeholder="example@email.com"
+                    style={styles.input}
+                    required
+                  />
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>パスワード（6文字以上）:</label>
+                  <input
+                    type="password"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    placeholder="半角英数6文字以上"
+                    style={styles.input}
+                    minLength={6}
+                    required
+                  />
+                </div>
+
+                {authError && <div style={styles.authErrorText}>{authError}</div>}
+                {authSuccessMsg && <div style={styles.authSuccessText}>{authSuccessMsg}</div>}
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                  <button
+                    type="submit"
+                    className="btn-action btn-primary"
+                    disabled={authSubmitting || !isConfigured}
+                    style={{ minWidth: '160px', opacity: isConfigured ? 1 : 0.6 }}
+                  >
+                    {authSubmitting ? '処理中...' : (isSignUpMode ? 'アカウントを作成する ➔' : 'ログインする ➔')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+
         {/* クイズ作成フォーム */}
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>
@@ -505,6 +772,92 @@ export default function ParentPortal({ onBackToTitle }) {
           </div>
         </div>
       </div>
+
+      {/* プレミアム加入確認モーダル */}
+      {showUpgradeConfirmModal && ReactDOM.createPortal(
+        <div style={styles.modalBackdrop} onClick={() => setShowUpgradeConfirmModal(false)}>
+          <div 
+            style={styles.modalCard} 
+            onClick={(e) => e.stopPropagation()}
+            className="fade-in"
+          >
+            <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🌟</div>
+            <h2 style={styles.modalTitle}>宇宙博士プランに加入しますか？</h2>
+
+            <p style={styles.modalDesc}>
+              <strong>月額 380円（税込）</strong>で、すべてのゲームが無制限にあそび放題になります！<br />
+              <span style={{ fontSize: '0.85rem', color: '#a0a5c0' }}>
+                ・AIのひみつクイズ（無制限）<br />
+                ・てんもん宇宙けんてい（毎日あそび放題）<br />
+                ・宇宙まちがいさがし（無制限）
+              </span>
+            </p>
+
+            <div style={styles.modalNotice}>
+              💡 契約の縛りは一切ありません。いつでもワンタップで解約可能です。
+            </div>
+
+            <div style={styles.modalActions}>
+              <button 
+                type="button" 
+                className="btn-action btn-accent" 
+                onClick={handleConfirmUpgrade}
+                style={styles.modalPrimaryBtn}
+              >
+                🌟 月額380円で加入する（決定） ➔
+              </button>
+              <button 
+                type="button" 
+                className="btn-action" 
+                onClick={() => setShowUpgradeConfirmModal(false)}
+                style={styles.modalCancelBtn}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 解約・無料プラン変更確認モーダル */}
+      {showDowngradeConfirmModal && ReactDOM.createPortal(
+        <div style={styles.modalBackdrop} onClick={() => setShowDowngradeConfirmModal(false)}>
+          <div 
+            style={styles.modalCard} 
+            onClick={(e) => e.stopPropagation()}
+            className="fade-in"
+          >
+            <div style={{ fontSize: '3rem', marginBottom: '8px' }}>⚙️</div>
+            <h2 style={styles.modalTitle}>無料プランに戻しますか？</h2>
+
+            <p style={styles.modalDesc}>
+              解約すると、ゲームのプレイ上限が無料プラン（1日2回まで）に戻ります。<br />
+              これまでに集めたバッジや手作りクイズは一切消えません。
+            </p>
+
+            <div style={styles.modalActions}>
+              <button 
+                type="button" 
+                className="btn-action" 
+                onClick={handleConfirmDowngrade}
+                style={styles.modalDangerBtn}
+              >
+                無料プランに変更する（解約）
+              </button>
+              <button 
+                type="button" 
+                className="btn-action" 
+                onClick={() => setShowDowngradeConfirmModal(false)}
+                style={styles.modalCancelBtn}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -797,5 +1150,309 @@ const styles = {
       background: 'var(--color-wrong)',
       color: '#fff',
     }
+  },
+  // アカウント＆プラン用スタイル
+  sectionHeaderRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  offlineBadge: {
+    fontSize: '0.75rem',
+    background: 'rgba(255, 255, 255, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    color: '#a0a5c0',
+  },
+  accountCard: {
+    background: 'rgba(255, 255, 255, 0.04)',
+    border: '1px solid var(--color-card-border)',
+    borderRadius: '16px',
+    padding: '20px',
+  },
+  accountInfoRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: '16px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+    flexWrap: 'wrap',
+    gap: '12px',
+  },
+  userEmailLabel: {
+    fontSize: '0.8rem',
+    color: '#8e96b8',
+    marginBottom: '4px',
+  },
+  userEmail: {
+    fontSize: '1.05rem',
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  planBadgeContainer: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  planBadgeFree: {
+    background: 'rgba(110, 231, 183, 0.15)',
+    color: '#6ee7b7',
+    border: '1px solid rgba(110, 231, 183, 0.3)',
+    padding: '6px 14px',
+    borderRadius: '20px',
+    fontSize: '0.85rem',
+    fontWeight: 'bold',
+  },
+  planBadgePremium: {
+    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 107, 107, 0.2))',
+    color: '#ffd166',
+    border: '1px solid rgba(255, 209, 102, 0.5)',
+    padding: '6px 14px',
+    borderRadius: '20px',
+    fontSize: '0.85rem',
+    fontWeight: 'bold',
+    boxShadow: '0 0 12px rgba(255, 209, 102, 0.3)',
+  },
+  premiumBox: {
+    background: 'linear-gradient(135deg, rgba(255, 209, 102, 0.08), rgba(255, 107, 107, 0.08))',
+    border: '1px solid rgba(255, 209, 102, 0.35)',
+    borderRadius: '16px',
+    padding: '20px',
+  },
+  premiumBoxHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '14px',
+  },
+  premiumBoxTitle: {
+    fontSize: '1.15rem',
+    fontWeight: 'bold',
+    color: '#ffd166',
+  },
+  premiumBoxPrice: {
+    fontSize: '0.85rem',
+    color: '#c4c9e8',
+    marginTop: '2px',
+  },
+  premiumFeaturesList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    background: 'rgba(0, 0, 0, 0.2)',
+    padding: '12px 16px',
+    borderRadius: '12px',
+  },
+  featureItem: {
+    fontSize: '0.9rem',
+    color: '#e0e5ff',
+    lineHeight: '1.4',
+  },
+  subscribeBtn: {
+    fontSize: '1rem',
+    padding: '12px 24px',
+    borderRadius: '12px',
+    fontWeight: 'bold',
+    background: 'linear-gradient(135deg, #ffd166, #ff6b6b)',
+    color: '#050714',
+    border: 'none',
+    boxShadow: '0 4px 15px rgba(255, 209, 102, 0.4)',
+    cursor: 'pointer',
+  },
+  activePlanBox: {
+    background: 'linear-gradient(135deg, rgba(255, 209, 102, 0.12), rgba(114, 9, 183, 0.12))',
+    border: '1px solid rgba(255, 209, 102, 0.5)',
+    borderRadius: '16px',
+    padding: '20px',
+  },
+  activePlanTitle: {
+    fontSize: '1.2rem',
+    fontWeight: 'bold',
+    color: '#ffd166',
+    marginBottom: '6px',
+  },
+  activePlanDesc: {
+    fontSize: '0.9rem',
+    color: '#c4c9e8',
+    lineHeight: '1.6',
+  },
+  portalBtn: {
+    background: 'rgba(255, 255, 255, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.25)',
+    color: '#ffffff',
+    padding: '10px 18px',
+    borderRadius: '10px',
+    fontSize: '0.9rem',
+    cursor: 'pointer',
+  },
+  planFooterRow: {
+    marginTop: '20px',
+    display: 'flex',
+    justifyContent: 'flex-end',
+    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+    paddingTop: '14px',
+  },
+  signOutBtn: {
+    background: 'rgba(255, 255, 255, 0.08)',
+    color: '#a0a5c0',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    padding: '8px 16px',
+    borderRadius: '10px',
+    fontSize: '0.85rem',
+  },
+  authCard: {
+    background: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid var(--color-card-border)',
+    borderRadius: '16px',
+    padding: '20px',
+  },
+  authDesc: {
+    fontSize: '0.9rem',
+    color: '#c4c9e8',
+    lineHeight: '1.6',
+    marginBottom: '16px',
+  },
+  authTabContainer: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '16px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+    paddingBottom: '8px',
+  },
+  authTabBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: '#8e96b8',
+    padding: '8px 16px',
+    fontSize: '0.9rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    borderRadius: '8px',
+    transition: 'all 0.2s',
+  },
+  authTabBtnActive: {
+    background: 'rgba(76, 201, 240, 0.15)',
+    color: 'var(--color-secondary)',
+    border: '1px solid rgba(76, 201, 240, 0.3)',
+  },
+  authForm: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  authErrorText: {
+    color: 'var(--color-wrong)',
+    fontSize: '0.85rem',
+    background: 'rgba(255, 77, 109, 0.1)',
+    border: '1px solid rgba(255, 77, 109, 0.2)',
+    padding: '8px 12px',
+    borderRadius: '8px',
+  },
+  authSuccessText: {
+    color: 'var(--color-correct)',
+    fontSize: '0.85rem',
+    background: 'rgba(6, 214, 160, 0.1)',
+    border: '1px solid rgba(6, 214, 160, 0.2)',
+    padding: '8px 12px',
+    borderRadius: '8px',
+  },
+  planSuccessBanner: {
+    background: 'linear-gradient(135deg, rgba(6, 214, 160, 0.2), rgba(76, 201, 240, 0.2))',
+    border: '1px solid rgba(6, 214, 160, 0.5)',
+    borderRadius: '12px',
+    padding: '12px 16px',
+    color: '#06d6a0',
+    fontWeight: 'bold',
+    fontSize: '0.95rem',
+    marginBottom: '16px',
+    textAlign: 'center',
+  },
+  modalBackdrop: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(5, 7, 20, 0.85)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+    padding: '20px',
+  },
+  modalCard: {
+    background: '#13172e',
+    border: '2px solid var(--color-primary)',
+    borderRadius: '24px',
+    padding: '28px 24px',
+    maxWidth: '460px',
+    width: '100%',
+    textAlign: 'center',
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(76, 201, 240, 0.2)',
+    boxSizing: 'border-box',
+  },
+  modalTitle: {
+    fontSize: '1.25rem',
+    fontWeight: 'bold',
+    color: '#ffffff',
+    lineHeight: '1.4',
+    marginBottom: '12px',
+  },
+  modalDesc: {
+    fontSize: '0.95rem',
+    color: '#c4c9e8',
+    lineHeight: '1.6',
+    marginBottom: '16px',
+  },
+  modalNotice: {
+    background: 'rgba(76, 201, 240, 0.08)',
+    border: '1px solid rgba(76, 201, 240, 0.25)',
+    borderRadius: '12px',
+    padding: '10px 14px',
+    fontSize: '0.85rem',
+    color: '#a0c4ff',
+    marginBottom: '20px',
+    lineHeight: '1.4',
+    textAlign: 'left',
+  },
+  modalActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  modalPrimaryBtn: {
+    width: '100%',
+    padding: '12px',
+    fontSize: '1rem',
+    fontWeight: 'bold',
+    borderRadius: '12px',
+    background: 'linear-gradient(135deg, #ffd166, #ff6b6b)',
+    color: '#050714',
+    border: 'none',
+    boxShadow: '0 4px 15px rgba(255, 209, 102, 0.4)',
+    cursor: 'pointer',
+  },
+  modalDangerBtn: {
+    width: '100%',
+    padding: '12px',
+    fontSize: '0.95rem',
+    fontWeight: 'bold',
+    borderRadius: '12px',
+    background: 'rgba(255, 77, 109, 0.15)',
+    color: 'var(--color-wrong)',
+    border: '1px solid var(--color-wrong)',
+    cursor: 'pointer',
+  },
+  modalCancelBtn: {
+    width: '100%',
+    padding: '10px',
+    fontSize: '0.85rem',
+    background: 'rgba(255, 255, 255, 0.06)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    color: '#c4c9e8',
+    borderRadius: '12px',
+    cursor: 'pointer',
   }
 };

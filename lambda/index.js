@@ -3,6 +3,8 @@
 // 超軽量・高速・低コストなサーバーレスAPIを実現します。
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.replace(/['"\s]/g, '') : '';
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY ? process.env.STRIPE_SECRET_KEY.replace(/['"\s]/g, '') : '';
+const STRIPE_PRICE_ID = process.env.STRIPE_PRICE_ID ? process.env.STRIPE_PRICE_ID.replace(/['"\s]/g, '') : '';
 
 exports.handler = async (event) => {
   // CORS レスポンスヘッダーの設定
@@ -23,20 +25,54 @@ exports.handler = async (event) => {
     };
   }
 
-  // APIキー未設定エラー
-  if (!GEMINI_API_KEY) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'GEMINI_API_KEY environment variable is not configured on AWS Lambda.' })
-    };
-  }
-
   try {
     // リクエストボディのパース
     let body = {};
     if (event.body) {
       body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+    }
+
+    // --- Stripe 決済アクションのハンドリング ---
+    if (body.action === 'create_checkout_session') {
+      if (!STRIPE_SECRET_KEY) {
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'STRIPE_SECRET_KEY is not configured on AWS Lambda.' })
+        };
+      }
+      const session = await createStripeCheckoutSession(body.userId, body.email, body.successUrl, body.cancelUrl);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(session)
+      };
+    }
+
+    if (body.action === 'create_portal_session') {
+      if (!STRIPE_SECRET_KEY) {
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({ error: 'STRIPE_SECRET_KEY is not configured on AWS Lambda.' })
+        };
+      }
+      const portal = await createStripePortalSession(body.customerId, body.returnUrl);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(portal)
+      };
+    }
+
+    // --- Gemini クイズ生成処理 ---
+    // APIキー未設定エラー
+    if (!GEMINI_API_KEY) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'GEMINI_API_KEY environment variable is not configured on AWS Lambda.' })
+      };
     }
 
     const difficulty = body.difficulty || 'easy';
@@ -413,4 +449,65 @@ function validateTestQuiz(quiz, targetImage = null) {
   }
 
   return true;
+}
+
+// --- Stripe API 連携ヘルパー (ライブラリ依存ゼロの HTTPS Fetch) ---
+async function createStripeCheckoutSession(userId, email, successUrl, cancelUrl) {
+  const params = new URLSearchParams();
+  params.append('mode', 'subscription');
+  params.append('payment_method_types[]', 'card');
+  params.append('success_url', successUrl);
+  params.append('cancel_url', cancelUrl);
+  if (email) params.append('customer_email', email);
+  if (userId) params.append('client_reference_id', userId);
+
+  if (STRIPE_PRICE_ID) {
+    params.append('line_items[0][price]', STRIPE_PRICE_ID);
+    params.append('line_items[0][quantity]', '1');
+  } else {
+    // Price ID未指定時のインライン月額380円設定
+    params.append('line_items[0][price_data][currency]', 'jpy');
+    params.append('line_items[0][price_data][unit_amount]', '380');
+    params.append('line_items[0][price_data][recurring][interval]', 'month');
+    params.append('line_items[0][price_data][product_data][name]', '宇宙博士プラン（全ゲームあそび放題）');
+    params.append('line_items[0][quantity]', '1');
+  }
+
+  const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: params.toString()
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Stripe API error: ${res.status} ${errText}`);
+  }
+
+  return await res.json();
+}
+
+async function createStripePortalSession(customerId, returnUrl) {
+  const params = new URLSearchParams();
+  params.append('customer', customerId);
+  params.append('return_url', returnUrl);
+
+  const res = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${STRIPE_SECRET_KEY}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: params.toString()
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Stripe Portal API error: ${res.status} ${errText}`);
+  }
+
+  return await res.json();
 }

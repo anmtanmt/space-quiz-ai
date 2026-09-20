@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AuthProvider } from './contexts/AuthContext';
 import WelcomeScreen from './components/WelcomeScreen';
 import TitleScreen from './components/TitleScreen';
 import QuizScreen from './components/QuizScreen';
@@ -8,6 +9,14 @@ import ParentPortal from './components/ParentPortal';
 import SpotDifferenceScreen from './components/SpotDifferenceScreen';
 
 export default function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
+  );
+}
+
+function MainApp() {
   const [screen, setScreen] = useState('WELCOME'); // 'WELCOME', 'TITLE', 'QUIZ', 'RESULT', 'COLLECTION', 'PARENT'
   const [quizMode, setQuizMode] = useState('ai');
   const [difficulty, setDifficulty] = useState('easy');

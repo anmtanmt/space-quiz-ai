@@ -1,18 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParent }) {
+  const { isPremium } = useAuth();
   const [mode, setMode] = useState('ai'); // 'ai', 'parent', 'test', or 'spot_diff'
   const [difficulty, setDifficulty] = useState('easy'); // 'easy', 'medium', 'hard' (or '4', '3' for test)
   const [hasParentQuizzes, setHasParentQuizzes] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(audio.enabled);
 
+  // AI利用制限状態
+  const [aiUsage, setAiUsage] = useState(() => storage.getAiUsage());
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const lockTimerRef = useRef(null);
+
   useEffect(() => {
     const parentQuizzes = storage.getParentQuizzes();
     setHasParentQuizzes(parentQuizzes.length > 0);
+    // 最新のAI利用状況を取得
+    setAiUsage(storage.getAiUsage());
     // BGMの起動待機（ユーザーの初回操作で再生されます）
     audio.startBgm();
+
+    return () => {
+      if (lockTimerRef.current) clearTimeout(lockTimerRef.current);
+    };
   }, []);
 
   // モード切り替え時に適切なデフォルト難易度/級を設定する
@@ -33,16 +48,43 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
     setSoundEnabled(nextState);
   };
 
-  const handleStart = () => {
+  const handleCloseLimitModal = () => {
+    if (isTransitioning) return;
     audio.playClick();
-    if (mode === 'spot_diff') {
-      onStartQuiz('spot_diff', difficulty);
-      return;
-    }
+    setIsTransitioning(true);
+    setShowLimitModal(false);
+    lockTimerRef.current = setTimeout(() => {
+      setIsTransitioning(false);
+    }, 600);
+  };
+
+  const handleGoToParentFromModal = () => {
+    if (isTransitioning) return;
+    audio.playClick();
+    setShowLimitModal(false);
+    onGoToParent();
+  };
+
+  const handleStart = () => {
+    if (isTransitioning) return;
+    audio.playClick();
+
     if (mode === 'parent' && !hasParentQuizzes) {
       alert('まだ「おとうさん・おかあさんの クイズ」が つくられていないよ！おとな用ページで クイズを つくってね。');
       return;
     }
+
+    // 「おとうさん・おかあさんのクイズ」以外は、非課金だと全部あわせて1日2回まで
+    if (mode !== 'parent' && !isPremium && !aiUsage.canPlay) {
+      setShowLimitModal(true);
+      return;
+    }
+
+    if (mode === 'spot_diff') {
+      onStartQuiz('spot_diff', difficulty);
+      return;
+    }
+
     onStartQuiz(mode, difficulty);
   };
 
@@ -62,8 +104,24 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
       <div style={styles.selectionSection}>
         {/* モード選択 */}
         <div style={styles.group}>
-          <h2 style={styles.groupTitle}>🧭 クイズの モードを えらぼう</h2>
+          <div style={styles.groupHeaderRow}>
+            <h2 style={styles.groupTitle}>🧭 クイズの モードを えらぼう</h2>
+            {/* 全体共通エネルギー表示 */}
+            <div style={styles.globalEnergyBadge}>
+              {isPremium ? (
+                <span style={styles.energyBadgePremium}>⚡ 全モード あそびほうだい！</span>
+              ) : aiUsage.remaining === 2 ? (
+                <span style={styles.energyBadgeFull}>⚡⚡ きょうのエネルギー: あと 2かい</span>
+              ) : aiUsage.remaining === 1 ? (
+                <span style={styles.energyBadgeHalf}>⚡⚪ きょうのエネルギー: あと 1かい</span>
+              ) : (
+                <span style={styles.energyBadgeEmpty}>⚪⚪ きょうのエネルギー: 0かい</span>
+              )}
+            </div>
+          </div>
+
           <div className="options-row-mode" style={styles.optionsRow}>
+            {/* 1. AIのひみつクイズ */}
             <button
               onClick={() => { audio.playClick(); setMode('ai'); }}
               style={{
@@ -73,9 +131,11 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
             >
               <div style={styles.cardIcon}>🤖</div>
               <div style={styles.cardTitle}>AIの<br />ひみつクイズ</div>
+              <div style={styles.cardTicketTag}>⚡ エネルギーつかう</div>
               <div style={styles.cardDesc}>AIが 毎回（まいかい）新しく（あたらしく）つくるよ！</div>
             </button>
 
+            {/* 2. おとうさん・おかあさんのクイズ（いつでもフリー） */}
             <button
               onClick={() => { audio.playClick(); setMode('parent'); }}
               style={{
@@ -86,6 +146,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
             >
               <div style={styles.cardIcon}>👨‍👩‍👧</div>
               <div style={styles.cardTitle}>おとうさん・<br />おかあさんのクイズ</div>
+              <div style={styles.cardFreeTag}>🎈 いつでも フリー！</div>
               <div style={styles.cardDesc}>
                 {hasParentQuizzes 
                   ? 'おうちの人が つくってくれた クイズだよ！' 
@@ -93,6 +154,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
               </div>
             </button>
 
+            {/* 3. 天文宇宙検定 */}
             <button
               onClick={() => { audio.playClick(); setMode('test'); }}
               style={{
@@ -102,11 +164,13 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
             >
               <div style={styles.cardIcon}>🎓</div>
               <div style={styles.cardTitle}>てんもん<br />宇宙けんてい</div>
+              <div style={styles.cardTicketTag}>⚡ エネルギーつかう</div>
               <div style={styles.cardDesc}>
                 ほんかく的な 検定（けんてい）に チャレンジできるよ！
               </div>
             </button>
 
+            {/* 4. 宇宙まちがいさがし */}
             <button
               onClick={() => { audio.playClick(); setMode('spot_diff'); }}
               style={{
@@ -118,6 +182,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
               <div style={styles.betaBadge}>ベータ版</div>
               <div style={styles.cardIcon}>🔍</div>
               <div style={styles.cardTitle}>宇宙<br />まちがいさがし</div>
+              <div style={styles.cardTicketTag}>⚡ エネルギーつかう</div>
               <div style={styles.cardDesc}>
                 左右の 絵を 見くらべて、ちがうところを さがそう！
               </div>
@@ -237,6 +302,60 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
           ⚙️ おとな用の ページ
         </button>
       </div>
+
+      {/* 全ゲーム共通 上限（エネルギー切れ）モーダル */}
+      {showLimitModal && ReactDOM.createPortal(
+        <div style={styles.modalBackdrop} onClick={handleCloseLimitModal}>
+          <div 
+            style={styles.modalCard} 
+            onClick={(e) => e.stopPropagation()}
+            className="fade-in"
+          >
+            <div style={styles.modalIcon}>⚡</div>
+            <h2 style={styles.modalTitle}>きょうの あそびエネルギーが<br />なくなったよ！</h2>
+
+            <p style={styles.modalDesc}>
+              「AIクイズ」「てんもん宇宙けんてい」「宇宙まちがいさがし」は、ぜんぶ あわせて 1にち <strong>2かい</strong> まで あそべるよ。<br />
+              あしたになったら また パワーが ぜんかいふく するよ！🚀
+            </p>
+
+            {aiUsage.resetInMs > 0 && (
+              <div style={styles.modalTimerBox}>
+                ⏳ つぎの かいふくまで: <strong>{Math.ceil(aiUsage.resetInMs / (1000 * 60 * 60))} じかん</strong>
+              </div>
+            )}
+
+            <div style={styles.modalNotice}>
+              🎈 <strong>おとうさん・おかあさんの クイズ</strong> は、いつでも なんどでも 無料で あそべるよ！👨‍👩‍👧
+            </div>
+
+            <div style={styles.modalParentNotice}>
+              🌟 <strong>【おうちのかたへ】</strong><br />
+              月額380円の「宇宙博士プラン」にご加入いただくと、AIクイズ・天文宇宙検定・まちがいさがしなど全モードが無制限にあそび放題になります。
+            </div>
+
+            <div style={styles.modalActions}>
+              <button 
+                type="button" 
+                className="btn-action btn-accent" 
+                onClick={handleCloseLimitModal}
+                style={styles.modalCloseBtn}
+              >
+                ほかのクイズで あそぶ ➔
+              </button>
+              <button 
+                type="button" 
+                className="btn-action" 
+                onClick={handleGoToParentFromModal}
+                style={styles.modalParentBtn}
+              >
+                ⚙️ おとな用の ページへ
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -311,11 +430,44 @@ const styles = {
   group: {
     width: '100%',
   },
+  groupHeaderRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '10px',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  globalEnergyBadge: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  cardTicketTag: {
+    fontSize: '0.7rem',
+    fontWeight: 'bold',
+    color: '#ffbe0b',
+    background: 'rgba(255, 190, 11, 0.12)',
+    border: '1px solid rgba(255, 190, 11, 0.3)',
+    borderRadius: '8px',
+    padding: '2px 6px',
+    margin: '3px 0 5px 0',
+    display: 'inline-block',
+  },
+  cardFreeTag: {
+    fontSize: '0.7rem',
+    fontWeight: 'bold',
+    color: '#06d6a0',
+    background: 'rgba(6, 214, 160, 0.12)',
+    border: '1px solid rgba(6, 214, 160, 0.3)',
+    borderRadius: '8px',
+    padding: '2px 6px',
+    margin: '3px 0 5px 0',
+    display: 'inline-block',
+  },
   groupTitle: {
     fontSize: '1.05rem',
     color: 'var(--color-text-sub)',
-    marginBottom: '10px',
-    textAlign: 'center',
+    textAlign: 'left',
     fontWeight: '700',
   },
   optionsRow: {
@@ -449,6 +601,143 @@ const styles = {
     padding: '8px 16px',
     borderRadius: '8px',
     transition: 'color 0.2s',
+  },
+  // エネルギーバッジ用スタイル
+  energyBadgePremium: {
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    background: 'linear-gradient(135deg, rgba(255, 209, 102, 0.25), rgba(255, 107, 107, 0.25))',
+    color: '#ffd166',
+    border: '1px solid rgba(255, 209, 102, 0.5)',
+    padding: '3px 10px',
+    borderRadius: '12px',
+    margin: '4px 0 6px 0',
+    display: 'inline-block',
+  },
+  energyBadgeFull: {
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    background: 'rgba(6, 214, 160, 0.15)',
+    color: '#06d6a0',
+    border: '1px solid rgba(6, 214, 160, 0.4)',
+    padding: '3px 10px',
+    borderRadius: '12px',
+    margin: '4px 0 6px 0',
+    display: 'inline-block',
+  },
+  energyBadgeHalf: {
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    background: 'rgba(255, 190, 11, 0.15)',
+    color: '#ffbe0b',
+    border: '1px solid rgba(255, 190, 11, 0.4)',
+    padding: '3px 10px',
+    borderRadius: '12px',
+    margin: '4px 0 6px 0',
+    display: 'inline-block',
+  },
+  energyBadgeEmpty: {
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    background: 'rgba(255, 255, 255, 0.08)',
+    color: '#8e96b8',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    padding: '3px 10px',
+    borderRadius: '12px',
+    margin: '4px 0 6px 0',
+    display: 'inline-block',
+  },
+  // モーダル用スタイル
+  modalBackdrop: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(5, 7, 20, 0.85)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+    padding: '20px',
+  },
+  modalCard: {
+    background: '#13172e',
+    border: '2px solid var(--color-primary)',
+    borderRadius: '24px',
+    padding: '28px 24px',
+    maxWidth: '460px',
+    width: '100%',
+    textAlign: 'center',
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(76, 201, 240, 0.2)',
+    boxSizing: 'border-box',
+  },
+  modalIcon: {
+    fontSize: '3.2rem',
+    marginBottom: '8px',
+  },
+  modalTitle: {
+    fontSize: '1.3rem',
+    fontWeight: 'bold',
+    color: '#ffffff',
+    lineHeight: '1.4',
+    marginBottom: '12px',
+  },
+  modalDesc: {
+    fontSize: '0.95rem',
+    color: '#c4c9e8',
+    lineHeight: '1.6',
+    marginBottom: '14px',
+  },
+  modalTimerBox: {
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid rgba(255, 209, 102, 0.3)',
+    borderRadius: '12px',
+    padding: '8px 14px',
+    fontSize: '0.85rem',
+    color: '#ffd166',
+    marginBottom: '14px',
+  },
+  modalNotice: {
+    background: 'rgba(76, 201, 240, 0.08)',
+    border: '1px solid rgba(76, 201, 240, 0.2)',
+    borderRadius: '12px',
+    padding: '10px 14px',
+    fontSize: '0.85rem',
+    color: '#a0c4ff',
+    marginBottom: '14px',
+    lineHeight: '1.4',
+    textAlign: 'left',
+  },
+  modalParentNotice: {
+    background: 'linear-gradient(135deg, rgba(255, 209, 102, 0.08), rgba(255, 107, 107, 0.08))',
+    border: '1px solid rgba(255, 209, 102, 0.3)',
+    borderRadius: '12px',
+    padding: '10px 14px',
+    fontSize: '0.8rem',
+    color: '#ffbe0b',
+    marginBottom: '20px',
+    lineHeight: '1.4',
+    textAlign: 'left',
+  },
+  modalActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  modalCloseBtn: {
+    width: '100%',
+    padding: '12px',
+    fontSize: '1rem',
+    borderRadius: '12px',
+  },
+  modalParentBtn: {
+    width: '100%',
+    padding: '10px',
+    fontSize: '0.85rem',
+    background: 'rgba(255, 255, 255, 0.06)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    color: '#c4c9e8',
+    borderRadius: '12px',
   }
 };
 

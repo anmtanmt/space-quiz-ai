@@ -4,6 +4,8 @@ import { generateQuizFromAI, generateAstronomyTestQuiz } from '../services/gemin
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
 import { QUIZ_IMAGES } from '../data/quizImages';
+import { useAuth } from '../contexts/AuthContext';
+import { incrementAiUsage } from '../services/supabase';
 
 // HTMLから音声読み上げ用のひらがなテキストを抽出する関数
 function getReadingText(htmlString, isEasy = false) {
@@ -145,6 +147,7 @@ function shuffleChoices(quiz) {
 }
 
 export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTitle }) {
+  const { isPremium } = useAuth();
   const [quizzes, setQuizzes] = useState([]);
   const totalQuestions = mode === 'parent' ? quizzes.length : 5;
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -155,6 +158,18 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
   const [isWrongShake, setIsWrongShake] = useState(false);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [quizHistory, setQuizHistory] = useState([]);
+
+  // クイズの利用カウント消費（二重実行ロック: AIクイズと天文宇宙検定が対象）
+  const aiConsumedRef = useRef(false);
+  useEffect(() => {
+    if ((mode === 'ai' || mode === 'test') && !isPremium && !aiConsumedRef.current) {
+      aiConsumedRef.current = true;
+      storage.consumeAiUsage();
+      incrementAiUsage().catch(err => {
+        console.warn('Could not sync AI usage with Supabase (offline or guest):', err);
+      });
+    }
+  }, [mode, isPremium]);
 
   // 音声読み上げ用ステートと参照
   const [isPlayingSpeech, setIsPlayingSpeech] = useState(false);

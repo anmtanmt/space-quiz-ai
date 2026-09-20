@@ -4,7 +4,8 @@ const KEYS = {
   ANSWERED_IDS: 'sq_answered_ids',
   PARENT_QUIZZES: 'sq_parent_quizzes',
   EARNED_BADGES: 'sq_earned_badges',
-  RECENT_QUESTIONS: 'sq_recent_questions'
+  RECENT_QUESTIONS: 'sq_recent_questions',
+  AI_USAGE: 'sq_ai_usage'
 };
 
 export const storage = {
@@ -241,6 +242,68 @@ export const storage = {
       localStorage.removeItem(KEYS.RECENT_QUESTIONS);
     } catch (e) {
       console.error('Failed to clear recent questions', e);
+    }
+  },
+
+  // --- AIクイズの1日利用制限管理 (1日2セット・24時間で回復) ---
+  getAiUsage: () => {
+    try {
+      const raw = localStorage.getItem(KEYS.AI_USAGE);
+      const data = raw ? JSON.parse(raw) : { count: 0, lastPlayAt: null };
+      const now = Date.now();
+      const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+
+      // 最後のプレイから24時間以上経過していればリセット
+      if (data.lastPlayAt && now - data.lastPlayAt >= TWENTY_FOUR_HOURS) {
+        data.count = 0;
+        data.lastPlayAt = null;
+        localStorage.setItem(KEYS.AI_USAGE, JSON.stringify(data));
+      }
+
+      const remaining = Math.max(0, 2 - (data.count || 0));
+      const resetInMs = data.lastPlayAt ? Math.max(0, (data.lastPlayAt + TWENTY_FOUR_HOURS) - now) : 0;
+
+      return {
+        count: data.count || 0,
+        lastPlayAt: data.lastPlayAt,
+        remaining,
+        resetInMs,
+        canPlay: remaining > 0
+      };
+    } catch (e) {
+      console.error('Failed to get AI usage', e);
+      return { count: 0, lastPlayAt: null, remaining: 2, resetInMs: 0, canPlay: true };
+    }
+  },
+
+  consumeAiUsage: () => {
+    try {
+      const usage = storage.getAiUsage();
+      if (!usage.canPlay) {
+        return { success: false, ...usage };
+      }
+
+      const now = Date.now();
+      const newCount = usage.count + 1;
+      const lastPlayAt = usage.lastPlayAt || now; // 初回プレイ時刻を基準に24時間カウント
+
+      const updated = {
+        count: newCount,
+        lastPlayAt
+      };
+      localStorage.setItem(KEYS.AI_USAGE, JSON.stringify(updated));
+
+      return {
+        success: true,
+        count: newCount,
+        lastPlayAt,
+        remaining: Math.max(0, 2 - newCount),
+        resetInMs: Math.max(0, (lastPlayAt + 24 * 60 * 60 * 1000) - now),
+        canPlay: newCount < 2
+      };
+    } catch (e) {
+      console.error('Failed to consume AI usage', e);
+      return { success: true, count: 1, remaining: 1, resetInMs: 0, canPlay: true };
     }
   },
 

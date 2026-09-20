@@ -4,8 +4,11 @@ import { audio } from '../utils/audio';
 import { storage } from '../utils/storage';
 import { generateGame, SpaceObject } from '../data/spotDifferenceData';
 import { BADGE_POOL, getDynamicBadgeInfo, getBadgeBorderColor } from '../utils/badges';
+import { useAuth } from '../contexts/AuthContext';
+import { incrementAiUsage } from '../services/supabase';
 
 export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onViewCollection }) {
+  const { isPremium } = useAuth();
   // 全シーンIDの定義 (9種類に拡張)
   const ALL_SCENE_IDS = [
     'rocket_journey', 'alien_party', 'moon_sky', 
@@ -15,6 +18,18 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
   const [currentSceneId, setCurrentSceneId] = useState('');
   const [clearCount, setClearCount] = useState(0); // クリアしたイラストの総数
   const [stageIndex, setStageIndex] = useState(0); // 1セッション(3問)内の進行 (0, 1, 2)
+
+  // エネルギー消費（二重実行ロック）
+  const energyConsumedRef = useRef(false);
+  useEffect(() => {
+    if (!isPremium && !energyConsumedRef.current) {
+      energyConsumedRef.current = true;
+      storage.consumeAiUsage();
+      incrementAiUsage().catch(err => {
+        console.warn('Could not sync energy usage with Supabase (offline or guest):', err);
+      });
+    }
+  }, [isPremium]);
   
   // ゲームデータ状態
   const [gameData, setGameData] = useState(null);
