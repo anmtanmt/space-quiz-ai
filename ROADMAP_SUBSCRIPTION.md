@@ -54,10 +54,10 @@
   - Supabase 無料プロジェクト作成・テーブルスキーマ適用完了。
   - Amplify 検証ブランチの環境変数（`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`）を設定。
   - 実機ブラウザ検証完了: `anmt1226@gmail.com` でのアカウント新規作成・自動ログイン動作確認済み。
-- [ ] **Task 3: Stripe テスト環境キーの発行・連携（任意・いつでも可）**
-  - Stripe 無料アカウント作成（テストモード）。
-  - テスト用 Secret Key と Price ID を AWS Lambda の環境変数に設定。
-  - テスト用カード（`4242...`）での実際のCheckout画面遷移・プレミアム即時反映をテスト。
+- [x] **Task 3: Stripe テスト環境キーの発行・連携**
+  - Stripe テスト商品「宇宙博士プラン（月額380円 / 毎月）」および Price ID（`price_1UI9QvC5BptJdPAgeSlH7rOV`）を作成完了。
+  - AWS Lambda（`space-quiz-generator`）の環境変数に Secret Key と Price ID を設定完了。
+  - Lambda API 経由でのリアル Stripe Checkout Session 発行および本物の決済画面の描画・疎通テスト成功！
 
 ---
 
