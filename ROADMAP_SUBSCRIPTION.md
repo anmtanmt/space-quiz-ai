@@ -50,9 +50,10 @@
   - AWS Amplify に `feature/subscription-v2` ブランチを追加接続・自動ビルド設定完了。
   - **検証用プレビューURL**: `https://feature-subscription-v2.d3fxbwm039k7bh.amplifyapp.com`
   - 実機ブラウザ確認完了。本番（息子さんの利用環境: `main`）への影響ゼロを維持。
-- [ ] **Task 2: Supabase 実環境プロジェクトの接続（任意・いつでも可）**
-  - Supabase の無料プロジェクトを作成し、`supabase/schema.sql` を SQL Editor で実行。
-  - Amplify 検証ブランチの環境変数（`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`）を設定し、実メアドでの認証テスト。
+- [x] **Task 2: Supabase 実環境プロジェクトの接続**
+  - Supabase 無料プロジェクト作成・テーブルスキーマ適用完了。
+  - Amplify 検証ブランチの環境変数（`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`）を設定。
+  - 実機ブラウザ検証完了: `anmt1226@gmail.com` でのアカウント新規作成・自動ログイン動作確認済み。
 - [ ] **Task 3: Stripe テスト環境キーの発行・連携（任意・いつでも可）**
   - Stripe 無料アカウント作成（テストモード）。
   - テスト用 Secret Key と Price ID を AWS Lambda の環境変数に設定。
