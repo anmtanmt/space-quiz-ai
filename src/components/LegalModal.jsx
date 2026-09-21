@@ -84,7 +84,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'tokusho' }) 
                   <tr style={styles.tr}>
                     <th style={styles.th}>お問い合わせ先</th>
                     <td style={styles.td}>
-                      メールアドレス: <a href="mailto:anmt1226@gmail.com" style={styles.link}>anmt1226@gmail.com</a><br />
+                      メールアドレス: <a href="mailto:spacequizai@gmail.com" style={styles.link}>spacequizai@gmail.com</a><br />
                       <span style={styles.noteText}>※ お問い合わせはメールにて24時間受け付けております（順次回答いたします）。</span>
                     </td>
                   </tr>
@@ -252,9 +252,9 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'tokusho' }) 
 
                 <h4 style={styles.articleTitle}>第6条（お問い合わせ窓口）</h4>
                 <p>
-                  個人情報の取扱いに関するご質問・ご相談は、下記窓口までメールにてご連絡ください。<br />
-                  <strong>宇宙クイズ-AI 運営事務局</strong><br />
-                  連絡先メールアドレス: <a href="mailto:anmt1226@gmail.com" style={styles.link}>anmt1226@gmail.com</a>
+                  本ポリシーに関するお問い合わせは、以下の窓口までお願いいたします。<br />
+                  窓口名称: 宇宙クイズ-AI 運営事務局<br />
+                  連絡先メールアドレス: <a href="mailto:spacequizai@gmail.com" style={styles.link}>spacequizai@gmail.com</a>
                 </p>
               </div>
             </div>
