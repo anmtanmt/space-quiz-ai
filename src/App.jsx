@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import WelcomeScreen from './components/WelcomeScreen';
 import TitleScreen from './components/TitleScreen';
@@ -7,6 +7,7 @@ import ResultScreen from './components/ResultScreen';
 import CollectionScreen from './components/CollectionScreen';
 import ParentPortal from './components/ParentPortal';
 import SpotDifferenceScreen from './components/SpotDifferenceScreen';
+import LegalModal from './components/LegalModal';
 
 export default function App() {
   return (
@@ -22,6 +23,21 @@ function MainApp() {
   const [difficulty, setDifficulty] = useState('easy');
   const [selectedBadgeId, setSelectedBadgeId] = useState(null);
   const [result, setResult] = useState({ score: 0, total: 5 });
+  const [directLegalTab, setDirectLegalTab] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const page = params.get('page');
+      if (page === 'tokusho' || page === 'legal') {
+        setDirectLegalTab('tokusho');
+      } else if (page === 'terms') {
+        setDirectLegalTab('terms');
+      } else if (page === 'privacy') {
+        setDirectLegalTab('privacy');
+      }
+    }
+  }, []);
 
   const handleStartQuiz = (mode, diff) => {
     setQuizMode(mode);
@@ -114,6 +130,21 @@ function MainApp() {
       {screen === 'PARENT' && (
         <ParentPortal
           onBackToTitle={handleBackToTitle}
+        />
+      )}
+
+      {/* URLパラメータによる直接法務モーダル表示（Stripe審査・直リンク用） */}
+      {directLegalTab && (
+        <LegalModal
+          isOpen={true}
+          onClose={() => {
+            setDirectLegalTab(null);
+            // URLクエリを綺麗にクリーンアップ
+            const url = new URL(window.location);
+            url.searchParams.delete('page');
+            window.history.replaceState({}, '', url.pathname);
+          }}
+          initialTab={directLegalTab}
         />
       )}
     </div>

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
 import { useAuth } from '../contexts/AuthContext';
+import LegalModal from './LegalModal';
 
 export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParent }) {
   const { isPremium } = useAuth();
@@ -16,6 +17,16 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const lockTimerRef = useRef(null);
+
+  // 法務表記モーダル
+  const [showLegalModal, setShowLegalModal] = useState(false);
+  const [legalTab, setLegalTab] = useState('tokusho');
+
+  const handleOpenLegal = (tab) => {
+    audio.playClick();
+    setLegalTab(tab);
+    setShowLegalModal(true);
+  };
 
   useEffect(() => {
     const parentQuizzes = storage.getParentQuizzes();
@@ -296,10 +307,13 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
         {soundEnabled ? '🔊 おとON' : '🔇 おとOFF'}
       </button>
 
-      {/* おとな用ページへのひっそりとしたボタン */}
+      {/* おとな用ページへのひっそりとしたボタン & 法務リンク */}
       <div style={styles.footer}>
         <button onClick={() => { audio.playClick(); onGoToParent(); }} style={styles.parentButton}>
           ⚙️ おとな用の ページ
+        </button>
+        <button onClick={() => handleOpenLegal('tokusho')} style={styles.legalFooterButton}>
+          📜 利用規約・特定商取引法に基づく表記
         </button>
       </div>
 
@@ -356,6 +370,13 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
         </div>,
         document.body
       )}
+
+      {/* 法務表記モーダル */}
+      <LegalModal
+        isOpen={showLegalModal}
+        onClose={() => setShowLegalModal(false)}
+        initialTab={legalTab}
+      />
     </div>
   );
 }
@@ -590,15 +611,30 @@ const styles = {
     width: '100%',
     display: 'flex',
     justifyContent: 'center',
+    alignItems: 'center',
+    gap: '12px',
+    flexWrap: 'wrap',
   },
   parentButton: {
     background: 'none',
     border: 'none',
     color: '#606580',
     cursor: 'pointer',
-    fontSize: '0.9rem',
+    fontSize: '0.85rem',
     fontFamily: 'var(--font-family)',
-    padding: '8px 16px',
+    padding: '6px 12px',
+    borderRadius: '8px',
+    transition: 'color 0.2s',
+  },
+  legalFooterButton: {
+    background: 'none',
+    border: 'none',
+    color: '#555a73',
+    cursor: 'pointer',
+    fontSize: '0.78rem',
+    fontFamily: 'var(--font-family)',
+    padding: '6px 10px',
+    textDecoration: 'underline',
     borderRadius: '8px',
     transition: 'color 0.2s',
   },

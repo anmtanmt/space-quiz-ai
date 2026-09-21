@@ -4,6 +4,7 @@ import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
 import { useAuth } from '../contexts/AuthContext';
 import { redirectToCheckout, redirectToCustomerPortal } from '../services/stripe';
+import LegalModal from './LegalModal';
 
 export default function ParentPortal({ onBackToTitle }) {
   const { user, profile, isConfigured, isPremium, signUp, signIn, signOut, upgradeToPremium, downgradeToFree } = useAuth();
@@ -24,6 +25,16 @@ export default function ParentPortal({ onBackToTitle }) {
   const [showUpgradeConfirmModal, setShowUpgradeConfirmModal] = useState(false);
   const [showDowngradeConfirmModal, setShowDowngradeConfirmModal] = useState(false);
   const [planSuccessNotice, setPlanSuccessNotice] = useState('');
+
+  // 法務表記モーダル状態
+  const [showLegalModal, setShowLegalModal] = useState(false);
+  const [legalTab, setLegalTab] = useState('tokusho');
+
+  const handleOpenLegal = (tab) => {
+    audio.playClick();
+    setLegalTab(tab);
+    setShowLegalModal(true);
+  };
 
   // 決済・プラン操作ハンドラー
   const handleUpgradeClick = () => {
@@ -386,6 +397,21 @@ export default function ParentPortal({ onBackToTitle }) {
                     🌟 月額380円で 宇宙博士プランに加入する ➔
                   </button>
                 </div>
+
+                {/* 法務・規約表記リンク */}
+                <div style={styles.legalLinksRow}>
+                  <button type="button" style={styles.legalLinkBtn} onClick={() => handleOpenLegal('tokusho')}>
+                    特定商取引法に基づく表記
+                  </button>
+                  <span style={styles.legalDivider}>|</span>
+                  <button type="button" style={styles.legalLinkBtn} onClick={() => handleOpenLegal('terms')}>
+                    利用規約
+                  </button>
+                  <span style={styles.legalDivider}>|</span>
+                  <button type="button" style={styles.legalLinkBtn} onClick={() => handleOpenLegal('privacy')}>
+                    プライバシーポリシー
+                  </button>
+                </div>
               </div>
             ) : (
               <div style={styles.activePlanBox}>
@@ -402,6 +428,21 @@ export default function ParentPortal({ onBackToTitle }) {
                     style={styles.portalBtn}
                   >
                     ⚙️ ご契約の確認・解約・カード変更（Customer Portal）
+                  </button>
+                </div>
+
+                {/* 契約中時 法務リンク */}
+                <div style={styles.legalLinksRow}>
+                  <button type="button" style={styles.legalLinkBtn} onClick={() => handleOpenLegal('tokusho')}>
+                    特定商取引法に基づく表記
+                  </button>
+                  <span style={styles.legalDivider}>|</span>
+                  <button type="button" style={styles.legalLinkBtn} onClick={() => handleOpenLegal('terms')}>
+                    利用規約
+                  </button>
+                  <span style={styles.legalDivider}>|</span>
+                  <button type="button" style={styles.legalLinkBtn} onClick={() => handleOpenLegal('privacy')}>
+                    プライバシーポリシー
                   </button>
                 </div>
               </div>
@@ -863,6 +904,13 @@ export default function ParentPortal({ onBackToTitle }) {
         </div>,
         document.body
       )}
+
+      {/* 法務表記モーダル（特商法・利用規約・プライバシーポリシー） */}
+      <LegalModal 
+        isOpen={showLegalModal} 
+        onClose={() => setShowLegalModal(false)} 
+        initialTab={legalTab} 
+      />
     </div>
   );
 }
@@ -1459,5 +1507,27 @@ const styles = {
     color: '#c4c9e8',
     borderRadius: '12px',
     cursor: 'pointer',
+  },
+  legalLinksRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '10px',
+    marginTop: '12px',
+    flexWrap: 'wrap',
+  },
+  legalLinkBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#8e96b8',
+    fontSize: '0.78rem',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    padding: '2px 4px',
+    transition: 'color 0.2s',
+  },
+  legalDivider: {
+    color: 'rgba(255, 255, 255, 0.2)',
+    fontSize: '0.75rem',
   }
 };
