@@ -46,10 +46,10 @@
 ## 3. 残タスク一覧（Next Actions）
 
 ### 🔹 フェーズ 1: 完全無料でできる検証・AWSプレビュー環境構築（現段階）
-- [ ] **Task 1: AWS Amplify Hosting でのブランチ検証環境セットアップ**
-  - AWS Amplify コンソールを開き、既存の `space-quiz-ai` アプリに `feature/subscription-v2` ブランチを追加接続。
-  - 自動生成される検証用プレビューURL（例: `https://feature-subscription-v2.xxxx.amplifyapp.com`）を確認。
-  - 実機スマホ・タブレットからアクセスし、本番（息子さんの利用環境）に影響がないことを確認。
+- [x] **Task 1: AWS Amplify Hosting でのブランチ検証環境セットアップ**
+  - AWS Amplify に `feature/subscription-v2` ブランチを追加接続・自動ビルド設定完了。
+  - **検証用プレビューURL**: `https://feature-subscription-v2.d3fxbwm039k7bh.amplifyapp.com`
+  - 実機ブラウザ確認完了。本番（息子さんの利用環境: `main`）への影響ゼロを維持。
 - [ ] **Task 2: Supabase 実環境プロジェクトの接続（任意・いつでも可）**
   - Supabase の無料プロジェクトを作成し、`supabase/schema.sql` を SQL Editor で実行。
   - Amplify 検証ブランチの環境変数（`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`）を設定し、実メアドでの認証テスト。
