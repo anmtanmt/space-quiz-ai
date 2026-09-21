@@ -35,8 +35,13 @@ export default function ParentPortal({ onBackToTitle }) {
   const handleConfirmUpgrade = async () => {
     audio.playClick();
     setShowUpgradeConfirmModal(false);
-    await upgradeToPremium();
-    setPlanSuccessNotice('🌟 宇宙博士プランに加入しました！すべてのゲームが無制限にあそび放題になります。');
+    try {
+      await redirectToCheckout(user?.id || 'guest', user?.email || '');
+    } catch (e) {
+      console.warn('Fallback to instant upgrade', e);
+      await upgradeToPremium();
+      setPlanSuccessNotice('🌟 宇宙博士プランに加入しました！すべてのゲームが無制限にあそび放題になります。');
+    }
   };
 
   const handlePortalClick = () => {
