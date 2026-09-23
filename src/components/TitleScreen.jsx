@@ -17,6 +17,31 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const lockTimerRef = useRef(null);
+  const [countdownText, setCountdownText] = useState('');
+
+  // エネルギー回復カウントダウンタイマー（ストップウォッチ形式で毎秒更新）
+  useEffect(() => {
+    if (!showLimitModal) return;
+
+    const updateTimer = () => {
+      const usage = storage.getAiUsage();
+      setAiUsage(usage);
+      if (usage.resetInMs <= 0) {
+        setCountdownText('00:00:00');
+        return;
+      }
+      const totalSeconds = Math.floor(usage.resetInMs / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      const pad = (n) => String(n).padStart(2, '0');
+      setCountdownText(`${pad(hours)}:${pad(minutes)}:${pad(seconds)}`);
+    };
+
+    updateTimer();
+    const timerId = setInterval(updateTimer, 1000);
+    return () => clearInterval(timerId);
+  }, [showLimitModal]);
 
   // 法務表記モーダル
   const [showLegalModal, setShowLegalModal] = useState(false);
@@ -335,7 +360,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
 
             {aiUsage.resetInMs > 0 && (
               <div style={styles.modalTimerBox}>
-                ⏳ つぎの かいふくまで: <strong>{Math.ceil(aiUsage.resetInMs / (1000 * 60 * 60))} じかん</strong>
+                ⏳ つぎの かいふくまで: <strong style={styles.modalStopwatchText}>{countdownText || '24:00:00'}</strong>
               </div>
             )}
 
@@ -345,25 +370,25 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
 
             <div style={styles.modalParentNotice}>
               🌟 <strong>【おうちのかたへ】</strong><br />
-              月額380円の「宇宙博士プラン」にご加入いただくと、AIクイズ・天文宇宙検定・まちがいさがしなど全モードが無制限にあそび放題になります。
+              「おとな用のページへ」から、月額380円の「宇宙博士プラン」にご加入いただくと、AIクイズ・天文宇宙検定・まちがいさがしなど全モードが無制限にあそび放題になります。
             </div>
 
             <div style={styles.modalActions}>
               <button 
                 type="button" 
                 className="btn-action btn-accent" 
-                onClick={handleCloseLimitModal}
-                style={styles.modalCloseBtn}
+                onClick={handleGoToParentFromModal}
+                style={styles.modalParentBtn}
               >
-                ほかのクイズで あそぶ ➔
+                ⚙️ おとな用の ページへ ➔
               </button>
               <button 
                 type="button" 
                 className="btn-action" 
-                onClick={handleGoToParentFromModal}
-                style={styles.modalParentBtn}
+                onClick={handleCloseLimitModal}
+                style={styles.modalCloseBtn}
               >
-                ⚙️ おとな用の ページへ
+                ほかのクイズで あそぶ
               </button>
             </div>
           </div>
@@ -728,10 +753,24 @@ const styles = {
     background: 'rgba(255, 255, 255, 0.05)',
     border: '1px solid rgba(255, 209, 102, 0.3)',
     borderRadius: '12px',
-    padding: '8px 14px',
-    fontSize: '0.85rem',
+    padding: '10px 14px',
+    fontSize: '0.9rem',
     color: '#ffd166',
     marginBottom: '14px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  modalStopwatchText: {
+    fontFamily: '"SF Mono", "Roboto Mono", Menlo, Courier, monospace',
+    fontSize: '1.25rem',
+    letterSpacing: '0.08em',
+    color: '#ffbe0b',
+    background: 'rgba(0, 0, 0, 0.3)',
+    padding: '2px 8px',
+    borderRadius: '6px',
+    border: '1px solid rgba(255, 190, 11, 0.25)',
   },
   modalNotice: {
     background: 'rgba(76, 201, 240, 0.08)',
@@ -748,32 +787,36 @@ const styles = {
     background: 'linear-gradient(135deg, rgba(255, 209, 102, 0.08), rgba(255, 107, 107, 0.08))',
     border: '1px solid rgba(255, 209, 102, 0.3)',
     borderRadius: '12px',
-    padding: '10px 14px',
-    fontSize: '0.8rem',
+    padding: '12px 14px',
+    fontSize: '0.85rem',
     color: '#ffbe0b',
     marginBottom: '20px',
-    lineHeight: '1.4',
+    lineHeight: '1.5',
     textAlign: 'left',
   },
   modalActions: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
-  },
-  modalCloseBtn: {
-    width: '100%',
-    padding: '12px',
-    fontSize: '1rem',
-    borderRadius: '12px',
+    gap: '12px',
   },
   modalParentBtn: {
     width: '100%',
-    padding: '10px',
-    fontSize: '0.85rem',
-    background: 'rgba(255, 255, 255, 0.06)',
+    padding: '14px 20px',
+    fontSize: '1.05rem',
+    fontWeight: 'bold',
+    borderRadius: '14px',
+    boxShadow: '0 4px 16px rgba(255, 107, 107, 0.4)',
+    cursor: 'pointer',
+  },
+  modalCloseBtn: {
+    width: '100%',
+    padding: '10px 16px',
+    fontSize: '0.9rem',
+    background: 'rgba(255, 255, 255, 0.05)',
     border: '1px solid rgba(255, 255, 255, 0.15)',
-    color: '#c4c9e8',
+    color: '#a0a5c0',
     borderRadius: '12px',
+    cursor: 'pointer',
   }
 };
 

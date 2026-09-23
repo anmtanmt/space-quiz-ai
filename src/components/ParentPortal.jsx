@@ -343,7 +343,7 @@ export default function ParentPortal({ onBackToTitle }) {
   return (
     <div className="parent-portal fade-in" style={styles.portalContainer}>
       <div style={styles.portalHeader}>
-        <h1 style={styles.portalTitle}>おとな用 管理・作成ページ</h1>
+        <h1 style={styles.portalTitle}>おとな用 管理ページ</h1>
         <button className="btn-action btn-back" onClick={() => { audio.playClick(); onBackToTitle(); }}>
           ⬅ タイトルへもどる
         </button>
@@ -481,10 +481,8 @@ export default function ParentPortal({ onBackToTitle }) {
             // 未ログイン状態
             <div style={styles.authCard}>
               <p style={styles.authDesc}>
-                保護者アカウントを作成すると、お子様のAIクイズ利用状況が安全に管理され、端末移行や有料プラン（無制限）への変更が可能になります。<br />
-                <span style={{ fontSize: '0.85rem', color: '#8e96b8' }}>
-                  ※ ログインしなくても、1日2回まで無料ですぐにあそべます。
-                </span>
+                💡 <strong>保護者アカウント未登録のままでも、今すぐ月額プランに加入できます。</strong><br />
+                アカウントを作成（ログイン）しておくと、他の端末（スマホやタブレット）でもあそび放題を引き継げます。
               </p>
 
               {/* ログイン / 新規登録 切り替えタブ */}
@@ -997,15 +995,20 @@ const styles = {
   portalContainer: {
     width: '100%',
     height: '100%',
+    maxHeight: '100%',
+    flex: 1,
+    minHeight: 0,
     display: 'flex',
     flexDirection: 'column',
+    overflow: 'hidden',
   },
   portalHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '24px 30px',
+    padding: '20px 30px',
     borderBottom: '1px solid var(--color-card-border)',
+    flexShrink: 0,
   },
   portalTitle: {
     fontSize: '1.6rem',
@@ -1014,11 +1017,13 @@ const styles = {
   },
   portalBody: {
     flex: 1,
+    minHeight: 0,
     overflowY: 'auto',
-    padding: '30px',
+    padding: '24px 30px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '35px',
+    gap: '30px',
+    overscrollBehaviorY: 'contain',
   },
   section: {
     background: 'rgba(255, 255, 255, 0.02)',
