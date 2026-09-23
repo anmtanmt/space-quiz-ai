@@ -223,3 +223,24 @@
 - **Stripe Checkout Session URL の完全性保持**:
   - Stripe REST API が発行する Checkout URL は、末尾のハッシュ値（`#fidnandh...` 等）を含めた全体で有効なセッションとして検証されます。
   - URL パース時やリダイレクト時にハッシュ部分を不用意に切り捨てると `This session has expired` エラーになるため、APIから返却されたURL文字列をそのまま `window.location.href` 等に渡す設計としてください。
+
+## 28. Stripe決済連携と動的決済手段（Payment Methods）の設計
+- **決済手段のハードコード禁止と動的決済（Automatic Payment Methods）**:
+  - Stripe Checkout セッションを作成する際、`payment_method_types: ['card', 'paypay']` のように決済手段を配列で固定指定してはいけません。
+  - アカウント側で未有効化または審査中の決済手段（PayPay等）が1つでも含まれていると、Stripe API が `400 invalid_request_error`（`The payment method type provided is invalid`）を返してセッション生成がクラッシュし、ユーザー画面がテスト環境フォールバックに陥ります。
+  - 必ず `payment_method_types` の指定を省略（Stripeの標準ダッシュボード設定に委ねる動的決済方式）とし、審査状況に左右されず即座に稼働できる堅牢な実装を義務付けます。ダッシュボード側でPayPay等が有効化された場合も、コード修正不要で自動的に決済画面に並ぶようになります。
+
+## 29. 国内決済（PayPay等）審査と検索エンジン完全遮断（プライバシー保護）
+- **審査要件と個人開発者のプライバシー両立**:
+  - PayPay等の日本国内決済事業者の加盟店審査では、「特定商取引法に基づく表記」にStripe登録代表者名が文字として記載されていることを目視確認されます（省略規定のままだと審査差し戻しになります）。
+  - 個人開発者の実名がGoogleやYahoo!等の検索結果にインデックスされるのを防ぐため、必ず以下の検索遮断対策をセットで実施します：
+    1. `index.html` への `<meta name="robots" content="noindex, nofollow, noarchive" />` 記述
+    2. `public/robots.txt` への全クローラー巡回拒否（`User-agent: * \n Disallow: /`）
+  - 審査通過後は、ユーザーの意向に応じて特商法表記を安全な非公開形式（「請求があれば遅滞なく開示」）に復帰可能な運用設計とします。
+
+## 30. 既存ユーザー（お子様）環境の保護とブランチ分離デプロイ
+- **本番マージ前の環境温存（案Aの徹底）**:
+  - 既存ユーザー（特にお子様の実利用端末）のLocalStorageセーブデータや進行状況を壊さないため、大規模な課金・ドメイン改修時は `main` ブランチへ安易にマージしてはいけません。
+  - 新規独自ドメイン（例: `space-quiz.anmtapp.com`）のサブドメイン紐付け先のみを直接フィーチャーブランチ（`feature/subscription-v2`）に割り当てる運用を採用し、既存環境の安全を最優先とします。
+  - Amplify のドメイン設定更新時は、ステータスが `AVAILABLE`（`PENDING_DEPLOYMENT` / `PENDING_VERIFICATION` 完了後）に遷移したことを確認してから `update-domain-association` を実行してください。
+
