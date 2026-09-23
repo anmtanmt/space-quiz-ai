@@ -82,11 +82,11 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'tokusho' }) 
                   </tr>
                   <tr style={styles.tr}>
                     <th style={styles.th}>販売事業者 / 運営者</th>
-                    <td style={styles.td}>宇宙クイズ-AI 運営事務局</td>
+                    <td style={styles.td}>沼田 篤彦（宇宙クイズ-AI 運営）</td>
                   </tr>
                   <tr style={styles.tr}>
                     <th style={styles.th}>運営統括責任者</th>
-                    <td style={styles.td}>請求があったら遅滞なく開示します</td>
+                    <td style={styles.td}>沼田 篤彦</td>
                   </tr>
                   <tr style={styles.tr}>
                     <th style={styles.th}>所在地</th>
