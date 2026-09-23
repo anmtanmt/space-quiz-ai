@@ -171,6 +171,17 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
     }
   }, [mode, isPremium]);
 
+  // 画像ズームモーダル表示中の背景スクロールロック
+  useEffect(() => {
+    if (isImageZoomed) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isImageZoomed]);
+
   // 音声読み上げ用ステートと参照
   const [isPlayingSpeech, setIsPlayingSpeech] = useState(false);
   const [autoSpeech, setAutoSpeech] = useState(() => {

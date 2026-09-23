@@ -44,6 +44,17 @@ export default function ParentPortal({ onBackToTitle }) {
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [legalTab, setLegalTab] = useState('tokusho');
 
+  // モーダル表示中の背景スクロールロック
+  useEffect(() => {
+    if (showUpgradeConfirmModal || showDowngradeConfirmModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showUpgradeConfirmModal, showDowngradeConfirmModal]);
+
   const handleOpenLegal = (tab) => {
     audio.playClick();
     setLegalTab(tab);
@@ -996,7 +1007,7 @@ export default function ParentPortal({ onBackToTitle }) {
           <div 
             style={styles.modalCard} 
             onClick={(e) => e.stopPropagation()}
-            className="fade-in"
+            className="scrollable-content fade-in"
           >
             {selectedPlanType === 'pass_30d' ? (
               <>
@@ -1105,7 +1116,7 @@ export default function ParentPortal({ onBackToTitle }) {
           <div 
             style={styles.modalCard} 
             onClick={(e) => e.stopPropagation()}
-            className="fade-in"
+            className="scrollable-content fade-in"
           >
             <div style={{ fontSize: '3rem', marginBottom: '8px' }}>⚙️</div>
             <h2 style={styles.modalTitle}>無料プランに戻しますか？</h2>
@@ -1801,7 +1812,8 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
-    padding: '20px',
+    padding: '16px',
+    overscrollBehavior: 'contain',
   },
   modalCard: {
     background: '#13172e',
@@ -1810,6 +1822,9 @@ const styles = {
     padding: '28px 24px',
     maxWidth: '460px',
     width: '100%',
+    maxHeight: 'calc(100vh - 32px)',
+    overflowY: 'auto',
+    overscrollBehavior: 'contain',
     textAlign: 'center',
     boxShadow: '0 10px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(76, 201, 240, 0.2)',
     boxSizing: 'border-box',

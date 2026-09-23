@@ -74,6 +74,17 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
     return () => clearInterval(timerId);
   }, [showLimitModal]);
 
+  // モーダル表示中の背景スクロールロック
+  useEffect(() => {
+    if (showLimitModal) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [showLimitModal]);
+
   // 法務表記モーダル
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [legalTab, setLegalTab] = useState('tokusho');
@@ -385,7 +396,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
           <div 
             style={styles.modalCard} 
             onClick={(e) => e.stopPropagation()}
-            className="fade-in"
+            className="scrollable-content fade-in"
           >
             <div style={styles.modalIcon}>⚡</div>
             <h2 style={styles.modalTitle}>きょうの あそびエネルギーが<br />なくなったよ！</h2>
@@ -768,7 +779,8 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
-    padding: '20px',
+    padding: '16px',
+    overscrollBehavior: 'contain',
   },
   modalCard: {
     background: '#13172e',
@@ -777,6 +789,9 @@ const styles = {
     padding: '28px 24px',
     maxWidth: '460px',
     width: '100%',
+    maxHeight: 'calc(100vh - 32px)',
+    overflowY: 'auto',
+    overscrollBehavior: 'contain',
     textAlign: 'center',
     boxShadow: '0 10px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(76, 201, 240, 0.2)',
     boxSizing: 'border-box',

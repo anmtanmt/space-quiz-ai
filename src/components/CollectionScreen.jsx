@@ -43,6 +43,17 @@ export default function CollectionScreen({ initialBadgeId, onBackToTitle }) {
     }
   }, [initialBadgeId]);
 
+  // モーダル表示中の背景スクロールロック
+  useEffect(() => {
+    if (selectedBadge) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [selectedBadge]);
+
   const totalBadges = BADGE_POOL.length;
   const earnedCount = earnedBadges.length;
 
@@ -307,7 +318,7 @@ export default function CollectionScreen({ initialBadgeId, onBackToTitle }) {
             
           return (
             <div style={styles.overlay} onClick={() => { setSelectedBadge(null); setIsPhotoMaximized(false); }}>
-              <div className="star-pop" style={styles.modal} onClick={e => e.stopPropagation()}>
+              <div className="scrollable-content star-pop" style={styles.modal} onClick={e => e.stopPropagation()}>
                 <div 
                   style={{ 
                     ...styles.modalBadgeCircle, 
@@ -806,6 +817,7 @@ const styles = {
     alignItems: 'center',
     zIndex: 9999,
     backdropFilter: 'blur(6px)',
+    overscrollBehavior: 'contain',
   },
   modal: {
     background: 'rgba(15, 15, 35, 0.95)',
@@ -816,6 +828,7 @@ const styles = {
     maxWidth: '420px',
     maxHeight: '90vh',
     overflowY: 'auto',
+    overscrollBehavior: 'contain',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',

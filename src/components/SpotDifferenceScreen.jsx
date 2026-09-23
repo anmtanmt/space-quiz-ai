@@ -47,6 +47,18 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
   const [lastFoundDesc, setLastFoundDesc] = useState(''); // リアルタイムで発見した間違いの説明
   const [isPhotoMaximized, setIsPhotoMaximized] = useState(false); // 獲得バッジ画像の拡大表示フラグ
 
+  // モーダル表示中の背景スクロールロック
+  useEffect(() => {
+    const isModalOpen = phase === 'STAGE_CLEAR' || phase === 'GAME_OVER' || phase === 'ALL_CLEAR' || isPhotoMaximized;
+    if (isModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [phase, isPhotoMaximized]);
+
   const leftCanvasRef = useRef(null);
   const rightCanvasRef = useRef(null);
   const synthRef = useRef(null); // 音声発話インスタンス
@@ -635,7 +647,7 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
       {/* 1問クリア / 2問クリア モーダル (STAGE_CLEAR) */}
       {phase === 'STAGE_CLEAR' && ReactDOM.createPortal(
         <div style={styles.backdrop}>
-          <div style={styles.overlayBoard} className="scale-up-bounce">
+          <div style={styles.overlayBoard} className="scrollable-content scale-up-bounce">
             <div style={styles.medalIcon}>✨</div>
             <h3 style={{ fontSize: '2.4rem', color: '#66fcf1', fontWeight: '800' }}>
               クリア！ ({stageIndex + 1} / 3 もんめ)
@@ -671,7 +683,7 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
       {/* ゲームオーバー画面 */}
       {phase === 'GAME_OVER' && ReactDOM.createPortal(
         <div style={styles.backdrop}>
-          <div style={styles.overlayBoard} className="fade-in">
+          <div style={styles.overlayBoard} className="scrollable-content fade-in">
             <div style={styles.hugeEmoji}>🛸</div>
             <h3 style={{ fontSize: '2.5rem', color: 'var(--color-wrong)', fontWeight: '800' }}>
               ざんねん！
@@ -693,7 +705,7 @@ export default function SpotDifferenceScreen({ difficulty, onBackToTitle, onView
       {/* ステージクリア（バッジ獲得）画面 - 3問クリア時 */}
       {phase === 'ALL_CLEAR' && ReactDOM.createPortal(
         <div style={styles.backdrop}>
-          <div style={styles.overlayBoard} className="scale-up-bounce">
+          <div style={styles.overlayBoard} className="scrollable-content scale-up-bounce">
             <div style={styles.medalIcon}>🎉</div>
             <h3 style={{ fontSize: '2.6rem', color: '#ffb703', fontWeight: '800', textShadow: '0 0 20px rgba(255,183,3,0.5)' }}>
               3もん ぜんぶ クリア！
@@ -931,7 +943,10 @@ const styles = {
     alignItems: 'center',
     background: 'rgba(5, 5, 15, 0.65)',
     backdropFilter: 'blur(10px)',
-    zIndex: 9999
+    zIndex: 9999,
+    padding: '16px',
+    overscrollBehavior: 'contain',
+    boxSizing: 'border-box'
   },
   overlayBoard: {
     display: 'flex',
@@ -941,12 +956,15 @@ const styles = {
     background: 'rgba(10, 10, 25, 0.92)',
     border: '2.5px solid var(--color-card-border)',
     borderRadius: '32px',
-    padding: '30px 48px',
+    padding: '24px 32px',
     textAlign: 'center',
     boxShadow: '0 20px 50px rgba(0,0,0,0.65)',
     width: '90%',
     maxWidth: '520px',
-    minHeight: '340px'
+    maxHeight: 'calc(100vh - 32px)',
+    overflowY: 'auto',
+    overscrollBehavior: 'contain',
+    boxSizing: 'border-box'
   },
   readyText: {
     fontSize: '1.4rem',
