@@ -82,8 +82,11 @@ export default function ParentPortal({ onBackToTitle }) {
   const handleConfirmUpgrade = async () => {
     audio.playClick();
     setIsRedirecting(true);
+    const passExpires = (selectedPlanType === 'subscription' && planType === 'pass_30d' && planExpiresAt)
+      ? planExpiresAt
+      : null;
     try {
-      await redirectToCheckout(user?.id || 'guest', user?.email || '', selectedPlanType);
+      await redirectToCheckout(user?.id || 'guest', user?.email || '', selectedPlanType, passExpires);
     } catch (e) {
       console.warn('Fallback to instant upgrade', e);
       setIsRedirecting(false);
@@ -1060,16 +1063,38 @@ export default function ParentPortal({ onBackToTitle }) {
             ) : (
               <>
                 <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🌟</div>
-                <h2 style={styles.modalTitle}>宇宙博士プラン（月額）に加入しますか？</h2>
+                <h2 style={styles.modalTitle}>
+                  {planType === 'pass_30d' ? '宇宙博士プラン（月額）に切り替えますか？' : '宇宙博士プラン（月額）に加入しますか？'}
+                </h2>
 
-                <p style={styles.modalDesc}>
-                  <strong>月額 380円（税込）</strong>で、すべてのゲームが無制限にあそび放題になります！<br />
-                  <span style={{ fontSize: '0.85rem', color: '#a0a5c0' }}>
-                    ・AIのひみつクイズ（無制限）<br />
-                    ・てんもん宇宙けんてい（毎日あそび放題）<br />
-                    ・宇宙まちがいさがし（無制限）
-                  </span>
-                </p>
+                {planType === 'pass_30d' && planExpiresAt && Date.now() < planExpiresAt ? (
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(6, 214, 160, 0.15), rgba(255, 209, 102, 0.15))',
+                    border: '1.5px solid #06d6a0',
+                    borderRadius: '14px',
+                    padding: '12px 14px',
+                    marginBottom: '14px',
+                    textAlign: 'left'
+                  }}>
+                    <div style={{ color: '#06d6a0', fontWeight: 'bold', fontSize: '0.95rem', marginBottom: '4px' }}>
+                      🎁 30日間パスの残り期間を無料引き継ぎ！
+                    </div>
+                    <div style={{ color: '#e0e6ed', fontSize: '0.85rem', lineHeight: '1.5' }}>
+                      現在ご利用中の30日間パスの残り期間（<strong>あと {formatPassRemaining()}</strong>）は、<strong>無料トライアルとしてそのまま引き継がれます</strong>。<br />
+                      ・本日のお支払い：<strong>0円</strong>（カード事前登録のみ）<br />
+                      ・初回のお引き落とし（380円）：<strong>パス満了日以降</strong>からスタート
+                    </div>
+                  </div>
+                ) : (
+                  <p style={styles.modalDesc}>
+                    <strong>月額 380円（税込）</strong>で、すべてのゲームが無制限にあそび放題になります！<br />
+                    <span style={{ fontSize: '0.85rem', color: '#a0a5c0' }}>
+                      ・AIのひみつクイズ（無制限）<br />
+                      ・てんもん宇宙けんてい（毎日あそび放題）<br />
+                      ・宇宙まちがいさがし（無制限）
+                    </span>
+                  </p>
+                )}
 
                 <div style={styles.modalNotice}>
                   💡 契約の縛りは一切ありません。いつでもワンタップで解約可能です。<br />
@@ -1088,7 +1113,9 @@ export default function ParentPortal({ onBackToTitle }) {
                       cursor: isRedirecting ? 'wait' : 'pointer'
                     }}
                   >
-                    {isRedirecting ? '🔄 Stripe 決済画面へ移動しています...' : '🌟 月額380円で加入画面へ（決定） ➔'}
+                    {isRedirecting 
+                      ? '🔄 Stripe 決済画面へ移動しています...' 
+                      : (planType === 'pass_30d' ? '🌟 残日数を引き継いで月額に登録 ➔' : '🌟 月額380円で加入画面へ（決定） ➔')}
                   </button>
                   <button 
                     type="button" 

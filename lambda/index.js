@@ -41,7 +41,14 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'STRIPE_SECRET_KEY is not configured on AWS Lambda.' })
         };
       }
-      const session = await createStripeCheckoutSession(body.userId, body.email, body.successUrl, body.cancelUrl, body.planType);
+      const session = await createStripeCheckoutSession(
+        body.userId, 
+        body.email, 
+        body.successUrl, 
+        body.cancelUrl, 
+        body.planType,
+        body.currentPassExpiresAt
+      );
       return {
         statusCode: 200,
         headers,
@@ -452,7 +459,7 @@ function validateTestQuiz(quiz, targetImage = null) {
 }
 
 // --- Stripe API 連携ヘルパー (ライブラリ依存ゼロの HTTPS Fetch) ---
-async function createStripeCheckoutSession(userId, email, successUrl, cancelUrl, planType = 'subscription') {
+async function createStripeCheckoutSession(userId, email, successUrl, cancelUrl, planType = 'subscription', currentPassExpiresAt = null) {
   const params = new URLSearchParams();
   if (email) params.append('customer_email', email);
   if (userId) params.append('client_reference_id', userId);
@@ -476,6 +483,24 @@ async function createStripeCheckoutSession(userId, email, successUrl, cancelUrl,
     // 宇宙博士プラン（月額380円・毎月サブスク）
     params.append('mode', 'subscription');
     params.append('payment_method_types[]', 'card');
+    
+    // 30日パス契約中からの切り替え時：残日数を無料トライアル期間（trial_end）として引き継ぎ
+    if (currentPassExpiresAt) {
+      const expiresAtMs = typeof currentPassExpiresAt === 'number' 
+        ? currentPassExpiresAt 
+        : new Date(currentPassExpiresAt).getTime();
+      const nowMs = Date.now();
+      const remainingSec = Math.floor((expiresAtMs - nowMs) / 1000);
+
+      // 残り期間がある場合のみトライアル終了日を設定
+      if (remainingSec > 0) {
+        // Stripe API要件: trial_end は最低48時間先である必要があるため、
+        // 48時間未満の場合は48時間後（約2日間プレゼント）にしてStripeのエラーを防止
+        const minTrialSec = Math.floor(nowMs / 1000) + (48 * 3600 + 60);
+        const trialEndSec = Math.max(Math.floor(expiresAtMs / 1000), minTrialSec);
+        params.append('subscription_data[trial_end]', trialEndSec.toString());
+      }
+    }
     
     const sep = successUrl.includes('?') ? '&' : '?';
     params.append('success_url', `${successUrl}${sep}plan=subscription`);
