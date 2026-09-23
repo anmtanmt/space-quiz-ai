@@ -92,17 +92,19 @@ export function AuthProvider({ children }) {
     return () => clearInterval(timer);
   }, [planInfo]);
 
-  // URLクエリパラメータの検知（Stripe Checkout完了後の戻り時）
+  // URLクエリパラメータの検知（Stripe Checkout完了後の戻り時、またはテスト用URL）
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('checkout_success') === 'true') {
+      if (params.get('checkout_success') === 'true' || params.get('plan') === 'pass_30d' || params.get('plan') === 'premium') {
         const plan = params.get('plan') || 'subscription';
-        upgradeToPremium(plan, 30);
+        const targetPlan = plan === 'pass_30d' ? 'pass_30d' : 'subscription';
+        upgradeToPremium(targetPlan, 30);
         // クエリパラメータをクリーンアップ
         const url = new URL(window.location);
         url.searchParams.delete('checkout_success');
         url.searchParams.delete('plan');
+        url.searchParams.delete('session_id');
         window.history.replaceState({}, '', url.pathname);
       }
     }

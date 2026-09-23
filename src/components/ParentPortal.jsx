@@ -952,6 +952,39 @@ export default function ParentPortal({ onBackToTitle }) {
               >
                 難易度別バッジ付与 (フチ色確認用)
               </button>
+              <button 
+                className="btn-action btn-accent"
+                onClick={() => {
+                  audio.playClick();
+                  upgradeToPremium('pass_30d', 30);
+                  alert('🎟️ 30日間あそび放題パス（400円プラン）をシミュレーション付与しました！タイトル画面でカウントダウンを確認できます。');
+                }}
+                style={{ fontSize: '0.9rem', padding: '10px 16px', background: 'linear-gradient(135deg, #ff5e62, #ff9966)' }}
+              >
+                🎟️ 30日パス付与（UI確認用）
+              </button>
+              <button 
+                className="btn-action btn-primary"
+                onClick={() => {
+                  audio.playClick();
+                  upgradeToPremium('subscription');
+                  alert('🌟 宇宙博士プラン（月額380円）をシミュレーション付与しました！');
+                }}
+                style={{ fontSize: '0.9rem', padding: '10px 16px' }}
+              >
+                🌟 月額プラン付与（UI確認用）
+              </button>
+              <button 
+                className="btn-action btn-back"
+                onClick={() => {
+                  audio.playClick();
+                  downgradeToFree();
+                  alert('🌱 無料プランに戻しました！');
+                }}
+                style={{ fontSize: '0.9rem', padding: '10px 16px' }}
+              >
+                🌱 無料プランへ戻す（UI確認用）
+              </button>
             </div>
           </div>
         </div>
