@@ -465,10 +465,8 @@ async function createStripeCheckoutSession(userId, email, successUrl, cancelUrl,
   if (userId) params.append('client_reference_id', userId);
 
   if (planType === 'pass_30d') {
-    // 30日間買い切りパス（400円・1回払い・PayPay & カード対応）
+    // 30日間買い切りパス（400円・1回払い・動的決済手段：カード/Apple Pay/PayPay等）
     params.append('mode', 'payment');
-    params.append('payment_method_types[]', 'card');
-    params.append('payment_method_types[]', 'paypay');
     
     // 成功URLに plan=pass_30d を付与
     const sep = successUrl.includes('?') ? '&' : '?';
@@ -482,7 +480,6 @@ async function createStripeCheckoutSession(userId, email, successUrl, cancelUrl,
   } else {
     // 宇宙博士プラン（月額380円・毎月サブスク）
     params.append('mode', 'subscription');
-    params.append('payment_method_types[]', 'card');
     
     // 30日パス契約中からの切り替え時：残日数を無料トライアル期間（trial_end）として引き継ぎ
     if (currentPassExpiresAt) {
