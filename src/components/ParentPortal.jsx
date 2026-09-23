@@ -25,6 +25,7 @@ export default function ParentPortal({ onBackToTitle }) {
   const [showUpgradeConfirmModal, setShowUpgradeConfirmModal] = useState(false);
   const [showDowngradeConfirmModal, setShowDowngradeConfirmModal] = useState(false);
   const [planSuccessNotice, setPlanSuccessNotice] = useState('');
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // 法務表記モーダル状態
   const [showLegalModal, setShowLegalModal] = useState(false);
@@ -45,11 +46,13 @@ export default function ParentPortal({ onBackToTitle }) {
 
   const handleConfirmUpgrade = async () => {
     audio.playClick();
-    setShowUpgradeConfirmModal(false);
+    setIsRedirecting(true);
     try {
       await redirectToCheckout(user?.id || 'guest', user?.email || '');
     } catch (e) {
       console.warn('Fallback to instant upgrade', e);
+      setIsRedirecting(false);
+      setShowUpgradeConfirmModal(false);
       await upgradeToPremium();
       setPlanSuccessNotice('🌟 宇宙博士プランに加入しました！すべてのゲームが無制限にあそび放題になります。');
     }
@@ -848,15 +851,24 @@ export default function ParentPortal({ onBackToTitle }) {
                 type="button" 
                 className="btn-action btn-accent" 
                 onClick={handleConfirmUpgrade}
-                style={styles.modalPrimaryBtn}
+                disabled={isRedirecting}
+                style={{
+                  ...styles.modalPrimaryBtn,
+                  opacity: isRedirecting ? 0.7 : 1,
+                  cursor: isRedirecting ? 'wait' : 'pointer'
+                }}
               >
-                🌟 月額380円で加入する（決定） ➔
+                {isRedirecting ? '🔄 Stripe 決済画面へ移動しています...' : '🌟 月額380円で加入する（決定） ➔'}
               </button>
               <button 
                 type="button" 
                 className="btn-action" 
-                onClick={() => setShowUpgradeConfirmModal(false)}
-                style={styles.modalCancelBtn}
+                onClick={() => !isRedirecting && setShowUpgradeConfirmModal(false)}
+                disabled={isRedirecting}
+                style={{
+                  ...styles.modalCancelBtn,
+                  opacity: isRedirecting ? 0.5 : 1
+                }}
               >
                 キャンセル
               </button>
