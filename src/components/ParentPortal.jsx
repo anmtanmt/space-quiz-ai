@@ -7,7 +7,19 @@ import { redirectToCheckout, redirectToCustomerPortal } from '../services/stripe
 import LegalModal from './LegalModal';
 
 export default function ParentPortal({ onBackToTitle }) {
-  const { user, profile, isConfigured, isPremium, signUp, signIn, signOut, upgradeToPremium, downgradeToFree } = useAuth();
+  const { 
+    user, 
+    profile, 
+    isConfigured, 
+    isPremium, 
+    planType, 
+    planExpiresAt, 
+    signUp, 
+    signIn, 
+    signOut, 
+    upgradeToPremium, 
+    downgradeToFree 
+  } = useAuth();
   const [gateUnlocked, setGateUnlocked] = useState(false);
   const [mathQuestion, setMathQuestion] = useState({ q: '', a: 0 });
   const [gateInput, setGateInput] = useState('');
@@ -22,6 +34,7 @@ export default function ParentPortal({ onBackToTitle }) {
   const [authSubmitting, setAuthSubmitting] = useState(false);
 
   // プラン変更モーダル状態
+  const [selectedPlanType, setSelectedPlanType] = useState('pass_30d'); // 'pass_30d' | 'subscription'
   const [showUpgradeConfirmModal, setShowUpgradeConfirmModal] = useState(false);
   const [showDowngradeConfirmModal, setShowDowngradeConfirmModal] = useState(false);
   const [planSuccessNotice, setPlanSuccessNotice] = useState('');
@@ -37,9 +50,20 @@ export default function ParentPortal({ onBackToTitle }) {
     setShowLegalModal(true);
   };
 
+  // 30日パスの残り期間計算
+  const formatPassRemaining = () => {
+    if (!planExpiresAt) return '';
+    const diffMs = planExpiresAt - Date.now();
+    if (diffMs <= 0) return '期限終了';
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    return `${days}日 ${hours}時間`;
+  };
+
   // 決済・プラン操作ハンドラー
-  const handleUpgradeClick = () => {
+  const handleUpgradeClick = (type = 'pass_30d') => {
     audio.playClick();
+    setSelectedPlanType(type);
     setPlanSuccessNotice('');
     setShowUpgradeConfirmModal(true);
   };
@@ -48,13 +72,17 @@ export default function ParentPortal({ onBackToTitle }) {
     audio.playClick();
     setIsRedirecting(true);
     try {
-      await redirectToCheckout(user?.id || 'guest', user?.email || '');
+      await redirectToCheckout(user?.id || 'guest', user?.email || '', selectedPlanType);
     } catch (e) {
       console.warn('Fallback to instant upgrade', e);
       setIsRedirecting(false);
       setShowUpgradeConfirmModal(false);
-      await upgradeToPremium();
-      setPlanSuccessNotice('🌟 宇宙博士プランに加入しました！すべてのゲームが無制限にあそび放題になります。');
+      await upgradeToPremium(selectedPlanType, 30);
+      if (selectedPlanType === 'pass_30d') {
+        setPlanSuccessNotice('🎟️ 30日間あそび放題パスが有効になりました！すべてのゲームが無制限にあそび放題になります。');
+      } else {
+        setPlanSuccessNotice('🌟 宇宙博士プランに加入しました！すべてのゲームが無制限にあそび放題になります。');
+      }
     }
   };
 
@@ -355,8 +383,10 @@ export default function ParentPortal({ onBackToTitle }) {
           <div style={styles.sectionHeaderRow}>
             <h2 style={styles.sectionTitle}>🌟 ご利用プラン ＆ プレミアム設定</h2>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span style={isPremium ? styles.planBadgePremium : styles.planBadgeFree}>
-                {isPremium ? '🌟 宇宙博士プラン（全モードあそび放題）' : '🌱 無料プラン（1日2回まで）'}
+              <span style={planType === 'pass_30d' ? styles.planBadgePass : (isPremium ? styles.planBadgePremium : styles.planBadgeFree)}>
+                {planType === 'pass_30d' 
+                  ? `🎟️ 30日間パス利用中（あと ${formatPassRemaining()}）` 
+                  : (isPremium ? '🌟 宇宙博士プラン（全モードあそび放題）' : '🌱 無料プラン（1日2回まで）')}
               </span>
               {!isConfigured && (
                 <span style={styles.offlineBadge}>⚙️ ローカル動作中</span>
@@ -371,34 +401,88 @@ export default function ParentPortal({ onBackToTitle }) {
             </div>
           )}
 
-          {/* サブスクリプション操作パネル（未ログインでも常に確認可能） */}
+          {/* サブスクリプション・プラン操作パネル（未ログインでも常に確認可能） */}
           <div>
             {!isPremium ? (
-              <div style={styles.premiumBox}>
-                <div style={styles.premiumBoxHeader}>
-                  <span style={{ fontSize: '1.6rem' }}>🌟</span>
-                  <div>
-                    <div style={styles.premiumBoxTitle}>宇宙博士プラン（全ゲームあそび放題）</div>
-                    <div style={styles.premiumBoxPrice}>月額 380円（税込） / いつでもワンタップ解約OK</div>
+              <div style={styles.plansSection}>
+                <div style={styles.plansIntroText}>
+                  お好みのあそび放題プランをお選びいただけます。決済はお子様の誤操作を防ぐため、安全なStripe画面にて行われます。
+                </div>
+
+                <div style={styles.plansGrid}>
+                  {/* プラン1: 30日間あそび放題パス（PayPay対応・1回買い切り） */}
+                  <div style={styles.planCardPass}>
+                    <div style={styles.planCardPassRibbon}>
+                      <span>📱 PayPay対応！コード決済OK</span>
+                    </div>
+
+                    <div style={styles.planCardHeader}>
+                      <span style={{ fontSize: '2rem' }}>🎟️</span>
+                      <div>
+                        <div style={styles.planCardTitle}>30日間あそび放題パス</div>
+                        <div style={styles.planCardPrice}>
+                          <span style={styles.planPriceMain}>400円</span>
+                          <span style={styles.planPriceSub}>（税込 / 1回買い切り）</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={styles.planFeaturesList}>
+                      <div style={styles.featureItem}>✅ <strong>PayPay（スマホ決済）</strong>ですぐ購入！</div>
+                      <div style={styles.featureItem}>✅ クレジットカード決済も対応</div>
+                      <div style={styles.featureItem}>✅ <strong>30日間 全モード完全あそび放題！</strong></div>
+                      <div style={styles.featureItem}>✅ <strong>自動更新なし！</strong>解約忘れの心配ゼロ</div>
+                      <div style={styles.featureItem}>✅ まずはお試しで遊びたいご家庭に最適</div>
+                    </div>
+
+                    <div style={{ marginTop: 'auto', paddingTop: '16px' }}>
+                      <button
+                        type="button"
+                        className="btn-action btn-accent"
+                        onClick={() => handleUpgradeClick('pass_30d')}
+                        style={styles.passBtn}
+                      >
+                        🎟️ 400円で30日間パスを購入 ➔
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                <div style={styles.premiumFeaturesList}>
-                  <div style={styles.featureItem}>✅ <strong>AIのひみつクイズ</strong> が何回でも無制限！</div>
-                  <div style={styles.featureItem}>✅ <strong>てんもん宇宙けんてい</strong> も毎日あそび放題！</div>
-                  <div style={styles.featureItem}>✅ <strong>宇宙まちがいさがし</strong> も制限なし！</div>
-                  <div style={styles.featureItem}>✅ 契約縛りなし・いつでもワンタップで解約できる安心設計</div>
-                </div>
+                  {/* プラン2: 宇宙博士プラン（月額サブスク） */}
+                  <div style={styles.planCardSub}>
+                    <div style={styles.planCardSubRibbon}>
+                      <span>🌟 一番おトク！</span>
+                    </div>
 
-                <div style={{ marginTop: '16px' }}>
-                  <button
-                    type="button"
-                    className="btn-action btn-accent"
-                    onClick={handleUpgradeClick}
-                    style={styles.subscribeBtn}
-                  >
-                    🌟 月額380円で 宇宙博士プランに加入する ➔
-                  </button>
+                    <div style={styles.planCardHeader}>
+                      <span style={{ fontSize: '2rem' }}>🌟</span>
+                      <div>
+                        <div style={styles.planCardTitle}>宇宙博士プラン（月額）</div>
+                        <div style={styles.planCardPrice}>
+                          <span style={{ ...styles.planPriceMain, color: '#06d6a0' }}>月額 380円</span>
+                          <span style={styles.planPriceSub}>（税込 / 毎月定期）</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={styles.planFeaturesList}>
+                      <div style={styles.featureItem}>✅ <strong>全ゲーム無制限にあそび放題！</strong></div>
+                      <div style={styles.featureItem}>✅ クレジットカード・Apple Pay対応</div>
+                      <div style={styles.featureItem}>✅ 毎月380円でずっと一番おトク</div>
+                      <div style={styles.featureItem}>✅ 毎月の更新手続き不要</div>
+                      <div style={styles.featureItem}>✅ 契約縛りなし・いつでもワンタップ解約OK</div>
+                    </div>
+
+                    <div style={{ marginTop: 'auto', paddingTop: '16px' }}>
+                      <button
+                        type="button"
+                        className="btn-action"
+                        onClick={() => handleUpgradeClick('subscription')}
+                        style={styles.subBtn}
+                      >
+                        🌟 月額380円で加入する ➔
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 法務・規約表記リンク */}
@@ -416,9 +500,62 @@ export default function ParentPortal({ onBackToTitle }) {
                   </button>
                 </div>
               </div>
+            ) : planType === 'pass_30d' ? (
+              /* 30日間パス利用中表示 */
+              <div style={styles.activePassBox}>
+                <div style={styles.activePlanHeader}>
+                  <span style={{ fontSize: '2rem' }}>🎟️</span>
+                  <div>
+                    <div style={styles.activePlanTitle}>30日間あそび放題パス をご利用中です</div>
+                    <div style={styles.activePassCountdown}>
+                      ⏳ のこり期間：<strong>{formatPassRemaining()}</strong> 全モードあそび放題！
+                    </div>
+                  </div>
+                </div>
+
+                <div style={styles.activePlanDesc}>
+                  すべてのお子様向けゲームが<strong>【完全無制限】</strong>でプレイ可能です。<br />
+                  1回きりの買い切りのため、<strong>自動更新や解約手続きは一切不要</strong>です。期間満了後は自動的に無料プランへ戻ります。
+                </div>
+
+                <div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn-action btn-accent"
+                    onClick={() => handleUpgradeClick('pass_30d')}
+                    style={styles.passExtendBtn}
+                  >
+                    ➕ パスをさらに30日間延長する（400円）
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-action"
+                    onClick={() => handleUpgradeClick('subscription')}
+                    style={styles.subSwitchBtn}
+                  >
+                    🌟 月額プラン（380円）に切り替える ➔
+                  </button>
+                </div>
+
+                {/* 契約中時 法務リンク */}
+                <div style={styles.legalLinksRow}>
+                  <button type="button" style={styles.legalLinkBtn} onClick={() => handleOpenLegal('tokusho')}>
+                    特定商取引法に基づく表記
+                  </button>
+                  <span style={styles.legalDivider}>|</span>
+                  <button type="button" style={styles.legalLinkBtn} onClick={() => handleOpenLegal('terms')}>
+                    利用規約
+                  </button>
+                  <span style={styles.legalDivider}>|</span>
+                  <button type="button" style={styles.legalLinkBtn} onClick={() => handleOpenLegal('privacy')}>
+                    プライバシーポリシー
+                  </button>
+                </div>
+              </div>
             ) : (
+              /* 月額サブスクご契約中表示 */
               <div style={styles.activePlanBox}>
-                <div style={styles.activePlanTitle}>🌟 宇宙博士プランをご契約中です</div>
+                <div style={styles.activePlanTitle}>🌟 宇宙博士プラン（月額）をご契約中です</div>
                 <div style={styles.activePlanDesc}>
                   すべてのお子様向けゲームが<strong>【完全無制限】</strong>でプレイ可能です。<br />
                   解約やクレジットカードの変更は、いつでも以下の公式ポータルから行えます。
@@ -828,49 +965,102 @@ export default function ParentPortal({ onBackToTitle }) {
             onClick={(e) => e.stopPropagation()}
             className="fade-in"
           >
-            <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🌟</div>
-            <h2 style={styles.modalTitle}>宇宙博士プランに加入しますか？</h2>
+            {selectedPlanType === 'pass_30d' ? (
+              <>
+                <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🎟️</div>
+                <h2 style={styles.modalTitle}>30日間あそび放題パス を購入しますか？</h2>
 
-            <p style={styles.modalDesc}>
-              <strong>月額 380円（税込）</strong>で、すべてのゲームが無制限にあそび放題になります！<br />
-              <span style={{ fontSize: '0.85rem', color: '#a0a5c0' }}>
-                ・AIのひみつクイズ（無制限）<br />
-                ・てんもん宇宙けんてい（毎日あそび放題）<br />
-                ・宇宙まちがいさがし（無制限）
-              </span>
-            </p>
+                <p style={styles.modalDesc}>
+                  <strong>400円（税込・1回買い切り）</strong>で、30日間すべてのゲームが無制限にあそび放題になります！<br />
+                  <span style={{ fontSize: '0.85rem', color: '#a0a5c0' }}>
+                    ・AIのひみつクイズ（30日間無制限）<br />
+                    ・てんもん宇宙けんてい（30日間あそび放題）<br />
+                    ・宇宙まちがいさがし（30日間無制限）
+                  </span>
+                </p>
 
-            <div style={styles.modalNotice}>
-              💡 契約の縛りは一切ありません。いつでもワンタップで解約可能です。
-            </div>
+                <div style={{ ...styles.modalNotice, borderLeft: '4px solid #ffd166', background: 'rgba(255, 209, 102, 0.1)' }}>
+                  📱 <strong>PayPay（スマホ決済）</strong>または クレジットカードでお支払いいただけます。<br />
+                  💡 <strong>自動更新はありません。</strong>解約手続きを忘れて追加請求される心配は一切ありません。
+                </div>
 
-            <div style={styles.modalActions}>
-              <button 
-                type="button" 
-                className="btn-action btn-accent" 
-                onClick={handleConfirmUpgrade}
-                disabled={isRedirecting}
-                style={{
-                  ...styles.modalPrimaryBtn,
-                  opacity: isRedirecting ? 0.7 : 1,
-                  cursor: isRedirecting ? 'wait' : 'pointer'
-                }}
-              >
-                {isRedirecting ? '🔄 Stripe 決済画面へ移動しています...' : '🌟 月額380円で加入する（決定） ➔'}
-              </button>
-              <button 
-                type="button" 
-                className="btn-action" 
-                onClick={() => !isRedirecting && setShowUpgradeConfirmModal(false)}
-                disabled={isRedirecting}
-                style={{
-                  ...styles.modalCancelBtn,
-                  opacity: isRedirecting ? 0.5 : 1
-                }}
-              >
-                キャンセル
-              </button>
-            </div>
+                <div style={styles.modalActions}>
+                  <button 
+                    type="button" 
+                    className="btn-action btn-accent" 
+                    onClick={handleConfirmUpgrade}
+                    disabled={isRedirecting}
+                    style={{
+                      ...styles.modalPrimaryBtn,
+                      background: 'linear-gradient(135deg, #ff5e62, #ff9966)',
+                      opacity: isRedirecting ? 0.7 : 1,
+                      cursor: isRedirecting ? 'wait' : 'pointer'
+                    }}
+                  >
+                    {isRedirecting ? '🔄 Stripe 決済画面へ移動しています...' : '🎟️ 400円で購入画面へ（決定） ➔'}
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn-action" 
+                    onClick={() => !isRedirecting && setShowUpgradeConfirmModal(false)}
+                    disabled={isRedirecting}
+                    style={{
+                      ...styles.modalCancelBtn,
+                      opacity: isRedirecting ? 0.5 : 1
+                    }}
+                  >
+                    もどる
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🌟</div>
+                <h2 style={styles.modalTitle}>宇宙博士プラン（月額）に加入しますか？</h2>
+
+                <p style={styles.modalDesc}>
+                  <strong>月額 380円（税込）</strong>で、すべてのゲームが無制限にあそび放題になります！<br />
+                  <span style={{ fontSize: '0.85rem', color: '#a0a5c0' }}>
+                    ・AIのひみつクイズ（無制限）<br />
+                    ・てんもん宇宙けんてい（毎日あそび放題）<br />
+                    ・宇宙まちがいさがし（無制限）
+                  </span>
+                </p>
+
+                <div style={styles.modalNotice}>
+                  💡 契約の縛りは一切ありません。いつでもワンタップで解約可能です。<br />
+                  💳 各種クレジットカード・Apple Pay に対応しています。
+                </div>
+
+                <div style={styles.modalActions}>
+                  <button 
+                    type="button" 
+                    className="btn-action btn-accent" 
+                    onClick={handleConfirmUpgrade}
+                    disabled={isRedirecting}
+                    style={{
+                      ...styles.modalPrimaryBtn,
+                      opacity: isRedirecting ? 0.7 : 1,
+                      cursor: isRedirecting ? 'wait' : 'pointer'
+                    }}
+                  >
+                    {isRedirecting ? '🔄 Stripe 決済画面へ移動しています...' : '🌟 月額380円で加入画面へ（決定） ➔'}
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn-action" 
+                    onClick={() => !isRedirecting && setShowUpgradeConfirmModal(false)}
+                    disabled={isRedirecting}
+                    style={{
+                      ...styles.modalCancelBtn,
+                      opacity: isRedirecting ? 0.5 : 1
+                    }}
+                  >
+                    もどる
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>,
         document.body
@@ -1286,50 +1476,178 @@ const styles = {
     fontWeight: 'bold',
     boxShadow: '0 0 12px rgba(255, 209, 102, 0.3)',
   },
-  premiumBox: {
-    background: 'linear-gradient(135deg, rgba(255, 209, 102, 0.08), rgba(255, 107, 107, 0.08))',
-    border: '1px solid rgba(255, 209, 102, 0.35)',
-    borderRadius: '16px',
-    padding: '20px',
-  },
-  premiumBoxHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    marginBottom: '14px',
-  },
-  premiumBoxTitle: {
-    fontSize: '1.15rem',
-    fontWeight: 'bold',
-    color: '#ffd166',
-  },
-  premiumBoxPrice: {
+  planBadgePass: {
+    background: 'linear-gradient(135deg, rgba(255, 94, 98, 0.25), rgba(255, 195, 113, 0.25))',
+    color: '#ffc371',
+    border: '1px solid rgba(255, 195, 113, 0.6)',
+    padding: '6px 14px',
+    borderRadius: '20px',
     fontSize: '0.85rem',
-    color: '#c4c9e8',
-    marginTop: '2px',
+    fontWeight: 'bold',
+    boxShadow: '0 0 12px rgba(255, 195, 113, 0.3)',
   },
-  premiumFeaturesList: {
+  plansSection: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
-    background: 'rgba(0, 0, 0, 0.2)',
-    padding: '12px 16px',
+    gap: '16px',
+  },
+  plansIntroText: {
+    fontSize: '0.9rem',
+    color: '#a0a5c0',
+    lineHeight: '1.5',
+    marginBottom: '2px',
+  },
+  plansGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+    gap: '20px',
+  },
+  planCardPass: {
+    position: 'relative',
+    background: 'linear-gradient(145deg, rgba(255, 190, 11, 0.12), rgba(255, 94, 98, 0.08))',
+    border: '2px solid rgba(255, 190, 11, 0.7)',
+    borderRadius: '18px',
+    padding: '26px 20px 20px',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 8px 24px rgba(255, 190, 11, 0.12)',
+  },
+  planCardPassRibbon: {
+    position: 'absolute',
+    top: '-12px',
+    left: '18px',
+    background: 'linear-gradient(135deg, #ff5e62, #ff9966)',
+    color: '#ffffff',
+    fontSize: '0.78rem',
+    fontWeight: 'bold',
+    padding: '4px 12px',
     borderRadius: '12px',
+    boxShadow: '0 2px 8px rgba(255, 94, 98, 0.5)',
+  },
+  planCardSub: {
+    position: 'relative',
+    background: 'linear-gradient(145deg, rgba(6, 214, 160, 0.1), rgba(17, 24, 39, 0.5))',
+    border: '1px solid rgba(6, 214, 160, 0.5)',
+    borderRadius: '18px',
+    padding: '26px 20px 20px',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 8px 24px rgba(6, 214, 160, 0.1)',
+  },
+  planCardSubRibbon: {
+    position: 'absolute',
+    top: '-12px',
+    left: '18px',
+    background: '#06d6a0',
+    color: '#0d1322',
+    fontSize: '0.78rem',
+    fontWeight: 'bold',
+    padding: '4px 12px',
+    borderRadius: '12px',
+    boxShadow: '0 2px 8px rgba(6, 214, 160, 0.4)',
+  },
+  planCardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '14px',
+    marginBottom: '16px',
+  },
+  planCardTitle: {
+    fontSize: '1.2rem',
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  planCardPrice: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '6px',
+    marginTop: '4px',
+  },
+  planPriceMain: {
+    fontSize: '1.45rem',
+    fontWeight: '800',
+    color: '#ffd166',
+  },
+  planPriceSub: {
+    fontSize: '0.82rem',
+    color: '#a0a5c0',
+  },
+  planFeaturesList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '9px',
+    background: 'rgba(0, 0, 0, 0.25)',
+    padding: '14px 16px',
+    borderRadius: '12px',
+    marginBottom: '12px',
   },
   featureItem: {
     fontSize: '0.9rem',
     color: '#e0e5ff',
     lineHeight: '1.4',
   },
-  subscribeBtn: {
-    fontSize: '1rem',
-    padding: '12px 24px',
+  passBtn: {
+    width: '100%',
+    fontSize: '0.95rem',
+    padding: '12px 16px',
     borderRadius: '12px',
     fontWeight: 'bold',
-    background: 'linear-gradient(135deg, #ffd166, #ff6b6b)',
-    color: '#050714',
+    background: 'linear-gradient(135deg, #ff5e62, #ff9966)',
+    color: '#ffffff',
     border: 'none',
-    boxShadow: '0 4px 15px rgba(255, 209, 102, 0.4)',
+    boxShadow: '0 4px 15px rgba(255, 94, 98, 0.4)',
+    cursor: 'pointer',
+    textAlign: 'center',
+  },
+  subBtn: {
+    width: '100%',
+    fontSize: '0.95rem',
+    padding: '12px 16px',
+    borderRadius: '12px',
+    fontWeight: 'bold',
+    background: 'linear-gradient(135deg, #06d6a0, #118ab2)',
+    color: '#ffffff',
+    border: 'none',
+    boxShadow: '0 4px 15px rgba(6, 214, 160, 0.35)',
+    cursor: 'pointer',
+    textAlign: 'center',
+  },
+  activePassBox: {
+    background: 'linear-gradient(145deg, rgba(255, 190, 11, 0.15), rgba(255, 94, 98, 0.1))',
+    border: '2px solid rgba(255, 190, 11, 0.7)',
+    borderRadius: '18px',
+    padding: '22px',
+    boxShadow: '0 8px 24px rgba(255, 190, 11, 0.15)',
+  },
+  activePlanHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '14px',
+    marginBottom: '14px',
+  },
+  activePassCountdown: {
+    fontSize: '0.95rem',
+    color: '#ffc371',
+    marginTop: '4px',
+  },
+  passExtendBtn: {
+    fontSize: '0.9rem',
+    padding: '10px 18px',
+    borderRadius: '10px',
+    fontWeight: 'bold',
+    background: 'linear-gradient(135deg, #ff5e62, #ff9966)',
+    color: '#ffffff',
+    border: 'none',
+    cursor: 'pointer',
+  },
+  subSwitchBtn: {
+    fontSize: '0.9rem',
+    padding: '10px 18px',
+    borderRadius: '10px',
+    fontWeight: 'bold',
+    background: 'rgba(255, 255, 255, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.25)',
+    color: '#ffffff',
     cursor: 'pointer',
   },
   activePlanBox: {

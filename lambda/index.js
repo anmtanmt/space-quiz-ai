@@ -41,7 +41,7 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: 'STRIPE_SECRET_KEY is not configured on AWS Lambda.' })
         };
       }
-      const session = await createStripeCheckoutSession(body.userId, body.email, body.successUrl, body.cancelUrl);
+      const session = await createStripeCheckoutSession(body.userId, body.email, body.successUrl, body.cancelUrl, body.planType);
       return {
         statusCode: 200,
         headers,
@@ -452,25 +452,45 @@ function validateTestQuiz(quiz, targetImage = null) {
 }
 
 // --- Stripe API 連携ヘルパー (ライブラリ依存ゼロの HTTPS Fetch) ---
-async function createStripeCheckoutSession(userId, email, successUrl, cancelUrl) {
+async function createStripeCheckoutSession(userId, email, successUrl, cancelUrl, planType = 'subscription') {
   const params = new URLSearchParams();
-  params.append('mode', 'subscription');
-  params.append('payment_method_types[]', 'card');
-  params.append('success_url', successUrl);
-  params.append('cancel_url', cancelUrl);
   if (email) params.append('customer_email', email);
   if (userId) params.append('client_reference_id', userId);
 
-  if (STRIPE_PRICE_ID) {
-    params.append('line_items[0][price]', STRIPE_PRICE_ID);
+  if (planType === 'pass_30d') {
+    // 30日間買い切りパス（400円・1回払い・PayPay & カード対応）
+    params.append('mode', 'payment');
+    params.append('payment_method_types[]', 'card');
+    params.append('payment_method_types[]', 'paypay');
+    
+    // 成功URLに plan=pass_30d を付与
+    const sep = successUrl.includes('?') ? '&' : '?';
+    params.append('success_url', `${successUrl}${sep}plan=pass_30d`);
+    params.append('cancel_url', cancelUrl);
+
+    params.append('line_items[0][price_data][currency]', 'jpy');
+    params.append('line_items[0][price_data][unit_amount]', '400');
+    params.append('line_items[0][price_data][product_data][name]', '30日間あそび放題パス（宇宙クイズ-AI）');
     params.append('line_items[0][quantity]', '1');
   } else {
-    // Price ID未指定時のインライン月額380円設定
-    params.append('line_items[0][price_data][currency]', 'jpy');
-    params.append('line_items[0][price_data][unit_amount]', '380');
-    params.append('line_items[0][price_data][recurring][interval]', 'month');
-    params.append('line_items[0][price_data][product_data][name]', '宇宙博士プラン（全ゲームあそび放題）');
-    params.append('line_items[0][quantity]', '1');
+    // 宇宙博士プラン（月額380円・毎月サブスク）
+    params.append('mode', 'subscription');
+    params.append('payment_method_types[]', 'card');
+    
+    const sep = successUrl.includes('?') ? '&' : '?';
+    params.append('success_url', `${successUrl}${sep}plan=subscription`);
+    params.append('cancel_url', cancelUrl);
+
+    if (STRIPE_PRICE_ID) {
+      params.append('line_items[0][price]', STRIPE_PRICE_ID);
+      params.append('line_items[0][quantity]', '1');
+    } else {
+      params.append('line_items[0][price_data][currency]', 'jpy');
+      params.append('line_items[0][price_data][unit_amount]', '380');
+      params.append('line_items[0][price_data][recurring][interval]', 'month');
+      params.append('line_items[0][price_data][product_data][name]', '宇宙博士プラン（全ゲームあそび放題）');
+      params.append('line_items[0][quantity]', '1');
+    }
   }
 
   const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {

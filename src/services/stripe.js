@@ -8,7 +8,7 @@ const getApiGatewayUrl = () => {
 /**
  * Stripe Checkout セッションを作成して決済画面へリダイレクト
  */
-export async function redirectToCheckout(userId, email) {
+export async function redirectToCheckout(userId, email, planType = 'subscription') {
   const apiGatewayUrl = getApiGatewayUrl();
 
   // API Gateway（Lambda）が接続されている場合
@@ -23,6 +23,7 @@ export async function redirectToCheckout(userId, email) {
           action: 'create_checkout_session',
           userId,
           email,
+          planType,
           successUrl: `${window.location.origin}${window.location.pathname}?checkout_success=true`,
           cancelUrl: `${window.location.origin}${window.location.pathname}?checkout_cancel=true`
         })

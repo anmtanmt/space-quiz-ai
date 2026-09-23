@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import LegalModal from './LegalModal';
 
 export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParent }) {
-  const { isPremium } = useAuth();
+  const { isPremium, planType, planExpiresAt } = useAuth();
   const [mode, setMode] = useState('ai'); // 'ai', 'parent', 'test', or 'spot_diff'
   const [difficulty, setDifficulty] = useState('easy'); // 'easy', 'medium', 'hard' (or '4', '3' for test)
   const [hasParentQuizzes, setHasParentQuizzes] = useState(false);
@@ -18,6 +18,37 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
   const [isTransitioning, setIsTransitioning] = useState(false);
   const lockTimerRef = useRef(null);
   const [countdownText, setCountdownText] = useState('');
+  const [passCountdownText, setPassCountdownText] = useState('');
+
+  // 30日間パスのリアルタイムカウントダウンタイマー
+  useEffect(() => {
+    if (!isPremium || planType !== 'pass_30d' || !planExpiresAt) return;
+
+    const updatePassTimer = () => {
+      const now = Date.now();
+      const remainingMs = Math.max(0, planExpiresAt - now);
+      if (remainingMs <= 0) {
+        setPassCountdownText('期限切れ');
+        return;
+      }
+      const totalSeconds = Math.floor(remainingMs / 1000);
+      const days = Math.floor(totalSeconds / (3600 * 24));
+      const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      const pad = (n) => String(n).padStart(2, '0');
+      
+      if (days > 0) {
+        setPassCountdownText(`あと${days}日 ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`);
+      } else {
+        setPassCountdownText(`あと ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`);
+      }
+    };
+
+    updatePassTimer();
+    const interval = setInterval(updatePassTimer, 1000);
+    return () => clearInterval(interval);
+  }, [isPremium, planType, planExpiresAt]);
 
   // エネルギー回復カウントダウンタイマー（ストップウォッチ形式で毎秒更新）
   useEffect(() => {
@@ -145,7 +176,13 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
             {/* 全体共通エネルギー表示 */}
             <div style={styles.globalEnergyBadge}>
               {isPremium ? (
-                <span style={styles.energyBadgePremium}>⚡ 全モード あそびほうだい！</span>
+                planType === 'pass_30d' ? (
+                  <span style={styles.energyBadgePass}>
+                    ⚡ あそびほうだい！ ({passCountdownText || 'のこり 30日'})
+                  </span>
+                ) : (
+                  <span style={styles.energyBadgePremium}>⚡ 全モード あそびほうだい！</span>
+                )
               ) : aiUsage.remaining === 2 ? (
                 <span style={styles.energyBadgeFull}>⚡⚡ きょうのエネルギー: あと 2かい</span>
               ) : aiUsage.remaining === 1 ? (
@@ -664,6 +701,18 @@ const styles = {
     transition: 'color 0.2s',
   },
   // エネルギーバッジ用スタイル
+  energyBadgePass: {
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    background: 'linear-gradient(135deg, rgba(255, 94, 98, 0.25), rgba(255, 195, 113, 0.25))',
+    color: '#ffc371',
+    border: '1px solid rgba(255, 195, 113, 0.6)',
+    padding: '3px 10px',
+    borderRadius: '12px',
+    margin: '4px 0 6px 0',
+    display: 'inline-block',
+    boxShadow: '0 0 10px rgba(255, 195, 113, 0.2)',
+  },
   energyBadgePremium: {
     fontSize: '0.75rem',
     fontWeight: 'bold',

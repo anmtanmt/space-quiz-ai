@@ -91,7 +91,8 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'tokusho' }) 
                   <tr style={styles.tr}>
                     <th style={styles.th}>販売価格</th>
                     <td style={styles.td}>
-                      <strong>宇宙博士プラン（月額サブスクリプション）</strong>: 月額 380円（消費税込み）<br />
+                      ・<strong>30日間あそび放題パス（1回買い切り）</strong>: 400円（消費税込み）<br />
+                      ・<strong>宇宙博士プラン（月額サブスクリプション）</strong>: 月額 380円（消費税込み）<br />
                       <span style={styles.noteText}>※ 無料プラン（1日2回までプレイ可能）は登録・利用ともに完全無料です。</span>
                     </td>
                   </tr>
@@ -104,25 +105,27 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'tokusho' }) 
                   <tr style={styles.tr}>
                     <th style={styles.th}>お支払い方法</th>
                     <td style={styles.td}>
-                      クレジットカード決済（VISA, Mastercard, JCB, American Express, Diners Club 等）、Apple Pay、Link（決済代行: Stripe, Inc.）
+                      PayPay（スマホ決済 / 30日間パスのみ対応）、クレジットカード決済（VISA, Mastercard, JCB, American Express, Diners Club 等）、Apple Pay、Link（決済代行: Stripe, Inc.）
                     </td>
                   </tr>
                   <tr style={styles.tr}>
                     <th style={styles.th}>お支払い時期</th>
                     <td style={styles.td}>
-                      初回お申し込み時に即時決済されます。翌月以降は、毎月初回購入日と同日に自動更新され、登録されたクレジットカードより引き落とされます。
+                      ・<strong>30日間あそび放題パス</strong>: ご購入時に即時決済されます（自動更新なし・1回買い切り）。<br />
+                      ・<strong>宇宙博士プラン</strong>: 初回お申し込み時に即時決済されます。翌月以降は、毎月初回購入日と同日に自動更新され、登録されたクレジットカードより引き落とされます。
                     </td>
                   </tr>
                   <tr style={styles.tr}>
                     <th style={styles.th}>役務の提供時期</th>
                     <td style={styles.td}>
-                      クレジットカード決済完了後、即時に「宇宙博士プラン（全ゲーム無制限あそび放題）」をご利用いただけます。
+                      決済完了後、即時に「30日間あそび放題パス」または「宇宙博士プラン（全ゲーム無制限あそび放題）」がご利用いただけます。
                     </td>
                   </tr>
                   <tr style={styles.tr}>
-                    <th style={styles.th}>解約・退会について</th>
+                    <th style={styles.th}>解約・更新について</th>
                     <td style={styles.td}>
-                      ・「おうちのかたへ」ページ内の「ご契約の確認・解約（Customer Portal）」より、いつでもワンタップで即座に解約手続きが可能です。<br />
+                      ・<strong>30日間あそび放題パス</strong>: 1回きりの買い切りのため、解約手続きは不要です。期間終了後は自動的に無料プランへ移行し、追加の請求は一切発生いたしません。<br />
+                      ・<strong>宇宙博士プラン</strong>: 「おとな用管理ページ」内の「ご契約の確認・解約（Customer Portal）」より、いつでもワンタップで即座に解約手続きが可能です。<br />
                       ・次回更新日の前日までに解約手続きを行っていただければ、次回の請求は発生いたしません。<br />
                       ・解約手続き後も、すでに決済が完了している請求期間の最終日までは引き続き無制限プランをご利用いただけます。
                     </td>
