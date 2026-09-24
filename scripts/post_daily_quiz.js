@@ -41,13 +41,14 @@ ${chosenTopic}
 【条件】
 1. 小学校低学年〜中学年でも理解でき、大人も「へぇ！」となるような面白い事実を題材にしてください。
 2. 選択肢は必ず3つ。正解は1つ。
-3. 以下のJSONフォーマットのみで出力してください。Markdownコードブロックなどは付けないでください。
+3. Xの140文字制限があるため、解説(explanation)は必ず【60文字〜80文字程度】で短くワクワクする豆知識にしてください。
+4. 以下のJSONフォーマットのみで出力してください。Markdownコードブロックなどは付けないでください。
 
 {
-  "question": "問題文（例: 太陽系でいちばん風が強い惑星はどこでしょう？🌀）",
+  "question": "問題文（短く魅力的に）",
   "choices": ["① 選択肢1", "② 選択肢2", "③ 選択肢3"],
   "answerIndex": 0,
-  "explanation": "わかりやすい解説（100〜140文字程度。子どもがワクワクする豆知識を入れてください）"
+  "explanation": "60〜80文字の短い解説"
 }
 `;
 
@@ -81,13 +82,17 @@ async function main() {
     const correctAnswerText = quiz.choices[quiz.answerIndex];
 
     // 1ツイート目: 問題文（スレッド誘導型）
-    const tweet1Text = `🚀 今日の宇宙クイズ！🪐\n\nQ. ${quiz.question}\n\n${quiz.choices.join('\n')}\n\n正解とワクワク解説はリプ欄（ツリー）へ！👇✨\n\n#宇宙クイズ #宇宙 #天文宇宙検定 #知育`;
+    const tweet1Text = `🚀 今日の宇宙クイズ！🪐\n\nQ. ${quiz.question}\n\n${quiz.choices.join('\n')}\n\n正解とワクワク解説はリプ欄へ！👇✨\n\n#宇宙クイズ #宇宙 #天文宇宙検定 #知育`;
 
     console.log('\n--- 1ツイート目 ---');
     console.log(tweet1Text);
 
-    // 2ツイート目: 正解・解説・プロフィールへの導線（※Xの外部URL規制とアルゴリズム対策）
-    const tweet2Text = `正解は… 【 ${correctAnswerText} 】でした！🎉\n\n📖 かんたん解説：\n${quiz.explanation}\n\n📱 Webアプリ「宇宙クイズ-AI」なら、AIクイズや天文宇宙検定対策が今すぐ無料で遊べるよ！🚀\n（※アプリはプロフィールのリンクからすぐ遊べます👆✨）`;
+    // 2ツイート目: 正解・解説・プロフィールへの導線（※Xの140文字制限と外部URL規制に対応）
+    let explanation = quiz.explanation;
+    if (explanation.length > 70) {
+      explanation = explanation.substring(0, 67) + '...';
+    }
+    const tweet2Text = `正解は… 【 ${correctAnswerText} 】でした！🎉\n\n📖 解説：\n${explanation}\n\n📱 タブレット推奨！アプリはプロフのリンクから遊べるよ！🚀`;
 
     console.log('\n--- 2ツイート目 ---');
     console.log(tweet2Text);
