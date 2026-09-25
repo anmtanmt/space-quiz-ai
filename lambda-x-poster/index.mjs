@@ -127,7 +127,7 @@ export const handler = async (event) => {
       if (explanation.length > 70) {
         explanation = explanation.substring(0, 67) + '...';
       }
-      tweet2Text = `せいかいは… 【 ${correctAnswerText} 】でした！🎉\n\n📖 かいせつ：\n${explanation}\n\n📱 タブレット推奨（スマホ・PCもOK）！アプリはプロフのリンクからあそべるよ！🚀`;
+      tweet2Text = `せいかいは… 【 ${correctAnswerText} 】でした！🎉\n\n📖 かいせつ：\n${explanation}\n\nアプリはプロフのリンクからあそべるよ！🚀`;
     } else {
       // 🚀 小学生向け投稿文
       tweet1Text = `🚀 今日の宇宙クイズ！（小学生向け）🪐\n\nQ. ${quiz.question}\n\n${quiz.choices.join('\n')}\n\n正解とワクワク解説はリプ欄へ！👇✨\n\n#小学生向け #宇宙クイズ #宇宙 #天文宇宙検定 #知育`;
@@ -136,7 +136,7 @@ export const handler = async (event) => {
       if (explanation.length > 70) {
         explanation = explanation.substring(0, 67) + '...';
       }
-      tweet2Text = `正解は… 【 ${correctAnswerText} 】でした！🎉\n\n📖 解説：\n${explanation}\n\n📱 タブレット推奨（スマホ・PCもOK）！アプリはプロフのリンクから遊べるよ！🚀`;
+      tweet2Text = `正解は… 【 ${correctAnswerText} 】でした！🎉\n\n📖 解説：\n${explanation}\n\nアプリはプロフのリンクから遊べるよ！🚀`;
     }
 
     // 1ツイート目
