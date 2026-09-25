@@ -6,11 +6,6 @@ const X_ACCESS_TOKEN = process.env.X_ACCESS_TOKEN;
 const X_ACCESS_SECRET = process.env.X_ACCESS_SECRET;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-if (!X_API_KEY || !X_API_SECRET || !X_ACCESS_TOKEN || !X_ACCESS_SECRET || !GEMINI_API_KEY) {
-  console.error('必要な環境変数が設定されていません。');
-  process.exit(1);
-}
-
 const client = new TwitterApi({
   appKey: X_API_KEY,
   appSecret: X_API_SECRET,
@@ -22,6 +17,7 @@ async function generateQuiz(isToddler) {
   let prompt = '';
   
   if (isToddler) {
+    // 🐣 幼児・未就学児向け（ひらがな・カタカナのみ、漢字完全禁止）
     const toddlerTopics = [
       'たいよう（おひさまの ひみつ、あかるいひかり）',
       'おつきさま（まんまるお月さま、うさぎの かげ、夜の おそら）',
@@ -53,6 +49,7 @@ ${chosenTopic}
 }
 `;
   } else {
+    // 🚀 小学生向け（漢字あり・天文宇宙検定4級/3級対応）
     const elementaryTopics = [
       '太陽系の惑星のひみつ（水星・金星・火星・木星・土星・天王星・海王星）',
       '月と地球の不思議（潮の満ち引き、月の満ち欠け、月の裏側、クレーター）',
@@ -104,20 +101,26 @@ ${chosenTopic}
   return JSON.parse(cleanJson);
 }
 
-async function main() {
+export const handler = async (event) => {
+  console.log('🚀 X宇宙クイズ定期配信 Lambda 起動');
   try {
+    // 日本時間（JST = UTC+9）の曜日を取得
     const jstDate = new Date(Date.now() + 9 * 60 * 60 * 1000);
-    const dayOfWeek = jstDate.getUTCDay();
+    const dayOfWeek = jstDate.getUTCDay(); // 0:日, 1:月, 2:火, 3:水, 4:木, 5:金, 6:土
+
+    // 水曜日(3) と 日曜日(0) は「🐣 幼児・未就学児向け（ひらがな版）」！
+    // その他の曜日は「🚀 小学生向け（漢字・天文宇宙検定対応）」
     const isToddler = dayOfWeek === 0 || dayOfWeek === 3;
+    console.log(`配信対象: ${isToddler ? '🐣 幼児向け（ひらがな版）' : '🚀 小学生向け（漢字版）'} (JST 曜日コード: ${dayOfWeek})`);
 
-    console.log(`🤖 クイズ生成中... 対象: ${isToddler ? '🐣 幼児向け（ひらがな版）' : '🚀 小学生向け（漢字版）'}`);
     const quiz = await generateQuiz(isToddler);
-
     const correctAnswerText = quiz.choices[quiz.answerIndex];
+
     let tweet1Text = '';
     let tweet2Text = '';
 
     if (isToddler) {
+      // 🐣 幼児向け投稿文
       tweet1Text = `🐣 今日の宇宙クイズ！（幼児・未就学児向け）🪐\n\nQ. ${quiz.question}\n\n${quiz.choices.join('\n')}\n\nせいかいと ワクワクかいせつは リプらんへ！👇✨\n\n#未就学児向け #幼児向け #宇宙クイズ #天文宇宙検定 #知育`;
 
       let explanation = quiz.explanation;
@@ -126,6 +129,7 @@ async function main() {
       }
       tweet2Text = `せいかいは… 【 ${correctAnswerText} 】でした！🎉\n\n📖 かいせつ：\n${explanation}\n\n📱 タブレット推奨（スマホ・PCもOK）！アプリはプロフのリンクからあそべるよ！🚀`;
     } else {
+      // 🚀 小学生向け投稿文
       tweet1Text = `🚀 今日の宇宙クイズ！（小学生向け）🪐\n\nQ. ${quiz.question}\n\n${quiz.choices.join('\n')}\n\n正解とワクワク解説はリプ欄へ！👇✨\n\n#小学生向け #宇宙クイズ #宇宙 #天文宇宙検定 #知育`;
 
       let explanation = quiz.explanation;
@@ -135,24 +139,31 @@ async function main() {
       tweet2Text = `正解は… 【 ${correctAnswerText} 】でした！🎉\n\n📖 解説：\n${explanation}\n\n📱 タブレット推奨（スマホ・PCもOK）！アプリはプロフのリンクから遊べるよ！🚀`;
     }
 
-    console.log('\n--- 1ツイート目 ---');
-    console.log(tweet1Text);
-    console.log('\n--- 2ツイート目 ---');
-    console.log(tweet2Text);
-
-    console.log('\n🐦 X へ投稿中...');
+    // 1ツイート目
     const post1 = await client.v2.tweet(tweet1Text);
     console.log(`✅ 1ツイート目投稿完了 (ID: ${post1.data.id})`);
 
+    // 2ツイート目（ツリー返信）
     const post2 = await client.v2.tweet({
       text: tweet2Text,
       reply: { in_reply_to_tweet_id: post1.data.id }
     });
     console.log(`✅ 2ツイート目投稿完了 (ID: ${post2.data.id})`);
-  } catch (error) {
-    console.error('❌ エラー:', error);
-    process.exit(1);
-  }
-}
 
-main();
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        message: 'Successfully posted daily quiz',
+        isToddler,
+        tweet1Id: post1.data.id,
+        tweet2Id: post2.data.id
+      })
+    };
+  } catch (error) {
+    console.error('❌ 配信失敗:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message })
+    };
+  }
+};
