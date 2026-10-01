@@ -9,6 +9,7 @@ import ParentPortal from './components/ParentPortal';
 import SpotDifferenceScreen from './components/SpotDifferenceScreen';
 import LegalModal from './components/LegalModal';
 import PasswordRecoveryModal from './components/PasswordRecoveryModal';
+import { trackEvent } from './utils/analytics';
 
 export default function App() {
   return (
@@ -28,6 +29,10 @@ function MainApp() {
   const [directLegalTab, setDirectLegalTab] = useState(null);
 
   useEffect(() => {
+    trackEvent('screen_view', { screen_name: screen });
+  }, [screen]);
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const page = params.get('page');
@@ -44,6 +49,7 @@ function MainApp() {
   const handleStartQuiz = (mode, diff) => {
     setQuizMode(mode);
     setDifficulty(diff);
+    trackEvent('quiz_start', { quiz_mode: mode, difficulty: diff });
     if (mode === 'spot_diff') {
       setScreen('SPOT_THE_DIFFERENCE');
     } else {
@@ -53,6 +59,7 @@ function MainApp() {
 
   const handleFinishQuiz = (score, total) => {
     setResult({ score, total });
+    trackEvent('quiz_finish', { quiz_mode: quizMode, difficulty, score, total });
     setScreen('RESULT');
   };
 
