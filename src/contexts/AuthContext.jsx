@@ -92,11 +92,14 @@ export function AuthProvider({ children }) {
     return () => clearInterval(timer);
   }, [planInfo]);
 
-  // URLクエリパラメータの検知（Stripe Checkout完了後の戻り時、またはテスト用URL）
+  // URLクエリパラメータの検知（Stripe Checkout正規完了後の戻り時）
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('checkout_success') === 'true' || params.get('plan') === 'pass_30d' || params.get('plan') === 'premium') {
+      const isCheckoutSuccess = params.get('checkout_success') === 'true' && Boolean(params.get('session_id'));
+      const isDevTestParam = import.meta.env.DEV && (params.get('plan') === 'pass_30d' || params.get('plan') === 'premium');
+
+      if (isCheckoutSuccess || isDevTestParam) {
         const plan = params.get('plan') || 'subscription';
         const targetPlan = plan === 'pass_30d' ? 'pass_30d' : 'subscription';
         upgradeToPremium(targetPlan, 30);
