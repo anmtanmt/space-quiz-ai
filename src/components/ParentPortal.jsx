@@ -17,6 +17,10 @@ export default function ParentPortal({ onBackToTitle }) {
     signUp, 
     signIn, 
     signOut, 
+    resetPassword,
+    updatePassword,
+    cancelRecovery,
+    isPasswordRecovery,
     upgradeToPremium, 
     downgradeToFree 
   } = useAuth();
@@ -29,9 +33,16 @@ export default function ParentPortal({ onBackToTitle }) {
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
   const [authError, setAuthError] = useState('');
   const [authSuccessMsg, setAuthSuccessMsg] = useState('');
   const [authSubmitting, setAuthSubmitting] = useState(false);
+
+  // パスワード再設定（リカバリー）用状態
+  const [newRecoveryPassword, setNewRecoveryPassword] = useState('');
+  const [recoverySuccessMsg, setRecoverySuccessMsg] = useState('');
+  const [recoveryError, setRecoveryError] = useState('');
+  const [recoverySubmitting, setRecoverySubmitting] = useState(false);
 
   // プラン変更モーダル状態
   const [selectedPlanType, setSelectedPlanType] = useState('pass_30d'); // 'pass_30d' | 'subscription'
@@ -43,6 +54,13 @@ export default function ParentPortal({ onBackToTitle }) {
   // 法務表記モーダル状態
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [legalTab, setLegalTab] = useState('tokusho');
+
+  // パスワード再設定メールからの遷移時は算数ゲートを自動解除
+  useEffect(() => {
+    if (isPasswordRecovery) {
+      setGateUnlocked(true);
+    }
+  }, [isPasswordRecovery]);
 
   // モーダル表示中の背景スクロールロック
   useEffect(() => {
@@ -329,6 +347,56 @@ export default function ParentPortal({ onBackToTitle }) {
       setAuthError(err.message || '認証に失敗しました。入力内容をご確認ください。');
     } finally {
       setAuthSubmitting(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e) => {
+    e.preventDefault();
+    audio.playClick();
+    setAuthError('');
+    setAuthSuccessMsg('');
+
+    if (!authEmail) {
+      setAuthError('登録したメールアドレスを入力してください。');
+      return;
+    }
+
+    setAuthSubmitting(true);
+    try {
+      await resetPassword(authEmail);
+      setAuthSuccessMsg('✉️ パスワード再設定メールを送信しました！届いたメール内のリンクを開いて新しいパスワードを設定してください。');
+    } catch (err) {
+      console.error(err);
+      setAuthError(err.message || 'メール送信に失敗しました。メールアドレスをご確認ください。');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  const handleUpdatePasswordSubmit = async (e) => {
+    e.preventDefault();
+    audio.playClick();
+    setRecoveryError('');
+    setRecoverySuccessMsg('');
+
+    if (!newRecoveryPassword || newRecoveryPassword.length < 6) {
+      setRecoveryError('新しいパスワードは6文字以上で入力してください。');
+      return;
+    }
+
+    setRecoverySubmitting(true);
+    try {
+      await updatePassword(newRecoveryPassword);
+      setRecoverySuccessMsg('🎉 パスワードを変更しました！そのままご利用いただけます。');
+      setTimeout(() => {
+        setRecoverySuccessMsg('');
+        setNewRecoveryPassword('');
+      }, 4000);
+    } catch (err) {
+      console.error(err);
+      setRecoveryError(err.message || 'パスワードの更新に失敗しました。');
+    } finally {
+      setRecoverySubmitting(false);
     }
   };
 
@@ -636,71 +704,139 @@ export default function ParentPortal({ onBackToTitle }) {
                 アカウントを作成（ログイン）しておくと、他の端末（スマホやタブレット）でもあそび放題を引き継げます。
               </p>
 
-              {/* ログイン / 新規登録 切り替えタブ */}
-              <div style={styles.authTabContainer}>
-                <button
-                  type="button"
-                  onClick={() => { audio.playClick(); setIsSignUpMode(false); setAuthError(''); setAuthSuccessMsg(''); }}
-                  style={{
-                    ...styles.authTabBtn,
-                    ...(isSignUpMode ? {} : styles.authTabBtnActive)
-                  }}
-                >
-                  ログイン
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { audio.playClick(); setIsSignUpMode(true); setAuthError(''); setAuthSuccessMsg(''); }}
-                  style={{
-                    ...styles.authTabBtn,
-                    ...(isSignUpMode ? styles.authTabBtnActive : {})
-                  }}
-                >
-                  新しくアカウントを作る
-                </button>
-              </div>
+              {/* パスワード再設定モード vs 通常ログイン・新規登録 */}
+              {isForgotPasswordMode ? (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <h4 style={{ margin: 0, color: '#ffd166', fontSize: '1.1rem' }}>🔑 パスワードの再設定</h4>
+                    <button
+                      type="button"
+                      onClick={() => { audio.playClick(); setIsForgotPasswordMode(false); setAuthError(''); setAuthSuccessMsg(''); }}
+                      style={{ background: 'none', border: 'none', color: '#a0a5c0', cursor: 'pointer', fontSize: '0.85rem' }}
+                    >
+                      ✕ ログインへ戻る
+                    </button>
+                  </div>
+                  <p style={{ ...styles.authDesc, fontSize: '0.85rem' }}>
+                    ご登録のメールアドレスを入力してください。パスワード再設定用の案内メールをお送りします。
+                  </p>
+                  <form onSubmit={handleResetPasswordSubmit} style={styles.authForm}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>メールアドレス:</label>
+                      <input
+                        type="email"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        placeholder="example@email.com"
+                        style={styles.input}
+                        required
+                      />
+                    </div>
 
-              {/* フォーム */}
-              <form onSubmit={handleAuthSubmit} style={styles.authForm}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>メールアドレス:</label>
-                  <input
-                    type="email"
-                    value={authEmail}
-                    onChange={(e) => setAuthEmail(e.target.value)}
-                    placeholder="example@email.com"
-                    style={styles.input}
-                    required
-                  />
+                    {authError && <div style={styles.authErrorText}>{authError}</div>}
+                    {authSuccessMsg && <div style={styles.authSuccessText}>{authSuccessMsg}</div>}
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+                      <button
+                        type="button"
+                        className="btn-action btn-back"
+                        onClick={() => { audio.playClick(); setIsForgotPasswordMode(false); setAuthError(''); setAuthSuccessMsg(''); }}
+                        style={{ fontSize: '0.9rem', padding: '8px 16px' }}
+                      >
+                        戻る
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn-action btn-primary"
+                        disabled={authSubmitting || !isConfigured}
+                        style={{ minWidth: '160px', opacity: isConfigured ? 1 : 0.6 }}
+                      >
+                        {authSubmitting ? '送信中...' : '再設定メールを送信 ➔'}
+                      </button>
+                    </div>
+                  </form>
                 </div>
+              ) : (
+                <>
+                  {/* ログイン / 新規登録 切り替えタブ */}
+                  <div style={styles.authTabContainer}>
+                    <button
+                      type="button"
+                      onClick={() => { audio.playClick(); setIsSignUpMode(false); setAuthError(''); setAuthSuccessMsg(''); }}
+                      style={{
+                        ...styles.authTabBtn,
+                        ...(isSignUpMode ? {} : styles.authTabBtnActive)
+                      }}
+                    >
+                      ログイン
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { audio.playClick(); setIsSignUpMode(true); setAuthError(''); setAuthSuccessMsg(''); }}
+                      style={{
+                        ...styles.authTabBtn,
+                        ...(isSignUpMode ? styles.authTabBtnActive : {})
+                      }}
+                    >
+                      新しくアカウントを作る
+                    </button>
+                  </div>
 
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>パスワード（6文字以上）:</label>
-                  <input
-                    type="password"
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    placeholder="半角英数6文字以上"
-                    style={styles.input}
-                    minLength={6}
-                    required
-                  />
-                </div>
+                  {/* フォーム */}
+                  <form onSubmit={handleAuthSubmit} style={styles.authForm}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>メールアドレス:</label>
+                      <input
+                        type="email"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        placeholder="example@email.com"
+                        style={styles.input}
+                        required
+                      />
+                    </div>
 
-                {authError && <div style={styles.authErrorText}>{authError}</div>}
-                {authSuccessMsg && <div style={styles.authSuccessText}>{authSuccessMsg}</div>}
+                    <div style={styles.formGroup}>
+                      <label style={styles.label}>パスワード（6文字以上）:</label>
+                      <input
+                        type="password"
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        placeholder="半角英数6文字以上"
+                        style={styles.input}
+                        minLength={6}
+                        required
+                      />
+                    </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-                  <button
-                    type="submit"
-                    className="btn-action btn-primary"
-                    disabled={authSubmitting || !isConfigured}
-                    style={{ minWidth: '160px', opacity: isConfigured ? 1 : 0.6 }}
-                  >
-                    {authSubmitting ? '処理中...' : (isSignUpMode ? 'アカウントを作成する ➔' : 'ログインする ➔')}
-                  </button>
-                </div>
-              </form>
+                    {!isSignUpMode && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-4px', marginBottom: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => { audio.playClick(); setIsForgotPasswordMode(true); setAuthError(''); setAuthSuccessMsg(''); }}
+                          style={{ background: 'none', border: 'none', color: '#4cc9f0', cursor: 'pointer', fontSize: '0.85rem', textDecoration: 'underline' }}
+                        >
+                          🔑 パスワードをお忘れの方はこちら
+                        </button>
+                      </div>
+                    )}
+
+                    {authError && <div style={styles.authErrorText}>{authError}</div>}
+                    {authSuccessMsg && <div style={styles.authSuccessText}>{authSuccessMsg}</div>}
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                      <button
+                        type="submit"
+                        className="btn-action btn-primary"
+                        disabled={authSubmitting || !isConfigured}
+                        style={{ minWidth: '160px', opacity: isConfigured ? 1 : 0.6 }}
+                      >
+                        {authSubmitting ? '処理中...' : (isSignUpMode ? 'アカウントを作成する ➔' : 'ログインする ➔')}
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -1005,6 +1141,63 @@ export default function ParentPortal({ onBackToTitle }) {
           )}
         </div>
       </div>
+
+      {/* パスワード再設定モーダル（メールリンクからの遷移時） */}
+      {isPasswordRecovery && ReactDOM.createPortal(
+        <div style={styles.modalBackdrop}>
+          <div 
+            style={styles.modalCard} 
+            onClick={(e) => e.stopPropagation()}
+            className="scrollable-content fade-in"
+          >
+            <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🔑</div>
+            <h2 style={styles.modalTitle}>新しいパスワードの設定</h2>
+            <p style={styles.modalDesc}>
+              保護者アカウントの新しいパスワードを入力してください。<br />
+              （半角英数6文字以上）
+            </p>
+
+            <form onSubmit={handleUpdatePasswordSubmit} style={{ marginTop: '16px' }}>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>新しいパスワード:</label>
+                <input
+                  type="password"
+                  value={newRecoveryPassword}
+                  onChange={(e) => setNewRecoveryPassword(e.target.value)}
+                  placeholder="半角英数6文字以上"
+                  style={styles.input}
+                  minLength={6}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              {recoveryError && <div style={{ ...styles.authErrorText, marginBottom: '12px' }}>{recoveryError}</div>}
+              {recoverySuccessMsg && <div style={{ ...styles.authSuccessText, marginBottom: '12px' }}>{recoverySuccessMsg}</div>}
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button
+                  type="button"
+                  className="btn-action btn-back"
+                  onClick={cancelRecovery}
+                  style={{ flex: 1 }}
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  className="btn-action btn-primary"
+                  disabled={recoverySubmitting}
+                  style={{ flex: 2 }}
+                >
+                  {recoverySubmitting ? '変更中...' : 'パスワードを変更する ➔'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* プレミアム加入確認モーダル */}
       {showUpgradeConfirmModal && ReactDOM.createPortal(

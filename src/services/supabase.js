@@ -57,6 +57,35 @@ export async function signOut() {
 }
 
 /**
+ * パスワード再設定メール送信
+ */
+export async function sendPasswordResetEmail(email) {
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabaseが設定されていません。');
+  }
+  const redirectTo = window.location.origin + window.location.pathname;
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo
+  });
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * 新しいパスワードを登録・更新
+ */
+export async function updateUserPassword(newPassword) {
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabaseが設定されていません。');
+  }
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword
+  });
+  if (error) throw error;
+  return data;
+}
+
+/**
  * ユーザーのプロファイル情報を取得
  */
 export async function fetchUserProfile(userId) {

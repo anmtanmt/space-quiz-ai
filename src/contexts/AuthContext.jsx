@@ -5,7 +5,9 @@ import {
   signUpWithEmail, 
   signInWithEmail, 
   signOut as supabaseSignOut, 
-  fetchUserProfile 
+  fetchUserProfile,
+  sendPasswordResetEmail as supabaseSendPasswordResetEmail,
+  updateUserPassword as supabaseUpdateUserPassword
 } from '../services/supabase';
 
 const AuthContext = createContext(null);
@@ -14,6 +16,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   // プロフィールの読み込み
   const loadProfile = async (userId) => {
@@ -31,6 +34,11 @@ export function AuthProvider({ children }) {
       return;
     }
 
+    // URLハッシュに type=recovery が含まれているか確認
+    if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
+      setIsPasswordRecovery(true);
+    }
+
     // 初回セッション取得
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -41,7 +49,10 @@ export function AuthProvider({ children }) {
     });
 
     // 認証状態の変更リスナー
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+      }
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
@@ -209,6 +220,27 @@ export function AuthProvider({ children }) {
   const planExpiresAt = planInfo.expiresAt;
   const planRemainingMs = planExpiresAt ? Math.max(0, planExpiresAt - Date.now()) : 0;
 
+  const handleResetPassword = async (email) => {
+    return await supabaseSendPasswordResetEmail(email);
+  };
+
+  const handleUpdatePassword = async (newPassword) => {
+    const data = await supabaseUpdateUserPassword(newPassword);
+    setIsPasswordRecovery(false);
+    // URLのハッシュを綺麗にする
+    if (typeof window !== 'undefined' && window.location.hash) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    return data;
+  };
+
+  const handleCancelRecovery = () => {
+    setIsPasswordRecovery(false);
+    if (typeof window !== 'undefined' && window.location.hash) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  };
+
   const value = {
     user,
     profile,
@@ -218,9 +250,13 @@ export function AuthProvider({ children }) {
     planType,
     planExpiresAt,
     planRemainingMs,
+    isPasswordRecovery,
     signUp: handleSignUp,
     signIn: handleSignIn,
     signOut: handleSignOut,
+    resetPassword: handleResetPassword,
+    updatePassword: handleUpdatePassword,
+    cancelRecovery: handleCancelRecovery,
     refreshProfile,
     upgradeToPremium,
     downgradeToFree
