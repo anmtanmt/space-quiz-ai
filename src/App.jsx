@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import WelcomeScreen from './components/WelcomeScreen';
 import TitleScreen from './components/TitleScreen';
 import QuizScreen from './components/QuizScreen';
@@ -8,6 +8,7 @@ import CollectionScreen from './components/CollectionScreen';
 import ParentPortal from './components/ParentPortal';
 import SpotDifferenceScreen from './components/SpotDifferenceScreen';
 import LegalModal from './components/LegalModal';
+import PasswordRecoveryModal from './components/PasswordRecoveryModal';
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
 }
 
 function MainApp() {
+  const { isPasswordRecovery } = useAuth();
   const [screen, setScreen] = useState('WELCOME'); // 'WELCOME', 'TITLE', 'QUIZ', 'RESULT', 'COLLECTION', 'PARENT'
   const [quizMode, setQuizMode] = useState('ai');
   const [difficulty, setDifficulty] = useState('easy');
@@ -147,6 +149,9 @@ function MainApp() {
           initialTab={directLegalTab}
         />
       )}
+
+      {/* パスワード再設定モーダル（メールリンクからの復帰時に最前面に自動表示） */}
+      <PasswordRecoveryModal onSuccess={() => setScreen('PARENT')} />
     </div>
   );
 }

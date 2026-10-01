@@ -32,17 +32,12 @@ export default function ParentPortal({ onBackToTitle }) {
   // 認証用状態
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
   const [authError, setAuthError] = useState('');
   const [authSuccessMsg, setAuthSuccessMsg] = useState('');
   const [authSubmitting, setAuthSubmitting] = useState(false);
-
-  // パスワード再設定（リカバリー）用状態
-  const [newRecoveryPassword, setNewRecoveryPassword] = useState('');
-  const [recoverySuccessMsg, setRecoverySuccessMsg] = useState('');
-  const [recoveryError, setRecoveryError] = useState('');
-  const [recoverySubmitting, setRecoverySubmitting] = useState(false);
 
   // プラン変更モーダル状態
   const [selectedPlanType, setSelectedPlanType] = useState('pass_30d'); // 'pass_30d' | 'subscription'
@@ -370,33 +365,6 @@ export default function ParentPortal({ onBackToTitle }) {
       setAuthError(err.message || 'メール送信に失敗しました。メールアドレスをご確認ください。');
     } finally {
       setAuthSubmitting(false);
-    }
-  };
-
-  const handleUpdatePasswordSubmit = async (e) => {
-    e.preventDefault();
-    audio.playClick();
-    setRecoveryError('');
-    setRecoverySuccessMsg('');
-
-    if (!newRecoveryPassword || newRecoveryPassword.length < 6) {
-      setRecoveryError('新しいパスワードは6文字以上で入力してください。');
-      return;
-    }
-
-    setRecoverySubmitting(true);
-    try {
-      await updatePassword(newRecoveryPassword);
-      setRecoverySuccessMsg('🎉 パスワードを変更しました！そのままご利用いただけます。');
-      setTimeout(() => {
-        setRecoverySuccessMsg('');
-        setNewRecoveryPassword('');
-      }, 4000);
-    } catch (err) {
-      console.error(err);
-      setRecoveryError(err.message || 'パスワードの更新に失敗しました。');
-    } finally {
-      setRecoverySubmitting(false);
     }
   };
 
@@ -798,15 +766,38 @@ export default function ParentPortal({ onBackToTitle }) {
 
                     <div style={styles.formGroup}>
                       <label style={styles.label}>パスワード（6文字以上）:</label>
-                      <input
-                        type="password"
-                        value={authPassword}
-                        onChange={(e) => setAuthPassword(e.target.value)}
-                        placeholder="半角英数6文字以上"
-                        style={styles.input}
-                        minLength={6}
-                        required
-                      />
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <input
+                          type={showAuthPassword ? 'text' : 'password'}
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          placeholder="半角英数6文字以上"
+                          style={{ ...styles.input, paddingRight: '44px' }}
+                          minLength={6}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAuthPassword(!showAuthPassword)}
+                          style={{
+                            position: 'absolute',
+                            right: '8px',
+                            background: 'none',
+                            border: 'none',
+                            color: '#94a3b8',
+                            cursor: 'pointer',
+                            fontSize: '1.2rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '4px',
+                          }}
+                          title={showAuthPassword ? 'パスワードを隠す' : 'パスワードを表示する'}
+                          aria-label={showAuthPassword ? 'パスワードを隠す' : 'パスワードを表示する'}
+                        >
+                          {showAuthPassword ? '🙈' : '👁️'}
+                        </button>
+                      </div>
                     </div>
 
                     {!isSignUpMode && (
@@ -1142,62 +1133,7 @@ export default function ParentPortal({ onBackToTitle }) {
         </div>
       </div>
 
-      {/* パスワード再設定モーダル（メールリンクからの遷移時） */}
-      {isPasswordRecovery && ReactDOM.createPortal(
-        <div style={styles.modalBackdrop}>
-          <div 
-            style={styles.modalCard} 
-            onClick={(e) => e.stopPropagation()}
-            className="scrollable-content fade-in"
-          >
-            <div style={{ fontSize: '3rem', marginBottom: '8px' }}>🔑</div>
-            <h2 style={styles.modalTitle}>新しいパスワードの設定</h2>
-            <p style={styles.modalDesc}>
-              保護者アカウントの新しいパスワードを入力してください。<br />
-              （半角英数6文字以上）
-            </p>
 
-            <form onSubmit={handleUpdatePasswordSubmit} style={{ marginTop: '16px' }}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>新しいパスワード:</label>
-                <input
-                  type="password"
-                  value={newRecoveryPassword}
-                  onChange={(e) => setNewRecoveryPassword(e.target.value)}
-                  placeholder="半角英数6文字以上"
-                  style={styles.input}
-                  minLength={6}
-                  required
-                  autoFocus
-                />
-              </div>
-
-              {recoveryError && <div style={{ ...styles.authErrorText, marginBottom: '12px' }}>{recoveryError}</div>}
-              {recoverySuccessMsg && <div style={{ ...styles.authSuccessText, marginBottom: '12px' }}>{recoverySuccessMsg}</div>}
-
-              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                <button
-                  type="button"
-                  className="btn-action btn-back"
-                  onClick={cancelRecovery}
-                  style={{ flex: 1 }}
-                >
-                  キャンセル
-                </button>
-                <button
-                  type="submit"
-                  className="btn-action btn-primary"
-                  disabled={recoverySubmitting}
-                  style={{ flex: 2 }}
-                >
-                  {recoverySubmitting ? '変更中...' : 'パスワードを変更する ➔'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
 
       {/* プレミアム加入確認モーダル */}
       {showUpgradeConfirmModal && ReactDOM.createPortal(
