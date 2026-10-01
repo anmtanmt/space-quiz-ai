@@ -6,12 +6,34 @@ const X_ACCESS_TOKEN = process.env.X_ACCESS_TOKEN;
 const X_ACCESS_SECRET = process.env.X_ACCESS_SECRET;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+
 const client = new TwitterApi({
   appKey: X_API_KEY,
   appSecret: X_API_SECRET,
   accessToken: X_ACCESS_TOKEN,
   accessSecret: X_ACCESS_SECRET,
 });
+
+async function pingSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.log('ℹ️ Supabase credentials not set, skipping Keep-Alive ping.');
+    return;
+  }
+  try {
+    console.log('📡 Supabase Keep-Alive ping 送信中...');
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY
+      }
+    });
+    console.log(`✅ Supabase Keep-Alive ping 完了 (Status: ${res.status})`);
+  } catch (err) {
+    console.warn('⚠️ Supabase Keep-Alive ping 失敗 (クイズ投稿は継続します):', err.message);
+  }
+}
 
 async function generateQuiz(isToddler) {
   let prompt = '';
@@ -187,6 +209,9 @@ function getTwitterWeight(text) {
 export const handler = async (event) => {
   console.log('🚀 X宇宙クイズ定期配信 Lambda 起動');
   try {
+    // 毎日Supabaseの無料枠自動休止を防止するためのKeep-Alive ping
+    await pingSupabase();
+
     // 日本時間（JST = UTC+9）の曜日を取得
     const jstDate = new Date(Date.now() + 9 * 60 * 60 * 1000);
     const dayOfWeek = jstDate.getUTCDay(); // 0:日, 1:月, 2:火, 3:水, 4:木, 5:金, 6:土

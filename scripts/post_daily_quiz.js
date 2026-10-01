@@ -6,6 +6,9 @@ const X_ACCESS_TOKEN = process.env.X_ACCESS_TOKEN;
 const X_ACCESS_SECRET = process.env.X_ACCESS_SECRET;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
 if (!X_API_KEY || !X_API_SECRET || !X_ACCESS_TOKEN || !X_ACCESS_SECRET || !GEMINI_API_KEY) {
   console.error('必要な環境変数が設定されていません。');
   process.exit(1);
@@ -17,6 +20,25 @@ const client = new TwitterApi({
   accessToken: X_ACCESS_TOKEN,
   accessSecret: X_ACCESS_SECRET,
 });
+
+async function pingSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.log('ℹ️ Supabase credentials not set, skipping Keep-Alive ping.');
+    return;
+  }
+  try {
+    console.log('📡 Supabase Keep-Alive ping 送信中...');
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY
+      }
+    });
+    console.log(`✅ Supabase Keep-Alive ping 完了 (Status: ${res.status})`);
+  } catch (err) {
+    console.warn('⚠️ Supabase Keep-Alive ping 失敗 (クイズ投稿は継続します):', err.message);
+  }
+}
 
 async function generateQuiz(isToddler) {
   let prompt = '';
@@ -189,6 +211,8 @@ function getTwitterWeight(text) {
 
 async function main() {
   try {
+    await pingSupabase();
+
     const jstDate = new Date(Date.now() + 9 * 60 * 60 * 1000);
     const dayOfWeek = jstDate.getUTCDay();
     const isToddler = dayOfWeek === 0 || dayOfWeek === 3;
