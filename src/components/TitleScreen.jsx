@@ -4,6 +4,7 @@ import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
 import { useAuth } from '../contexts/AuthContext';
 import LegalModal from './LegalModal';
+import { trackEvent } from '../utils/analytics';
 
 export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParent }) {
   const { isPremium, planType, planExpiresAt } = useAuth();
@@ -139,6 +140,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
   const handleGoToParentFromModal = () => {
     if (isTransitioning) return;
     audio.playClick();
+    trackEvent('click_upgrade_from_limit', { trigger_mode: mode, trigger_difficulty: difficulty });
     setShowLimitModal(false);
     onGoToParent();
   };
@@ -154,6 +156,7 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
 
     // 「おとうさん・おかあさんのクイズ」以外は、非課金だと全部あわせて1日2回まで
     if (mode !== 'parent' && !isPremium && !aiUsage.canPlay) {
+      trackEvent('limit_reached_modal_view', { trigger_mode: mode, trigger_difficulty: difficulty });
       setShowLimitModal(true);
       return;
     }

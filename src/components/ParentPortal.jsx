@@ -5,6 +5,7 @@ import { audio } from '../utils/audio';
 import { useAuth } from '../contexts/AuthContext';
 import { redirectToCheckout, redirectToCustomerPortal } from '../services/stripe';
 import LegalModal from './LegalModal';
+import { trackEvent } from '../utils/analytics';
 
 export default function ParentPortal({ onBackToTitle }) {
   const { 
@@ -72,6 +73,7 @@ export default function ParentPortal({ onBackToTitle }) {
     audio.playClick();
     setLegalTab(tab);
     setShowLegalModal(true);
+    trackEvent('view_legal_modal', { legal_tab: tab });
   };
 
   // 30日パスの残り期間計算
@@ -90,11 +92,26 @@ export default function ParentPortal({ onBackToTitle }) {
     setSelectedPlanType(type);
     setPlanSuccessNotice('');
     setShowUpgradeConfirmModal(true);
+    trackEvent('select_plan', {
+      plan_type: type,
+      price: type === 'subscription' ? 380 : 400,
+      currency: 'JPY',
+    });
   };
 
   const handleConfirmUpgrade = async () => {
     audio.playClick();
     setIsRedirecting(true);
+    trackEvent('begin_checkout', {
+      value: selectedPlanType === 'subscription' ? 380 : 400,
+      currency: 'JPY',
+      items: [{
+        item_id: selectedPlanType,
+        item_name: selectedPlanType === 'subscription' ? '宇宙博士プラン(月額380円)' : '30日間あそび放題パス(400円)',
+        price: selectedPlanType === 'subscription' ? 380 : 400,
+        quantity: 1,
+      }],
+    });
     const passExpires = (selectedPlanType === 'subscription' && planType === 'pass_30d' && planExpiresAt)
       ? planExpiresAt
       : null;
