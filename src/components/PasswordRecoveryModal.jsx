@@ -2,6 +2,21 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+// シンプルで洗練された線画アイコン（怖い絵文字ではなく幾何学的なSVG）
+const EyeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
+
 export default function PasswordRecoveryModal({ onSuccess }) {
   const { isPasswordRecovery, updatePassword, cancelRecovery } = useAuth();
   const [newPassword, setNewPassword] = useState('');
@@ -97,14 +112,16 @@ export default function PasswordRecoveryModal({ onSuccess }) {
       marginBottom: '6px',
       fontWeight: '600',
     },
-    inputContainer: {
-      position: 'relative',
+    inputRow: {
       display: 'flex',
       alignItems: 'center',
+      gap: '8px',
+      width: '100%',
     },
     input: {
-      width: '100%',
-      padding: '12px 46px 12px 14px',
+      flex: 1,
+      minWidth: 0,
+      padding: '12px 14px',
       backgroundColor: 'rgba(15, 23, 42, 0.8)',
       border: '1px solid rgba(148, 163, 184, 0.3)',
       borderRadius: '10px',
@@ -114,20 +131,21 @@ export default function PasswordRecoveryModal({ onSuccess }) {
       outline: 'none',
       transition: 'border-color 0.2s',
     },
-    eyeBtn: {
-      position: 'absolute',
-      right: '10px',
-      background: 'none',
-      border: 'none',
-      color: '#94a3b8',
-      cursor: 'pointer',
-      fontSize: '1.25rem',
-      display: 'flex',
+    toggleBtn: {
+      display: 'inline-flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      padding: '4px',
-      borderRadius: '6px',
-      transition: 'color 0.2s, background-color 0.2s',
+      gap: '6px',
+      padding: '11px 13px',
+      backgroundColor: showPassword ? 'rgba(76, 201, 240, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+      border: showPassword ? '1px solid rgba(76, 201, 240, 0.4)' : '1px solid rgba(255, 255, 255, 0.18)',
+      borderRadius: '10px',
+      color: showPassword ? 'var(--color-secondary)' : '#cbd5e1',
+      fontSize: '0.85rem',
+      fontWeight: '600',
+      cursor: 'pointer',
+      whiteSpace: 'nowrap',
+      flexShrink: 0,
+      transition: 'all 0.2s ease',
     },
     errorText: {
       color: '#f87171',
@@ -196,7 +214,7 @@ export default function PasswordRecoveryModal({ onSuccess }) {
         <form onSubmit={handleSubmit}>
           <div style={styles.formGroup}>
             <label style={styles.label}>新しいパスワード:</label>
-            <div style={styles.inputContainer}>
+            <div style={styles.inputRow}>
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={newPassword}
@@ -209,19 +227,19 @@ export default function PasswordRecoveryModal({ onSuccess }) {
               />
               <button
                 type="button"
-                style={styles.eyeBtn}
+                style={styles.toggleBtn}
                 onClick={() => setShowPassword(!showPassword)}
                 title={showPassword ? 'パスワードを隠す' : 'パスワードを表示する'}
-                aria-label={showPassword ? 'パスワードを隠す' : 'パスワードを表示する'}
               >
-                {showPassword ? '🙈' : '👁️'}
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                <span>{showPassword ? '非表示' : '表示'}</span>
               </button>
             </div>
           </div>
 
           <div style={styles.formGroup}>
             <label style={styles.label}>新しいパスワード（確認用）:</label>
-            <div style={styles.inputContainer}>
+            <div style={styles.inputRow}>
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
@@ -233,12 +251,12 @@ export default function PasswordRecoveryModal({ onSuccess }) {
               />
               <button
                 type="button"
-                style={styles.eyeBtn}
+                style={styles.toggleBtn}
                 onClick={() => setShowPassword(!showPassword)}
                 title={showPassword ? 'パスワードを隠す' : 'パスワードを表示する'}
-                aria-label={showPassword ? 'パスワードを隠す' : 'パスワードを表示する'}
               >
-                {showPassword ? '🙈' : '👁️'}
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                <span>{showPassword ? '非表示' : '表示'}</span>
               </button>
             </div>
           </div>
