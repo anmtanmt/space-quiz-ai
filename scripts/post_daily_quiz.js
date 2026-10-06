@@ -40,99 +40,44 @@ async function pingSupabase() {
   }
 }
 
-async function generateQuiz(isToddler) {
-  let prompt = '';
-  
-  if (isToddler) {
-    const toddlerTopics = [
-      'たいよう（おひさまの ひみつ、あかるいひかり）',
-      'おつきさま（まんまるお月さま、うさぎの かげ、夜の おそら）',
-      'ほしと おそら（キラキラひかる おほしさま、あまのがわ）',
-      'ちきゅう（青くてきれいな ぼくたちの ほし）',
-      'ろけっと と うちゅうひこうし（宇宙にとびだす ロケット、かっこいい うちゅうふく）'
-    ];
-    const chosenTopic = toddlerTopics[Math.floor(Math.random() * toddlerTopics.length)];
+async function generateQuiz() {
+  const topics = [
+    '太陽と太陽系の惑星（水星・金星・地球・火星・木星・土星・天王星・海王星の特徴）',
+    '月と地球の秘密（満ち欠け、月の裏側、クレーター、潮の満ち引き）',
+    '夜空の星と星座（夏の大三角、オリオン座、北極星、一等星、天の川の正体）',
+    '宇宙探査機とロケット（はやぶさ2、月探査機SLIM、H3ロケット、国際宇宙ステーション）',
+    '太陽と星の一生（太陽の温度や黒点、恒星の光り方、超新星爆発）',
+    '天文宇宙検定4級（星博士ジュニア）によく出る、身近で面白い宇宙の基礎知識'
+  ];
+  const chosenTopic = topics[Math.floor(Math.random() * topics.length)];
 
-    prompt = `
+  const prompt = `
 あなたは宇宙知育Webアプリ「宇宙クイズ-AI」の公式アンバサダーAIです。
-Twitter/Xで配信する、未就学児（4〜6歳・幼児）がおうちの人と一緒に楽しめる、とてもやさしい宇宙クイズを1問作成してください。
-
-【テーマ】
-${chosenTopic}
-
-【最重要ルール】
-- 漢字は一切使用禁止です！必ずすべて「ひらがな」と「カタカナ」のみで出力してください。
-- 4〜6歳の子どもが直感的にイメージでき、ワクワクする内容にしてください。
-- 選択肢は必ず3つ。正解は1つ（ひらがな・カタカナ表記）。
-- Xの140文字制限があるため、かいせつ(explanation)は必ず【50文字〜75文字程度】で、やさしく驚きのある文章にしてください。
-- 以下のJSONフォーマットのみで出力してください（Markdownコードブロック不可）：
-
-{
-  "question": "ひらがなのもんだいぶん（例: おひるの おそらで ピカピカ ひかっている まんまるな おほしさまは なーんだ？☀️）",
-  "choices": ["① ひらがなせんたくし1", "② ひらがなせんたくし2", "③ ひらがなせんたくし3"],
-  "answerIndex": 0,
-  "explanation": "50〜75もじの ひらがなかいせつ"
-}
-`;
-  } else {
-    const elementaryTopics = [
-      '太陽系の惑星のひみつ（水星・金星・火星・木星・土星・天王星・海王星）',
-      '月と地球の不思議（潮の満ち引き、月の満ち欠け、月の裏側、クレーター）',
-      '日本の宇宙探査機やロケット（はやぶさ2、SLIM、H3ロケット、ISSと宇宙飛行士）',
-      '星と星座の豆知識（一等星、天の川、ブラックホール、太陽の寿命）',
-      '天文宇宙検定4級（星博士ジュニア）・3級（星博士）に出題されるような面白い天文学の基礎知識'
-    ];
-    const chosenTopic = elementaryTopics[Math.floor(Math.random() * elementaryTopics.length)];
-
-    prompt = `
-あなたは宇宙知育Webアプリ「宇宙クイズ-AI」の公式アンバサダーAIです。
-Twitter/Xで毎朝配信する、小学生（低学年〜中学年）と親御さんが一緒に楽しめる宇宙クイズを1問作成してください。天文宇宙検定4級・3級の対策にもなる良問を期待します。
+Twitter/Xで毎朝配信する、【天文宇宙検定4級（星博士ジュニア）】の対策になる良問の宇宙クイズを1問作成してください。
 
 【テーマ】
 ${chosenTopic}
 
 【条件】
-1. 小学生向け。大人も「へぇ！」となるような面白い事実を題材にしてください。
+1. 天文宇宙検定4級（小学生〜一般向け）レベル。大人も思わず「へぇ！」となるような面白い天文学の事実を題材にしてください。
 2. 選択肢は必ず3つ。正解は1つ。
-3. Xの140文字制限があるため、解説(explanation)は必ず【60文字〜80文字程度】で短くワクワクする豆知識にしてください。
+3. Xの文字数制限があるため、【問題文は45文字以内】、【選択肢は各15文字以内】、【解説は60〜75文字】を厳守してください。
 4. 以下のJSONフォーマットのみで出力してください。Markdownコードブロックなどは付けないでください。
 
 {
-  "question": "問題文（短く魅力的に）",
+  "question": "短く魅力的な問題文",
   "choices": ["① 選択肢1", "② 選択肢2", "③ 選択肢3"],
   "answerIndex": 0,
-  "explanation": "60〜80文字の短い解説"
+  "explanation": "60〜75文字の短い解説"
 }
 `;
-  }
 
-  const fallbackToddlerQuizzes = [
+  const fallbackQuizzes = [
     {
-      question: "おひるの おそらで ピカピカ あかるく ひかっている まんまるな おほしさまは なーんだ？☀️",
-      choices: ["① たいよう", "② おつきさま", "③ ちきゅう"],
-      answerIndex: 0,
-      explanation: "たいようは とても あつくて まるい ほしなんだよ。ちきゅうを いつも あたたかく てらしてくれているんだ！"
-    },
-    {
-      question: "よるの おそらに うかぶ、かたちが まるくなったり ほそくなったりする おほしさまは なーんだ？🌙",
-      choices: ["① おつきさま", "② ひこうき", "③ ろけっと"],
-      answerIndex: 0,
-      explanation: "おつきさまは たいようの ひかりを あびて ピカピカ ひかっているよ。ひによって かたちが かわって みえるんだ！"
-    },
-    {
-      question: "ぼくたち 人間や どうぶつ、たくさんの 海や 森がある 青くてきれいな ほしの なまえは？🌍",
-      choices: ["① かせい", "② ちきゅう", "③ もくせい"],
-      answerIndex: 1,
-      explanation: "ぼくたちが くらしている ほしは「ちきゅう」というよ。うちゅうから みると、青い海が キラキラ ひかって とっても きれいなんだ！"
-    }
-  ];
-
-  const fallbackElementaryQuizzes = [
-    {
-      question: "太陽系の中で一番大きく、きれいなしま模様と「大赤斑」という巨大な嵐がある惑星はどれでしょう？🪐",
+      question: "太陽系の中で一番大きく、きれいなしま模様と「大赤斑」という巨大な嵐がある惑星はどれ？🪐",
       choices: ["① 木星", "② 火星", "③ 金星"],
       answerIndex: 0,
-      explanation: "木星は地球が約1300個も入るほどの巨大ガス惑星！表面のしま模様や目玉のような大赤斑は数百年も続く大嵐です。"
+      explanation: "木星は地球が約1300個も入る巨大ガス惑星！表面のしま模様や目玉のような大赤斑は数百年も続く大嵐です。"
     },
     {
       question: "月はどうして夜空で黄色や白く光って見えるのでしょう？🌙",
@@ -144,7 +89,19 @@ ${chosenTopic}
       question: "小惑星「リュウグウ」まで旅をして、砂や石を持ち帰ることに成功した日本の有名な宇宙探査機はどれ？🛰️",
       choices: ["① はやぶさ2", "② H3ロケット", "③ SLIM"],
       answerIndex: 0,
-      explanation: "はやぶさ2は約52億kmもの長い宇宙の旅をして、太陽系や地球の水の起源を探る貴重な小惑星のサンプルを持ち帰りました！"
+      explanation: "はやぶさ2は約52億kmもの長い宇宙の旅をして、太陽系や生命の起源を探る貴重な小惑星のサンプルを持ち帰りました！"
+    },
+    {
+      question: "夜空で方角を知る目印になる「北極星」は、どの星座にある星でしょう？⭐",
+      choices: ["① こぐま座", "② オリオン座", "③ はくちょう座"],
+      answerIndex: 0,
+      explanation: "北極星は「こぐま座」のしっぽの先にあり、地球の地軸のほぼ延長線上にあるため一年中ほとんど動かない星です。"
+    },
+    {
+      question: "太陽系の中で、密度が水よりも軽く「もし巨大なプールがあれば水に浮く」と言われる惑星は？🪐",
+      choices: ["① 土星", "② 天王星", "③ 水星"],
+      answerIndex: 0,
+      explanation: "美しい輪をもつ土星は主に水素やヘリウムのガスでできており、比重が約0.69と水（比重1）より軽いユニークな星です！"
     }
   ];
 
@@ -192,8 +149,7 @@ ${chosenTopic}
   }
 
   console.warn('⚠️ Gemini APIが全て応答しなかったため、厳選フォールバッククイズを使用します。');
-  const pool = isToddler ? fallbackToddlerQuizzes : fallbackElementaryQuizzes;
-  return pool[Math.floor(Math.random() * pool.length)];
+  return fallbackQuizzes[Math.floor(Math.random() * fallbackQuizzes.length)];
 }
 
 function getTwitterWeight(text) {
@@ -213,22 +169,16 @@ async function main() {
   try {
     await pingSupabase();
 
-    const jstDate = new Date(Date.now() + 9 * 60 * 60 * 1000);
-    const dayOfWeek = jstDate.getUTCDay();
-    const isToddler = dayOfWeek === 0 || dayOfWeek === 3;
-
-    console.log(`🤖 クイズ生成中... 対象: ${isToddler ? '🐣 幼児向け（ひらがな版）' : '🚀 小学生向け（漢字版）'}`);
-    const quiz = await generateQuiz(isToddler);
+    console.log('🤖 天文宇宙検定4級 クイズ生成中...');
+    const quiz = await generateQuiz();
 
     const correctAnswerText = quiz.choices[quiz.answerIndex];
 
-    let header = isToddler ? '🐣 今日の宇宙クイズ！（幼児向け）🪐\n\n' : '🚀 今日の宇宙クイズ！（小学生向け）🪐\n\n';
+    let header = '🎓 今日の天文宇宙検定4級クイズ！🪐\n\n';
     let questionText = `Q. ${quiz.question}\n\n`;
     let choicesText = `${quiz.choices.join('\n')}\n\n`;
-    let ctaText = isToddler ? 'せいかいと ワクワクかいせつは リプらんへ！👇✨\n\n' : '正解とワクワク解説はリプ欄へ！👇✨\n\n';
-    let tags = isToddler 
-      ? ['#未就学児向け', '#幼児向け', '#宇宙クイズ', '#天文宇宙検定', '#知育']
-      : ['#小学生向け', '#宇宙クイズ', '#宇宙', '#天文宇宙検定', '#知育'];
+    let ctaText = '正解とワクワク解説はリプ欄へ！👇✨\n\n';
+    let tags = ['#天文宇宙検定4級', '#天文宇宙検定', '#宇宙クイズ', '#宇宙', '#星空博士'];
 
     let tweet1Text = `${header}${questionText}${choicesText}${ctaText}${tags.join(' ')}`;
     while (getTwitterWeight(tweet1Text) > 270 && tags.length > 2) {
@@ -247,9 +197,7 @@ async function main() {
     if (explanation.length > 70) {
       explanation = explanation.substring(0, 67) + '...';
     }
-    let tweet2Text = isToddler
-      ? `せいかいは… 【 ${correctAnswerText} 】でした！🎉\n\n📖 かいせつ：\n${explanation}\n\nアプリはプロフのリンクからあそべるよ！🚀`
-      : `正解は… 【 ${correctAnswerText} 】でした！🎉\n\n📖 解説：\n${explanation}\n\nアプリはプロフのリンクから遊べるよ！🚀`;
+    let tweet2Text = `正解は… 【 ${correctAnswerText} 】でした！🎉\n\n📖 解説：\n${explanation}\n\n検定対策やクイズはプロフのリンクから遊べるよ！🚀`;
 
     console.log('\n--- 1ツイート目 --- (Weight: ' + getTwitterWeight(tweet1Text) + '/280)');
     console.log(tweet1Text);

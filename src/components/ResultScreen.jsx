@@ -210,22 +210,14 @@ export default function ResultScreen({ score, total, mode = 'ai', difficulty = '
                 className="badge-wrapper star-pop" 
                 style={{ ...styles.badgeWrapper, cursor: 'default' }}
               >
-                {newBadge.image ? (
-                  <div 
-                    style={{ ...styles.realPhotoContainer, cursor: 'default' }}
-                  >
-                    <img src={newBadge.image} alt={newBadge.name} style={styles.realPhoto} />
-                  </div>
-                ) : (
-                  <div style={{
-                    ...styles.badgeCircle,
-                    backgroundColor: newBadge.color,
-                    borderColor: newBadge.borderColor || '#fff',
-                    cursor: 'default'
-                  }}>
-                    <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
-                  </div>
-                )}
+                <div style={{
+                  ...styles.badgeCircle,
+                  backgroundColor: newBadge.color,
+                  borderColor: newBadge.borderColor || '#fff',
+                  cursor: 'default'
+                }}>
+                  <span style={styles.badgeEmoji}>{newBadge.emoji}</span>
+                </div>
                 <h3 style={styles.badgeName}>
                   {newBadge.name} {newBadge.count > 1 && `×${newBadge.count}`}
                 </h3>

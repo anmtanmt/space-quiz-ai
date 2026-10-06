@@ -155,11 +155,12 @@ export default function CollectionScreen({ initialBadgeId, onBackToTitle }) {
                                   : `${status.currentProject.name}の ${part.name}`,
                                 emoji: part.emoji,
                                 desc: part.desc,
+                                detailDesc: isCompleteItem
+                                  ? `【${status.currentProject.name} 完成！】${part.desc}`
+                                  : `【${status.currentProject.name}のパーツ】${part.desc}（5つのパーツをすべて集めると完成するよ！）`,
                                 color: badge.color,
                                 count: 1,
-                                image: isCompleteItem 
-                                  ? '/images/' + PROJECT_IMAGE_MAP[status.currentProject.id] 
-                                  : null,
+                                image: '/images/' + PROJECT_IMAGE_MAP[status.currentProject.id],
                                 isCompletedProjectView: isCompleteItem,
                                 projectParts: isCompleteItem ? status.currentProject.parts : null,
                                 earnedDetails: earnedInfo ? earnedInfo.earnedDetails.filter((d, detailIdx) => {
@@ -223,6 +224,7 @@ export default function CollectionScreen({ initialBadgeId, onBackToTitle }) {
                               name: comp.name + '（かんせい！）',
                               emoji: comp.emoji,
                               desc: comp.desc,
+                              detailDesc: `【${comp.name} 完成！】${comp.desc}`,
                               color: comp.color,
                               count: 1,
                               image: comp.image,

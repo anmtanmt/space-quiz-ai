@@ -158,6 +158,7 @@ export function getDynamicBadgeInfo(badge, count = 1) {
     const status = getProjectStatus(badge.id, count);
     if (status && status.currentProject) {
       const part = status.currentProject.parts[status.currentPartIndex];
+      const projectImage = '/images/' + (PROJECT_IMAGE_MAP[status.currentProject.id] || 'p_mmx.png');
       if (part) {
         return {
           ...badge,
@@ -166,9 +167,10 @@ export function getDynamicBadgeInfo(badge, count = 1) {
             : `${status.currentProject.name}の ${part.name}`,
           emoji: part.emoji,
           desc: part.desc,
-          image: status.currentPartIndex === 4
-            ? '/images/' + PROJECT_IMAGE_MAP[status.currentProject.id]
-            : realImage
+          detailDesc: status.currentPartIndex === 4
+            ? `【${status.currentProject.name} 完成！】${part.desc}`
+            : `【${status.currentProject.name}のパーツ】${part.desc}（5つのパーツをすべて集めると完成するよ！）`,
+          image: projectImage
         };
       }
     }
