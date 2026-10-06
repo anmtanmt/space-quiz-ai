@@ -4,9 +4,17 @@ import { SPACE_VIDEOS } from '../data/spaceVideos';
 import { audio } from '../utils/audio';
 
 export default function SpaceTheaterModal({ isOpen, onClose }) {
-  const [activeVideo, setActiveVideo] = useState(SPACE_VIDEOS[0]);
+  // 開いた直後は動画を自動再生しない（ユーザーがタップした時だけ再生）
+  const [playingVideoId, setPlayingVideoId] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const lockTimerRef = useRef(null);
+
+  // モーダルが閉じた時、または開いた時に再生状態をリセット
+  useEffect(() => {
+    if (!isOpen) {
+      setPlayingVideoId(null);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     return () => {
@@ -20,15 +28,21 @@ export default function SpaceTheaterModal({ isOpen, onClose }) {
     if (isTransitioning) return;
     setIsTransitioning(true);
     audio.playClick();
+    setPlayingVideoId(null);
     lockTimerRef.current = setTimeout(() => {
       setIsTransitioning(false);
       onClose();
     }, 200);
   };
 
-  const handleSelectVideo = (video) => {
+  const handlePlayVideo = (videoId) => {
     audio.playClick();
-    setActiveVideo(video);
+    setPlayingVideoId(videoId);
+  };
+
+  const handleStopVideo = () => {
+    audio.playClick();
+    setPlayingVideoId(null);
   };
 
   return ReactDOM.createPortal(
@@ -52,65 +66,77 @@ export default function SpaceTheaterModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* メインプレーヤー */}
-        <div style={styles.playerContainer}>
-          <div style={styles.iframeWrapper}>
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${activeVideo.youtubeId}?rel=0&autoplay=1&modestbranding=1`}
-              title={activeVideo.title}
-              style={styles.iframe}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-          <div style={styles.videoMeta}>
-            <div style={styles.videoMetaHeader}>
-              <span style={{ ...styles.agencyBadge, backgroundColor: activeVideo.agencyColor }}>
-                {activeVideo.agency} 公式
-              </span>
-              <h3 style={styles.activeVideoTitle}>{activeVideo.title}</h3>
-            </div>
-            <p style={styles.videoDesc}>{activeVideo.desc}</p>
-          </div>
-        </div>
+        {/* 縦スクロールの動画リスト */}
+        <div style={styles.videoList}>
+          {SPACE_VIDEOS.map((video) => {
+            const isPlaying = playingVideoId === video.id;
 
-        {/* 動画セレクター（一覧リスト） */}
-        <div style={styles.playlistSection}>
-          <h4 style={styles.playlistTitle}>📺 ほかの 動画を えらぶ：</h4>
-          <div style={styles.playlistGrid}>
-            {SPACE_VIDEOS.map((video) => {
-              const isActive = video.id === activeVideo.id;
-              return (
-                <button
-                  key={video.id}
-                  onClick={() => handleSelectVideo(video)}
-                  style={{
-                    ...styles.videoCard,
-                    ...(isActive ? styles.videoCardActive : {})
-                  }}
-                >
-                  <div style={styles.cardThumbnailWrapper}>
-                    <img
-                      src={`https://img.youtube.com/vi/${video.youtubeId}/mqdefault.jpg`}
-                      alt={video.title}
-                      style={styles.cardThumbnail}
-                      loading="lazy"
-                    />
-                    <span style={{ ...styles.cardAgencyTag, backgroundColor: video.agencyColor }}>
-                      {video.agency}
+            return (
+              <div 
+                key={video.id} 
+                style={{
+                  ...styles.videoCard,
+                  ...(isPlaying ? styles.videoCardActive : {})
+                }}
+              >
+                {/* 動画プレーヤー / サムネイル領域 */}
+                <div style={styles.mediaContainer}>
+                  {isPlaying ? (
+                    <div style={styles.iframeWrapper}>
+                      <iframe
+                        src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?autoplay=1&rel=0&modestbranding=1`}
+                        title={video.title}
+                        style={styles.iframe}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  ) : (
+                    <div 
+                      style={styles.thumbnailWrapper}
+                      onClick={() => handlePlayVideo(video.id)}
+                    >
+                      <img
+                        src={`https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`}
+                        alt={video.title}
+                        style={styles.thumbnailImg}
+                        loading="lazy"
+                      />
+                      <div style={styles.playOverlay}>
+                        <div style={styles.playButtonCircle}>
+                          ▶
+                        </div>
+                        <span style={styles.playButtonLabel}>動画をみる</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 動画情報・解説 */}
+                <div style={styles.cardContent}>
+                  <div style={styles.cardMetaRow}>
+                    <span style={{ ...styles.agencyBadge, backgroundColor: video.agencyColor }}>
+                      {video.agency} 公式
                     </span>
-                    {isActive && <span style={styles.playingTag}>再生中 ▶</span>}
+                    {isPlaying && (
+                      <button 
+                        type="button" 
+                        onClick={handleStopVideo} 
+                        style={styles.stopButton}
+                      >
+                        ⏹ 動画をとじる
+                      </button>
+                    )}
                   </div>
-                  <div style={styles.cardTextWrap}>
-                    <p style={styles.cardTitle}>{video.title}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                  <h3 style={styles.cardTitle}>{video.title}</h3>
+                  <p style={styles.cardDesc}>{video.desc}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* 閉じるボタン */}
+        {/* 下部閉じるボタン */}
         <div style={styles.bottomBar}>
           <button className="btn-action btn-primary" onClick={handleClose} style={styles.closeBtn}>
             クイズへ もどる
@@ -140,18 +166,18 @@ const styles = {
   },
   modal: {
     width: '100%',
-    maxWidth: '820px',
+    maxWidth: '740px',
     maxHeight: '92vh',
     backgroundColor: '#0f172a',
     borderRadius: '24px',
     border: '2px solid rgba(102, 252, 241, 0.35)',
-    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(102, 252, 241, 0.2)',
+    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(102, 252, 241, 0.15)',
     overflowY: 'auto',
-    padding: '24px',
+    padding: '20px 24px',
     boxSizing: 'border-box',
     display: 'flex',
     flexDirection: 'column',
-    gap: '18px',
+    gap: '16px',
     color: '#fff'
   },
   header: {
@@ -171,14 +197,14 @@ const styles = {
   },
   headerTitle: {
     margin: 0,
-    fontSize: '1.45rem',
+    fontSize: '1.4rem',
     fontWeight: '800',
     color: 'var(--color-primary, #66fcf1)',
     letterSpacing: '0.04em'
   },
   headerSub: {
     margin: '2px 0 0 0',
-    fontSize: '0.88rem',
+    fontSize: '0.86rem',
     color: 'rgba(255, 255, 255, 0.65)'
   },
   closeIconBtn: {
@@ -192,21 +218,37 @@ const styles = {
     cursor: 'pointer',
     display: 'flex',
     justifyContent: 'center',
-    alignItems: 'center',
-    transition: 'background 0.2s'
+    alignItems: 'center'
   },
-  playerContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderRadius: '16px',
+  videoList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    paddingBottom: '8px'
+  },
+  videoCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '18px',
     overflow: 'hidden',
-    border: '1px solid rgba(255, 255, 255, 0.12)'
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
+  },
+  videoCardActive: {
+    borderColor: 'var(--color-primary, #66fcf1)',
+    boxShadow: '0 0 24px rgba(102, 252, 241, 0.25)',
+    backgroundColor: 'rgba(102, 252, 241, 0.04)'
+  },
+  mediaContainer: {
+    width: '100%',
+    backgroundColor: '#000',
+    overflow: 'hidden'
   },
   iframeWrapper: {
     position: 'relative',
     width: '100%',
     paddingBottom: '56.25%', // 16:9比率
-    height: 0,
-    backgroundColor: '#000'
+    height: 0
   },
   iframe: {
     position: 'absolute',
@@ -216,130 +258,104 @@ const styles = {
     height: '100%',
     border: 'none'
   },
-  videoMeta: {
-    padding: '16px',
-    boxSizing: 'border-box'
-  },
-  videoMetaHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    flexWrap: 'wrap',
-    marginBottom: '8px'
-  },
-  agencyBadge: {
-    padding: '3px 10px',
-    borderRadius: '12px',
-    fontSize: '0.78rem',
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: '0.05em'
-  },
-  activeVideoTitle: {
-    margin: 0,
-    fontSize: '1.15rem',
-    fontWeight: '700',
-    color: '#fff'
-  },
-  videoDesc: {
-    margin: '6px 0 0 0',
-    fontSize: '0.92rem',
-    lineHeight: '1.6',
-    color: '#cbd5e1'
-  },
-  playlistSection: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px'
-  },
-  playlistTitle: {
-    margin: 0,
-    fontSize: '0.98rem',
-    fontWeight: '700',
-    color: '#ffd166'
-  },
-  playlistGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-    gap: '12px'
-  },
-  videoCard: {
-    background: 'rgba(255, 255, 255, 0.04)',
-    border: '1px solid rgba(255, 255, 255, 0.12)',
-    borderRadius: '14px',
-    padding: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-    cursor: 'pointer',
-    textAlign: 'left',
-    color: '#fff',
-    transition: 'all 0.2s ease',
-    boxSizing: 'border-box'
-  },
-  videoCardActive: {
-    background: 'rgba(102, 252, 241, 0.12)',
-    borderColor: 'var(--color-primary, #66fcf1)',
-    boxShadow: '0 0 16px rgba(102, 252, 241, 0.3)'
-  },
-  cardThumbnailWrapper: {
+  thumbnailWrapper: {
     position: 'relative',
     width: '100%',
     paddingBottom: '56.25%',
-    borderRadius: '10px',
-    overflow: 'hidden',
+    cursor: 'pointer',
     backgroundColor: '#000'
   },
-  cardThumbnail: {
+  thumbnailImg: {
     position: 'absolute',
     top: 0,
     left: 0,
     width: '100%',
     height: '100%',
-    objectFit: 'cover'
+    objectFit: 'cover',
+    opacity: 0.88,
+    transition: 'opacity 0.2s'
   },
-  cardAgencyTag: {
+  playOverlay: {
     position: 'absolute',
-    top: '6px',
-    left: '6px',
-    padding: '2px 7px',
-    borderRadius: '8px',
-    fontSize: '0.7rem',
-    fontWeight: 'bold',
-    color: '#fff'
+    inset: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '10px',
+    background: 'radial-gradient(circle, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.65) 100%)'
   },
-  playingTag: {
-    position: 'absolute',
-    bottom: '6px',
-    right: '6px',
+  playButtonCircle: {
+    width: '64px',
+    height: '64px',
+    borderRadius: '50%',
     backgroundColor: 'rgba(239, 71, 111, 0.95)',
-    padding: '2px 8px',
-    borderRadius: '8px',
-    fontSize: '0.72rem',
-    fontWeight: 'bold',
-    color: '#fff'
+    color: '#fff',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    fontSize: '1.6rem',
+    boxShadow: '0 4px 20px rgba(239, 71, 111, 0.6), 0 0 0 4px rgba(255, 255, 255, 0.3)',
+    paddingLeft: '4px' // 三角位置補正
   },
-  cardTextWrap: {
-    padding: '2px 4px'
+  playButtonLabel: {
+    color: '#fff',
+    fontSize: '0.95rem',
+    fontWeight: '800',
+    letterSpacing: '0.08em',
+    textShadow: '0 2px 6px rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: '4px 12px',
+    borderRadius: '12px'
+  },
+  cardContent: {
+    padding: '16px 18px',
+    boxSizing: 'border-box'
+  },
+  cardMetaRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '8px'
+  },
+  agencyBadge: {
+    padding: '3px 10px',
+    borderRadius: '10px',
+    fontSize: '0.78rem',
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: '0.04em'
+  },
+  stopButton: {
+    background: 'rgba(255, 255, 255, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.25)',
+    color: '#ffbe0b',
+    fontSize: '0.8rem',
+    fontWeight: 'bold',
+    padding: '4px 12px',
+    borderRadius: '14px',
+    cursor: 'pointer'
   },
   cardTitle: {
-    margin: 0,
-    fontSize: '0.88rem',
+    margin: '0 0 8px 0',
+    fontSize: '1.18rem',
     fontWeight: '700',
-    lineHeight: '1.4',
     color: '#f8fafc',
-    display: '-webkit-box',
-    WebkitLineClamp: 2,
-    WebkitBoxOrient: 'vertical',
-    overflow: 'hidden'
+    lineHeight: '1.4'
+  },
+  cardDesc: {
+    margin: 0,
+    fontSize: '0.92rem',
+    lineHeight: '1.6',
+    color: '#cbd5e1'
   },
   bottomBar: {
     display: 'flex',
     justifyContent: 'center',
-    paddingTop: '8px'
+    paddingTop: '6px'
   },
   closeBtn: {
-    padding: '12px 36px',
+    padding: '12px 40px',
     fontSize: '1rem',
     fontWeight: 'bold',
     borderRadius: '50px',

@@ -375,6 +375,10 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
         <button className="btn-action btn-accent" onClick={handleStart} style={styles.startButton}>
           🎮 クイズを はじめる！🚀
         </button>
+      </div>
+
+      {/* サブアクション（バッジ、うちゅうシアター、おしらせ） */}
+      <div style={styles.subActionRow}>
         <button 
           className="btn-action btn-back" 
           onClick={() => { audio.playClick(); onViewCollection(); }} 
@@ -382,16 +386,12 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
         >
           🏆 バッジを みる
         </button>
-      </div>
-
-      {/* サブアクション（うちゅうシアター & おしらせ） */}
-      <div style={styles.subActionRow}>
         <button 
           type="button"
           onClick={() => { audio.playClick(); setShowTheater(true); }} 
           style={styles.theaterButton}
         >
-          🎬 うちゅうシアター <span style={styles.badgeNew}>NEW</span>
+          🎬 シアター <span style={styles.badgeNew}>NEW</span>
         </button>
         <button 
           type="button"
@@ -409,25 +409,21 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
 
       {/* おとな用ページへのひっそりとしたボタン & 法務リンク & Xリンク */}
       <div style={styles.footer}>
-        <div style={styles.footerRowTop}>
-          <a
-            href="https://x.com/space_quiz_ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={styles.xLinkBtn}
-            onClick={() => audio.playClick()}
-          >
-            <span style={styles.xIcon}>𝕏</span> 公式Xで毎朝クイズ配信中！
-          </a>
-        </div>
-        <div style={styles.footerRowBottom}>
-          <button onClick={() => { audio.playClick(); onGoToParent(); }} style={styles.parentButton}>
-            ⚙️ おとな用の ページ
-          </button>
-          <button onClick={() => handleOpenLegal('tokusho')} style={styles.legalFooterButton}>
-            📜 利用規約・特定商取引法に基づく表記
-          </button>
-        </div>
+        <button onClick={() => { audio.playClick(); onGoToParent(); }} style={styles.parentButton}>
+          ⚙️ おとな用の ページ
+        </button>
+        <button onClick={() => handleOpenLegal('tokusho')} style={styles.legalFooterButton}>
+          📜 利用規約・特定商取引法に基づく表記
+        </button>
+        <a
+          href="https://x.com/space_quiz_ai"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={styles.xLinkBtn}
+          onClick={() => audio.playClick()}
+        >
+          <span style={styles.xIcon}>𝕏</span> 公式X
+        </a>
       </div>
 
       {/* 全ゲーム共通 上限（エネルギー切れ）モーダル */}
@@ -509,13 +505,14 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
 const styles = {
   container: {
     width: '100%',
-    height: '100%',
+    minHeight: '100%',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
-    padding: '30px 30px 20px 30px',
+    padding: '20px 24px 16px 24px',
     alignItems: 'center',
     position: 'relative',
+    boxSizing: 'border-box',
   },
   rocket: {
     position: 'absolute',
@@ -717,60 +714,65 @@ const styles = {
   },
   actionRow: {
     display: 'flex',
-    gap: '24px',
-    marginTop: '15px',
+    marginTop: '12px',
     width: '100%',
     maxWidth: '600px',
   },
   startButton: {
-    flex: 2,
-    fontSize: '1.4rem',
-    padding: '16px',
-  },
-  collectionButton: {
-    flex: 1,
-    fontSize: '1.1rem',
+    width: '100%',
+    fontSize: '1.35rem',
+    padding: '14px',
+    boxShadow: '0 4px 16px rgba(255, 183, 3, 0.4)',
   },
   subActionRow: {
     display: 'flex',
-    gap: '12px',
-    marginTop: '10px',
+    gap: '10px',
+    marginTop: '8px',
     width: '100%',
     maxWidth: '600px',
     justifyContent: 'center',
   },
+  collectionButton: {
+    flex: 1,
+    fontSize: '0.92rem',
+    padding: '10px 12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '14px',
+  },
   theaterButton: {
     flex: 1,
-    padding: '12px 16px',
-    fontSize: '0.95rem',
+    padding: '10px 12px',
+    fontSize: '0.92rem',
     fontWeight: 'bold',
-    background: 'linear-gradient(135deg, rgba(239, 71, 111, 0.2), rgba(255, 209, 102, 0.2))',
+    background: 'linear-gradient(135deg, rgba(239, 71, 111, 0.25), rgba(255, 209, 102, 0.25))',
     border: '1px solid rgba(239, 71, 111, 0.5)',
-    borderRadius: '16px',
+    borderRadius: '14px',
     color: '#fff',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '6px',
-    boxShadow: '0 4px 12px rgba(239, 71, 111, 0.15)',
+    gap: '4px',
+    boxShadow: '0 2px 8px rgba(239, 71, 111, 0.2)',
     transition: 'all 0.2s ease',
   },
   newsButton: {
     flex: 1,
-    padding: '12px 16px',
-    fontSize: '0.95rem',
+    padding: '10px 12px',
+    fontSize: '0.92rem',
     fontWeight: 'bold',
     background: 'rgba(255, 255, 255, 0.05)',
     border: '1px solid rgba(255, 255, 255, 0.18)',
-    borderRadius: '16px',
+    borderRadius: '14px',
     color: '#ffd166',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '6px',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+    gap: '4px',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
     transition: 'all 0.2s ease',
   },
   badgeNew: {
@@ -783,75 +785,65 @@ const styles = {
     letterSpacing: '0.05em',
   },
   footer: {
-    marginTop: '15px',
+    marginTop: '12px',
     width: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  footerRowTop: {
-    width: '100%',
-    display: 'flex',
-    justifyContent: 'center',
-    marginBottom: '2px',
-  },
-  footerRowBottom: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     gap: '12px',
     flexWrap: 'wrap',
-  },
-  xLinkBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '6px 16px',
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    border: '1px solid rgba(255, 255, 255, 0.16)',
-    borderRadius: '20px',
-    color: '#e2e8f0',
-    textDecoration: 'none',
-    fontSize: '0.82rem',
-    fontWeight: 'bold',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-    transition: 'all 0.2s ease',
-  },
-  xIcon: {
-    display: 'inline-flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '18px',
-    height: '18px',
-    backgroundColor: '#000',
-    color: '#fff',
-    borderRadius: '50%',
-    fontSize: '0.75rem',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
+    paddingTop: '6px',
+    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
   },
   parentButton: {
     background: 'none',
     border: 'none',
-    color: '#606580',
+    color: '#8e96b8',
     cursor: 'pointer',
     fontSize: '0.85rem',
+    fontWeight: 'bold',
     fontFamily: 'var(--font-family)',
-    padding: '6px 12px',
+    padding: '6px 10px',
     borderRadius: '8px',
     transition: 'color 0.2s',
   },
   legalFooterButton: {
     background: 'none',
     border: 'none',
-    color: '#555a73',
+    color: '#6c7293',
     cursor: 'pointer',
     fontSize: '0.78rem',
     fontFamily: 'var(--font-family)',
-    padding: '6px 10px',
+    padding: '6px 8px',
     textDecoration: 'underline',
     borderRadius: '8px',
     transition: 'color 0.2s',
+  },
+  xLinkBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '4px 12px',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid rgba(255, 255, 255, 0.18)',
+    borderRadius: '16px',
+    color: '#e2e8f0',
+    textDecoration: 'none',
+    fontSize: '0.78rem',
+    fontWeight: 'bold',
+    transition: 'all 0.2s ease',
+  },
+  xIcon: {
+    display: 'inline-flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '16px',
+    height: '16px',
+    backgroundColor: '#000',
+    color: '#fff',
+    borderRadius: '50%',
+    fontSize: '0.7rem',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
   },
   // エネルギーバッジ用スタイル
   energyBadgePass: {
