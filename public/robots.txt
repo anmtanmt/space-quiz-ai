@@ -1,3 +1,4 @@
-# 全ての検索エンジンの巡回・インデックスを完全に禁止
 User-agent: *
-Disallow: /
+Allow: /
+
+Sitemap: https://space-quiz.anmtapp.com/sitemap.xml

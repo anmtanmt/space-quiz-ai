@@ -4,6 +4,8 @@ import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
 import { useAuth } from '../contexts/AuthContext';
 import LegalModal from './LegalModal';
+import SpaceTheaterModal from './SpaceTheaterModal';
+import NewsModal from './NewsModal';
 import { trackEvent } from '../utils/analytics';
 
 export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParent }) {
@@ -12,6 +14,10 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
   const [difficulty, setDifficulty] = useState('easy'); // 'easy', 'medium', 'hard' (or '4', '3' for test)
   const [hasParentQuizzes, setHasParentQuizzes] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(audio.enabled);
+
+  // うちゅうシアター & おしらせモーダル状態
+  const [showTheater, setShowTheater] = useState(false);
+  const [showNews, setShowNews] = useState(false);
 
   // AI利用制限状態
   const [aiUsage, setAiUsage] = useState(() => storage.getAiUsage());
@@ -378,19 +384,50 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
         </button>
       </div>
 
+      {/* サブアクション（うちゅうシアター & おしらせ） */}
+      <div style={styles.subActionRow}>
+        <button 
+          type="button"
+          onClick={() => { audio.playClick(); setShowTheater(true); }} 
+          style={styles.theaterButton}
+        >
+          🎬 うちゅうシアター <span style={styles.badgeNew}>NEW</span>
+        </button>
+        <button 
+          type="button"
+          onClick={() => { audio.playClick(); setShowNews(true); }} 
+          style={styles.newsButton}
+        >
+          📢 おしらせ
+        </button>
+      </div>
+
       {/* 音量切り替えフローティングボタン */}
       <button onClick={handleToggleSound} style={styles.soundButton}>
         {soundEnabled ? '🔊 おとON' : '🔇 おとOFF'}
       </button>
 
-      {/* おとな用ページへのひっそりとしたボタン & 法務リンク */}
+      {/* おとな用ページへのひっそりとしたボタン & 法務リンク & Xリンク */}
       <div style={styles.footer}>
-        <button onClick={() => { audio.playClick(); onGoToParent(); }} style={styles.parentButton}>
-          ⚙️ おとな用の ページ
-        </button>
-        <button onClick={() => handleOpenLegal('tokusho')} style={styles.legalFooterButton}>
-          📜 利用規約・特定商取引法に基づく表記
-        </button>
+        <div style={styles.footerRowTop}>
+          <a
+            href="https://x.com/space_quiz_ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={styles.xLinkBtn}
+            onClick={() => audio.playClick()}
+          >
+            <span style={styles.xIcon}>𝕏</span> 公式Xで毎朝クイズ配信中！
+          </a>
+        </div>
+        <div style={styles.footerRowBottom}>
+          <button onClick={() => { audio.playClick(); onGoToParent(); }} style={styles.parentButton}>
+            ⚙️ おとな用の ページ
+          </button>
+          <button onClick={() => handleOpenLegal('tokusho')} style={styles.legalFooterButton}>
+            📜 利用規約・特定商取引法に基づく表記
+          </button>
+        </div>
       </div>
 
       {/* 全ゲーム共通 上限（エネルギー切れ）モーダル */}
@@ -446,6 +483,18 @@ export default function TitleScreen({ onStartQuiz, onViewCollection, onGoToParen
         </div>,
         document.body
       )}
+
+      {/* うちゅうシアター動画モーダル */}
+      <SpaceTheaterModal
+        isOpen={showTheater}
+        onClose={() => setShowTheater(false)}
+      />
+
+      {/* おしらせモーダル */}
+      <NewsModal
+        isOpen={showNews}
+        onClose={() => setShowNews(false)}
+      />
 
       {/* 法務表記モーダル */}
       <LegalModal
@@ -682,14 +731,104 @@ const styles = {
     flex: 1,
     fontSize: '1.1rem',
   },
+  subActionRow: {
+    display: 'flex',
+    gap: '12px',
+    marginTop: '10px',
+    width: '100%',
+    maxWidth: '600px',
+    justifyContent: 'center',
+  },
+  theaterButton: {
+    flex: 1,
+    padding: '12px 16px',
+    fontSize: '0.95rem',
+    fontWeight: 'bold',
+    background: 'linear-gradient(135deg, rgba(239, 71, 111, 0.2), rgba(255, 209, 102, 0.2))',
+    border: '1px solid rgba(239, 71, 111, 0.5)',
+    borderRadius: '16px',
+    color: '#fff',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    boxShadow: '0 4px 12px rgba(239, 71, 111, 0.15)',
+    transition: 'all 0.2s ease',
+  },
+  newsButton: {
+    flex: 1,
+    padding: '12px 16px',
+    fontSize: '0.95rem',
+    fontWeight: 'bold',
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid rgba(255, 255, 255, 0.18)',
+    borderRadius: '16px',
+    color: '#ffd166',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+    transition: 'all 0.2s ease',
+  },
+  badgeNew: {
+    backgroundColor: '#ef476f',
+    color: '#fff',
+    fontSize: '0.65rem',
+    fontWeight: '900',
+    padding: '2px 6px',
+    borderRadius: '10px',
+    letterSpacing: '0.05em',
+  },
   footer: {
     marginTop: '15px',
     width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  footerRowTop: {
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    marginBottom: '2px',
+  },
+  footerRowBottom: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     gap: '12px',
     flexWrap: 'wrap',
+  },
+  xLinkBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '6px 16px',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    border: '1px solid rgba(255, 255, 255, 0.16)',
+    borderRadius: '20px',
+    color: '#e2e8f0',
+    textDecoration: 'none',
+    fontSize: '0.82rem',
+    fontWeight: 'bold',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+    transition: 'all 0.2s ease',
+  },
+  xIcon: {
+    display: 'inline-flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '18px',
+    height: '18px',
+    backgroundColor: '#000',
+    color: '#fff',
+    borderRadius: '50%',
+    fontSize: '0.75rem',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
   },
   parentButton: {
     background: 'none',
