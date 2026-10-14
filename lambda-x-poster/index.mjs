@@ -22,11 +22,14 @@ async function pingSupabase() {
     return;
   }
   try {
-    console.log('📡 Supabase Keep-Alive ping 送信中...');
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
+    console.log('📡 Supabase Keep-Alive ping 送信中 (PostgreSQL DBクエリ)...');
+    // NOTE: /auth/v1/health だとPostgreSQLへのクエリが発生せずSupabaseの非アクティブ判定タイマーがリセットされないため、
+    // PostgREST経由でDBのSELECTクエリを実行して確実にアクティビティとしてカウントさせます。
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
       method: 'GET',
       headers: {
-        'apikey': SUPABASE_ANON_KEY
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
       }
     });
     console.log(`✅ Supabase Keep-Alive ping 完了 (Status: ${res.status})`);
