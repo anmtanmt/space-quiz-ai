@@ -266,8 +266,16 @@
   - 定期配信（毎朝7:30 JST / UTC 22:30）は、アプリ本体の関数とは分離した専用 Lambda（`space-quiz-x-poster`）と EventBridge ルール（`cron(30 22 * * ? *)`）で運用し、アプリの可用性を100%保護します。タイムアウトはAPIリトライを考慮して `60秒` を設定します。
 - **Lambda IAMロールとCloudWatch Logsのスコープ保証**:
   - Lambda関数を新設・分割する際は、実行ロールにアタッチされたログ書き込みポリシーが `arn:aws:logs:...:log-group:/aws/lambda/<関数名>:*` のように特定の別関数名に限定されていないか確認し、`AWSLambdaBasicExecutionRole` を付与してログが確実に記録される環境を整えてください。
-- **Supabase 無料枠（7日間非アクティブ休止）の自動防止（Keep-Alive ping）**:
-  - Supabase（Free Tier）は7日間APIリクエストがないと自動的に休止（Paused）される仕様があります。
+- **Supabase 無料枠（7日間非アクティブ休止）の自動防止とPostgRESTクエリ必須化ルール**:
+  - Supabase（Free Tier）は7日間データベースへのアクセスがないと自動的に休止（Paused）される仕様があります。
+  - **重要（/auth/v1/health の使用禁止）**:
+    - `/auth/v1/health` は認証機能（GoTrue）サーバーの死活監視エンドポイントであり、PostgreSQLデータベースへのアクセス（クエリ）が発生しません。そのため、定期的にHTTP 200を返していてもSupabase内部の非アクティブ監視タイマーはリセットされず、7日後にプロジェクトが自動休止されてしまいます。
+  - **PostgREST API 経由でのDB実クエリ義務付け**:
+    - Keep-Alive ping を実装する際は、必ず **`/rest/v1/profiles?select=id&limit=1`** などのPostgRESTエンドポイントに対してGETリクエストを送信してください。
+    - リクエストヘッダーには `'apikey': SUPABASE_ANON_KEY` と `'Authorization': `Bearer ${SUPABASE_ANON_KEY}`` の両方を必ず付与します。
+    - これにより、匿名アクセスであってもPostgreSQLデータベース上でSQL（SELECT）とRLS評価が確実に実行され、Supabaseのアクティビティログ・非アクティブタイマーが確実にリセットされます。
+  - **休止時の復旧制約**:
+    - プロジェクトが一度休止（Paused）されると、セキュリティ仕様上、APIやCLIからの復帰は一切不可能です。必ずSupabaseダッシュボード（Webコンソール）から手動で「Restore / Resume」ボタンを押す必要があります。
 
 ## 32. 認証・セキュリティ・VIP運用とデータ保護の設計ルール
 - **本番環境からのデバッグツール・特権昇格機能の完全排除**:
