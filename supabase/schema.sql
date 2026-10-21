@@ -114,3 +114,22 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 5. 無料枠Inactivity Pause（自動休止）防止用 Keep-Alive テーブル
+CREATE TABLE IF NOT EXISTS public._keep_alive (
+  id INT PRIMARY KEY DEFAULT 1,
+  last_ping_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+INSERT INTO public._keep_alive (id, last_ping_at)
+VALUES (1, NOW())
+ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE public._keep_alive ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public keep_alive" ON public._keep_alive;
+CREATE POLICY "Allow public keep_alive"
+  ON public._keep_alive
+  FOR ALL
+  USING (true)
+  WITH CHECK (true);
+

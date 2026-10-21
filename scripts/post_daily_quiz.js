@@ -27,17 +27,33 @@ async function pingSupabase() {
     return;
   }
   try {
-    console.log('📡 Supabase Keep-Alive ping 送信中 (PostgreSQL DBクエリ)...');
-    // NOTE: /auth/v1/health だとPostgreSQLへのクエリが発生せずSupabaseの非アクティブ判定タイマーがリセットされないため、
-    // PostgREST経由でDBのSELECTクエリを実行して確実にアクティビティとしてカウントさせます。
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
-      method: 'GET',
+    console.log('📡 Supabase Keep-Alive ping 送信中 (PostgreSQL DB書き込みトランザクション)...');
+    // NOTE: 空のSELECTだとSupabaseのInactivity Monitorで実アクティビティとしてカウントされずに休止される恐れがあるため、
+    // _keep_alive テーブルのタイムスタンプをPATCHで確実に更新（PostgreSQL Write/WAL生成）します。
+    const nowIso = new Date().toISOString();
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/_keep_alive?id=eq.1`, {
+      method: 'PATCH',
       headers: {
         'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-      }
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ last_ping_at: nowIso })
     });
-    console.log(`✅ Supabase Keep-Alive ping 完了 (Status: ${res.status})`);
+
+    if (res.ok) {
+      console.log(`✅ Supabase Keep-Alive ping 完了 (Status: ${res.status}, DB書き込み成功)`);
+    } else {
+      console.warn(`⚠️ Supabase Keep-Alive PATCH 失敗 (Status: ${res.status}), SELECT フォールバック試行...`);
+      await fetch(`${SUPABASE_URL}/rest/v1/_keep_alive?select=*`, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
+    }
   } catch (err) {
     console.warn('⚠️ Supabase Keep-Alive ping 失敗 (クイズ投稿は継続します):', err.message);
   }
