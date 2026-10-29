@@ -275,9 +275,7 @@
     - **頻度の壁（1日1回では不十分）**: Supabase公式仕様において「Typically, a few user database requests per day are required to prevent a project from being paused（休止を防ぐには1日に数回のリクエストが必要）」と明記されています。毎朝1回のみのPingでは「活動量不足（Low Activity）」と判定され、約7日後に休止予告メールが届いてしまいます。
     - **専用Keep-Alive Lambda（2時間ごと実行）による恒久対策**:
       - X自動投稿（1日1回）とは完全に分離した専用の超軽量Lambda（`space-quiz-keep-alive`）を作成し、EventBridgeルール（`rate(2 hours)`）で2時間ごと（1日12回）に起動します。
-      - 毎回専用テーブル `public._keep_alive` に対して **`PATCH /rest/v1/_keep_alive?id=eq.1`** でタイムスタンプを実際に更新（Write/WAL生成）します。
-      - さらに冗長化として、GitHub Actions（`.github/workflows/keep-supabase-alive.yml`）からも4時間ごとに独立してPATCHを実行し、マルチクラウドで二重に休止を防止します。
-      - これにより、1日12回以上の確実な更新トランザクションが生成され、Supabaseのいかなる監視システムでも「恒常的なアクティブプロジェクト」として認識され、休止を100%恒久的に防止できます。
+      - これにより、1日12回（2時間ごと）の確実な更新トランザクションが生成され、Supabaseのいかなる監視システムでも「恒常的なアクティブプロジェクト」として認識され、休止を100%恒久的に防止できます。
   - **休止時の復旧制約**:
     - プロジェクトが一度休止（Paused）されると、セキュリティ仕様上、APIやCLIからの復帰は一切不可能です。必ずSupabaseダッシュボード（Webコンソール）から手動で「Restore / Resume」ボタンを押す必要があります。
     - 一方、休止前の「休止予告（`is going to be paused`）」の段階であれば、Supabaseダッシュボード（Webコンソール）を開いてプロジェクトを表示するだけで即座に休止予定がキャンセルされます。
