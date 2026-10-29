@@ -271,10 +271,13 @@
   - **重要（/auth/v1/health および 空のSELECT の使用禁止）**:
     - `/auth/v1/health` は認証機能（GoTrue）サーバーの死活監視エンドポイントに過ぎず、PostgreSQLデータベースへのクエリが発生しません。
     - また、`profiles` のようなRLS制限で結果が0件（`[]`）となる空のSELECTクエリも、Supabase側の非アクティブ監視（Inactivity Monitor）において「実質的なDB利用（Activity）」としてカウントされず、休止警告（`is going to be paused`）が届いてしまいます。
-  - **`_keep_alive` テーブルへのPATCH（書き込みトランザクション/WAL生成）の義務付け**:
-    - Keep-Alive ping を実装する際は、専用テーブル `public._keep_alive`（カラム: `id INT PRIMARY KEY, last_ping_at TIMESTAMPTZ`）を用意し、必ず **`PATCH /rest/v1/_keep_alive?id=eq.1`** でタイムスタンプを実際に更新してください。
-    - リクエストヘッダーには `'apikey': SUPABASE_ANON_KEY`, `'Authorization': `Bearer ${SUPABASE_ANON_KEY}``, `'Content-Type': 'application/json'`, `'Prefer': 'return=representation'` を付与します。
-    - これにより、PostgreSQLデータベース上で確実な**更新トランザクション（Write）および WAL（Write-Ahead Log）**が生成され、Supabaseのいかなる監視システム（トランザクション数・WAL・ディスク書き込み）でも100%「利用中」として認識され、休止を恒久的に防ぐことができます。
+  - **`_keep_alive` テーブルへのPATCH（書き込みトランザクション/WAL生成）と実行頻度（1日数回必須）の義務付け**:
+    - **頻度の壁（1日1回では不十分）**: Supabase公式仕様において「Typically, a few user database requests per day are required to prevent a project from being paused（休止を防ぐには1日に数回のリクエストが必要）」と明記されています。毎朝1回のみのPingでは「活動量不足（Low Activity）」と判定され、約7日後に休止予告メールが届いてしまいます。
+    - **専用Keep-Alive Lambda（2時間ごと実行）による恒久対策**:
+      - X自動投稿（1日1回）とは完全に分離した専用の超軽量Lambda（`space-quiz-keep-alive`）を作成し、EventBridgeルール（`rate(2 hours)`）で2時間ごと（1日12回）に起動します。
+      - 毎回専用テーブル `public._keep_alive` に対して **`PATCH /rest/v1/_keep_alive?id=eq.1`** でタイムスタンプを実際に更新（Write/WAL生成）します。
+      - さらに冗長化として、GitHub Actions（`.github/workflows/keep-supabase-alive.yml`）からも4時間ごとに独立してPATCHを実行し、マルチクラウドで二重に休止を防止します。
+      - これにより、1日12回以上の確実な更新トランザクションが生成され、Supabaseのいかなる監視システムでも「恒常的なアクティブプロジェクト」として認識され、休止を100%恒久的に防止できます。
   - **休止時の復旧制約**:
     - プロジェクトが一度休止（Paused）されると、セキュリティ仕様上、APIやCLIからの復帰は一切不可能です。必ずSupabaseダッシュボード（Webコンソール）から手動で「Restore / Resume」ボタンを押す必要があります。
     - 一方、休止前の「休止予告（`is going to be paused`）」の段階であれば、Supabaseダッシュボード（Webコンソール）を開いてプロジェクトを表示するだけで即座に休止予定がキャンセルされます。

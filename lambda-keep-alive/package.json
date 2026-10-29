@@ -1,0 +1,6 @@
+{
+  "name": "space-quiz-keep-alive",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Supabase Inactivity Pause Prevention Heartbeat"
+}
