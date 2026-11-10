@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { generateQuizFromAI, generateAstronomyTestQuiz } from '../services/gemini';
+import { generateQuizFromAI, generateAstronomyTestQuiz, getOfficialSampleQuiz } from '../services/gemini';
 import { storage } from '../utils/storage';
 import { audio } from '../utils/audio';
 import { QUIZ_IMAGES } from '../data/quizImages';
@@ -465,10 +465,10 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
       const sessionQuestions = [];
       const recentQuestions = storage.getRecentQuestions(30);
 
-      // 章リストの準備 (検定用)
+      // 章リストの準備 (検定用: 公式テキスト全6章に完全準拠)
       let chapters = [];
       if (difficulty === '4') {
-        chapters = [0, 1, 2, 3, 4, 5, 6];
+        chapters = [1, 2, 3, 4, 5, 6];
       } else if (difficulty === '3') {
         chapters = [1, 2, 3, 4, 5, 6];
       }
@@ -484,16 +484,24 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
           let quiz;
           if (mode === 'test') {
             const targetChapter = shuffledChapters[i] !== undefined ? shuffledChapters[i] : null;
-            let targetImage = null;
-            if (targetChapter !== null && Math.random() < 0.3) {
-              const matchingImages = QUIZ_IMAGES.filter(img => 
-                img.grades.includes(difficulty) && img.chapters[difficulty] === targetChapter
-              );
-              if (matchingImages.length > 0) {
-                targetImage = matchingImages[Math.floor(Math.random() * matchingImages.length)];
-              }
+
+            // 4級の場合、一定確率（約35%）で公式テキストのサンプル問題から該当章の問題を優先ピックアップ
+            if (difficulty === '4' && Math.random() < 0.35) {
+              quiz = getOfficialSampleQuiz(difficulty, targetChapter, historyIds, recentQuestions);
             }
-            quiz = await generateAstronomyTestQuiz(difficulty, historyIds, sessionQuestions, recentQuestions, targetChapter, targetImage);
+
+            if (!quiz) {
+              let targetImage = null;
+              if (targetChapter !== null && Math.random() < 0.3) {
+                const matchingImages = QUIZ_IMAGES.filter(img => 
+                  img.grades.includes(difficulty) && img.chapters[difficulty] === targetChapter
+                );
+                if (matchingImages.length > 0) {
+                  targetImage = matchingImages[Math.floor(Math.random() * matchingImages.length)];
+                }
+              }
+              quiz = await generateAstronomyTestQuiz(difficulty, historyIds, sessionQuestions, recentQuestions, targetChapter, targetImage);
+            }
           } else {
             quiz = await generateQuizFromAI(difficulty, historyIds, sessionQuestions, recentQuestions);
           }
@@ -530,16 +538,24 @@ export default function QuizScreen({ mode, difficulty, onFinishQuiz, onBackToTit
           let quiz;
           if (mode === 'test') {
             const targetChapter = shuffledChapters[i] !== undefined ? shuffledChapters[i] : null;
-            let targetImage = null;
-            if (targetChapter !== null && Math.random() < 0.3) {
-              const matchingImages = QUIZ_IMAGES.filter(img => 
-                img.grades.includes(difficulty) && img.chapters[difficulty] === targetChapter
-              );
-              if (matchingImages.length > 0) {
-                targetImage = matchingImages[Math.floor(Math.random() * matchingImages.length)];
-              }
+
+            // 4級の場合、一定確率（約35%）で公式テキストのサンプル問題から該当章の問題を優先ピックアップ
+            if (difficulty === '4' && Math.random() < 0.35) {
+              quiz = getOfficialSampleQuiz(difficulty, targetChapter, historyIds, recentQuestions);
             }
-            quiz = await generateAstronomyTestQuiz(difficulty, historyIds, sessionQuestions, recentQuestions, targetChapter, targetImage);
+
+            if (!quiz) {
+              let targetImage = null;
+              if (targetChapter !== null && Math.random() < 0.3) {
+                const matchingImages = QUIZ_IMAGES.filter(img => 
+                  img.grades.includes(difficulty) && img.chapters[difficulty] === targetChapter
+                );
+                if (matchingImages.length > 0) {
+                  targetImage = matchingImages[Math.floor(Math.random() * matchingImages.length)];
+                }
+              }
+              quiz = await generateAstronomyTestQuiz(difficulty, historyIds, sessionQuestions, recentQuestions, targetChapter, targetImage);
+            }
           } else {
             quiz = await generateQuizFromAI(difficulty, historyIds, sessionQuestions, recentQuestions);
           }

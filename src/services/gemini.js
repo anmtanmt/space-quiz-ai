@@ -220,12 +220,18 @@ const FALLBACK_QUIZZES = {
 
 // APIキーを取得（Viteの環境変数または直接定義）
 const getApiKey = () => {
-  return import.meta.env.VITE_GEMINI_API_KEY || '';
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env.VITE_GEMINI_API_KEY || '';
+  }
+  return process.env.VITE_GEMINI_API_KEY || '';
 };
 
 // API GatewayのURLを取得（本番環境用）
 const getApiGatewayUrl = () => {
-  return import.meta.env.VITE_API_GATEWAY_URL || '';
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env.VITE_API_GATEWAY_URL || '';
+  }
+  return process.env.VITE_API_GATEWAY_URL || '';
 };
 
 // Gemini APIを用いてクイズを生成する関数
@@ -326,16 +332,14 @@ export const generateQuizFromAI = async (difficulty, answeredIds = [], excludeQu
   }
   `;
 
-  let retries = 3;
-  while (retries > 0) {
+  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-3.1-flash-lite'];
+  for (let i = 0; i < candidateModels.length; i++) {
+    const currentModelName = candidateModels[i];
     try {
-      // @google/generative-ai の利用（標準的な初期化手順）
-      // GoogleGenAI ではなく、SDK v0.x では GoogleGenerativeAI クラスを利用します。
-      // パッケージのインポートを確認し、適切なAPI呼び出しを行います。
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-3.1-flash-lite',
+        model: currentModelName,
         generationConfig: {
           responseMimeType: 'application/json'
         }
@@ -353,14 +357,12 @@ export const generateQuizFromAI = async (difficulty, answeredIds = [], excludeQu
         quiz.id = 'ai_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
         return quiz;
       } else {
-        console.warn('Quiz failed validation. Retrying...', quiz);
+        console.warn(`Quiz from ${currentModelName} failed validation.`, quiz);
       }
     } catch (e) {
-      console.error('Failed to generate quiz from Gemini API. Retries left: ' + (retries - 1), e);
+      console.warn(`Failed with model ${currentModelName}, trying next...`, e.message || e);
     }
-    retries--;
-    // 少し待ってからリトライ（100ms）
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 150));
   }
 
   // 全てのリトライに失敗した場合はフォールバック
@@ -368,9 +370,28 @@ export const generateQuizFromAI = async (difficulty, answeredIds = [], excludeQu
   return getFallbackQuiz(difficulty, answeredIds);
 };
 
+// AIが <rt>かんじ</rt> のように <ruby> を省いて出力した場合に自動補正する
+function normalizeRubyTags(text) {
+  if (typeof text !== 'string') return text;
+  // 既に <ruby> で囲まれていない [漢字]+<rt>...</rt> を <ruby>$1<rt>$2</rt></ruby> に変換
+  return text.replace(/(?<!<ruby>)([\u4e00-\u9faf]+)<rt>(.*?)<\/rt>(?!<\/ruby>)/g, '<ruby>$1<rt>$2</rt></ruby>');
+}
+
+// クイズオブジェクト全体のルビタグを正規化する
+function sanitizeQuizRubies(quiz) {
+  if (!quiz) return quiz;
+  if (quiz.question) quiz.question = normalizeRubyTags(quiz.question);
+  if (Array.isArray(quiz.choices)) {
+    quiz.choices = quiz.choices.map(c => normalizeRubyTags(c));
+  }
+  if (quiz.explanation) quiz.explanation = normalizeRubyTags(quiz.explanation);
+  return quiz;
+}
+
 // クイズデータの自動バリデーション
 const validateQuiz = (quiz, difficulty) => {
   if (!quiz) return false;
+  sanitizeQuizRubies(quiz);
   if (typeof quiz.question !== 'string' || quiz.question.length < 5) return false;
   if (!Array.isArray(quiz.choices) || quiz.choices.length !== 3) return false;
   if (typeof quiz.answerIndex !== 'number' || quiz.answerIndex < 0 || quiz.answerIndex > 2) return false;
@@ -423,45 +444,43 @@ const getFallbackQuiz = (difficulty, answeredIds) => {
   return { ...available[randomIndex] };
 };
 
+import { OFFICIAL_SAMPLE_QUIZZES_4 } from '../data/officialSampleQuizzes4.js';
+
+// 天文宇宙検定4級の公式サンプル問題から適した問題を取得するヘルパー
+export const getOfficialSampleQuiz = (grade, targetChapter, answeredIds = [], recentQuestions = []) => {
+  if (grade !== '4') return null;
+
+  // 指定章があればその章の問題を優先
+  let pool = OFFICIAL_SAMPLE_QUIZZES_4;
+  if (targetChapter !== null) {
+    const chapterPool = pool.filter(q => q.chapter === targetChapter);
+    if (chapterPool.length > 0) {
+      pool = chapterPool;
+    }
+  }
+
+  // 過去回答や最近の出題履歴と重複しないものを探す
+  const available = pool.filter(q => {
+    if (answeredIds.includes(q.id)) return false;
+    const plainQ = q.question.replace(/<rt>.*?<\/rt>/g, '').replace(/<[^>]*>/g, '');
+    const isRecent = recentQuestions.some(rq => {
+      const plainRecent = rq.replace(/<rt>.*?<\/rt>/g, '').replace(/<[^>]*>/g, '');
+      return plainRecent.includes(plainQ.slice(0, 15)) || plainQ.includes(plainRecent.slice(0, 15));
+    });
+    return !isRecent;
+  });
+
+  if (available.length === 0) {
+    return null;
+  }
+
+  const randomIndex = Math.floor(Math.random() * available.length);
+  return { ...available[randomIndex] };
+};
+
 // 天文宇宙検定のフォールバック用クイズデータ
 const FALLBACK_TEST_QUIZZES = {
-  '4': [
-    {
-      id: 'fb_t4_1',
-      question: '<ruby>太陽<rt>たいよう</rt></ruby>の光（ひかり）が反射（はんしゃ）して光る、<ruby>地球<rt>ちきゅう</rt></ruby>のただひとつの<ruby>衛星<rt>えいせい</rt></ruby>（おともだちの星）はなあに？',
-      choices: ['<ruby>月<rt>つき</rt></ruby>', '<ruby>火星<rt>かせい</rt></ruby>', '<ruby>水星<rt>すいせい</rt></ruby>', '<ruby>金星<rt>きんせい</rt></ruby>'],
-      answerIndex: 0,
-      explanation: '<ruby>月<rt>つき</rt></ruby>はみずから光っているのではなく、<ruby>太陽<rt>たいよう</rt></ruby>の光をあびてピカピカ反射（はんしゃ）して光って見えているんだよ。'
-    },
-    {
-      id: 'fb_t4_2',
-      question: '「なつデネブ、はるアルクトゥルス、あきフォーマルハウト、ふゆシリアス」これらは何（なに）のなまえ？',
-      choices: ['星座（せいざ）のなまえ', '宇宙船（うちゅうせん）のなまえ', '１等星（いっとうせい）という、とても明るい星のなまえ', '銀河（ぎんが）のなまえ'],
-      answerIndex: 2,
-      explanation: '夜空（よぞら）でいちばん明るく見えるグループの星たちを「１等星（いっとうせい）」と呼ぶんだよ。シリウスは冬（ふゆ）にいちばん明るくかがやくよ！'
-    },
-    {
-      id: 'fb_t4_3',
-      question: '<ruby>太陽<rt>たいよう</rt></ruby>のまわりをまわる８つの惑星（わくせい）のなかで、いちばん<ruby>太陽<rt>たいよう</rt></ruby>にちかい場所（ばしょ）をまわるのはどれ？',
-      choices: ['<ruby>地球<rt>ちきゅう</rt></ruby>', '<ruby>金星<rt>きんせい</rt></ruby>', '<ruby>水星<rt>すいせい</rt></ruby>', '<ruby>火星<rt>かせい</rt></ruby>'],
-      answerIndex: 2,
-      explanation: '<ruby>太陽<rt>たいよう</rt></ruby>に近いほうから「すい（水）・きん（金）・ち（地）・か（火）・もく（木）・ど（土）・てん（天）・かい（海）」のじゅんばんだよ。いちばん近いのは「水星（すいせい）」だね！'
-    },
-    {
-      id: 'fb_t4_4',
-      question: '日本（にほん）でいちばん最初（さいしょ）に宇宙（うちゅう）へ行った、秋山（あきやま）さんがのったソ連（れん）の宇宙船（うちゅうせん）のなまえは？',
-      choices: ['アポロ', 'ソユーズ', 'スペースシャトル', 'はやぶさ'],
-      answerIndex: 1,
-      explanation: '1990年、テレビの記者（きしゃ）だった秋山（あきやま）豊寛（とよひろ）さんがソユーズという宇宙船（うちゅうせん）にのって、日本人で初めて宇宙へ行ったんだよ。'
-    },
-    {
-      id: 'fb_t4_5',
-      question: '夏（なつ）の夜空（よぞら）にみえる「夏（なつ）の大三角（だいさんかく）」をつくる星は、デネブ、ベガと、あとひとつは何（なに）かな？',
-      choices: ['シリウス', 'ベテルギウス', 'アルタイル', 'アンタレス'],
-      answerIndex: 2,
-      explanation: 'わし座（ざ）のアルタイル（ひこ星）、こと座（ざ）のベガ（おりひめ星）、はくちょう座（ざ）のデネブをつなぐと、大きな「夏（なつ）の大三角（だいさんかく）」になるよ。'
-    }
-  ],
+  '4': OFFICIAL_SAMPLE_QUIZZES_4,
   '3': [
     {
       id: 'fb_t3_1',
@@ -529,18 +548,46 @@ export const generateAstronomyTestQuiz = async (grade, answeredIds = [], exclude
   const apiKey = getApiKey();
   if (!apiKey) {
     console.warn('VITE_GEMINI_API_KEY is not defined. Using fallback test quiz.');
-    return getFallbackTestQuiz(grade, answeredIds);
+    return getFallbackTestQuiz(grade, answeredIds, targetChapter);
   }
 
   const syllabus4th = `
-  【天文宇宙検定4級のシラバス章構成】
-  - 0章：宇宙にのりだそう（宇宙開発や宇宙飛行士の活動、国際宇宙ステーション（ISS）や日本の実験棟「きぼう」、人工衛星や探査機（はやぶさ2など）のお仕事など）
-  - 1章：月と地球（月のクレーターや性質、地球からいつも同じ面しか見えない理由、公転・自転、月食や日食が起こるしくみなど）
-  - 2章：太陽と地球（太陽についての基礎知識、太陽の表面の様子（黒点やプロミネンスなど）、太陽が地球に及ぼす影響など）
-  - 3章：太陽系の世界（太陽を回る惑星の特徴（水金地火木土天海、環・衛星のひみつ）、流れ星（流星）や彗星（ほうき星）の正体、惑星の名前とギリシャ・ローマ神話の関連（例：木星＝ジュピター）など）
-  - 4章：星座の世界（四季の代表的な星座と一等星（織ひめ星やひこ星など）、星座の見え方の移り変わり（カレンダーとしての星座）、星座にまつわる神話など）
-  - 5章：星と銀河の世界（星の色と温度の関係、たくさんの星が集まる「銀河（天の川銀河）」の姿など）
-  - 6章：天体観察入門（星座早見盤の使い方、双眼鏡や天体望遠鏡で星を観察するときのコツや注意点など）
+  【天文宇宙検定4級（星空博士）の公式テキスト章構成・出題基準】
+  - 1章：月と地球
+    - 月の直径（地球の約1/4、約3500km）、月までの距離（約38万km、時速300kmの新幹線で約53日）
+    - 月の重力（地球の約1/6、体重60kgなら10kg）、アポロ計画で月面に降り立った人数（計12人、アポロ11〜17号）
+    - 月の満ち欠け周期（約30日・1ヶ月）、月の見え方（夕方の西の空は三日月、南の空は上弦の月、東の空からは満月）
+    - 月のクレーター、自転と公転が同じ周期のため地球にはいつも同じ面を向けていること
+  - 2章：太陽と地球
+    - 太陽の1日の動きと地球の自転、太陽が真南（南中）から翌日真南に来るまでの時間は24時間（1日）
+    - 太陽の1年の動きと地球の公転、季節による南中高度の変化（冬至は太陽が一番低く、日差しが部屋の奥まで届き影が最も長い。夏至は一番高く影が短い）
+    - 太陽表面の温度（光球は約6000℃）、黒点の温度（周囲より低く約4500℃）、プロミネンス（紅炎）
+    - 皆既日食で見える真珠色に光る希薄な超高温大気（コロナ）
+    - 日食の天体配置（地球ー月ー太陽、月は新月）、月食の天体配置（太陽ー地球ー月、月は満月）
+  - 3章：地球の仲間たち（太陽系・惑星・流星群）
+    - 惑星の見え方の特徴（チカチカまたたかない、星座の間を日々動いていく、肉眼の見た目だけでは遠近はわからない）
+    - 内惑星（水星・金星）は月のように満ち欠けし、地球から見て太陽に近いため明け方か夕方にしか見えない
+    - 太陽系8惑星の距離順（水金地火木土天海。海王星が最遠。冥王星・エリスは準惑星）
+    - 惑星の大きさ順（水星が最小、木星が最大。水星＜火星＜金星＜地球＜海王星＜天王星＜土星＜木星）
+    - 主な流星群（8月ペルセウス座流星群、12月ふたご座流星群、1月しぶんぎ座流星群）
+    - 木星型惑星（木・土・天・海）の特徴と環、小型望遠鏡でもはっきり環が見える土星
+  - 4章：夜空は星のキャンバス（四季の星座）
+    - 北極星（ポラリス）：真北の空にあって1年中動かない2等星、昔からの旅の目印
+    - 春の星座と春の大曲線：北斗七星の柄→うしかい座アルクトゥルス（麦星）→おとめ座スピカ（真珠星）
+    - 夏の星座と夏の大三角：こと座ベガ（織姫）、わし座アルタイル（彦星）、はくちょう座デネブ
+    - 秋の星座と秋の四辺形：ペガスス座の3つの星とアンドロメダ座の星（アルフェラッツ）で構成
+    - 冬の星座と冬の大三角：おおいぬ座シリウス、こいぬ座プロキオン、オリオン座ベテルギウス（赤色超巨星、平家星。リゲルは源氏星）
+  - 5章：星と銀河の世界（恒星・星団・星雲・銀河）
+    - 恒星の大きさと超巨星：ベテルギウスの直径は太陽の約900倍（太陽系に置くと木星軌道まで達する）
+    - 星の色と表面温度：青白い星（リゲルなど）は1万℃以上の高温、黄色い星（太陽）は約6000℃、赤い星（ベテルギウスなど）は約3000℃の低温
+    - 星団の種類：散開星団（すばる/プレアデス星団など、若い星がまばらに数十〜数百個）、球状星団（老いた星が球状に数万〜数百万個）
+    - 星雲：オリオン大星雲（M42、三つ星の下にあり肉眼でもぼんやり見える散光星雲、星が生まれる場所）
+    - 銀河系と天の川：天の川の正体は、太陽系を含む数千億個の星の集団「銀河系」を内側から見た姿。アンドロメダ銀河（約230万光年、お隣の大型銀河）
+  - 6章：気軽にスターウォッチング（天体観察入門）
+    - 星空観察の7つ道具：星座早見盤、コンパス、懐中電灯（赤いセロファンを貼る）、上着、時計、レジャーシート、双眼鏡や望遠鏡
+    - 暗順応：暗闇で星がよく見えるようになるには目を慣らす時間として「15分〜20分」必要
+    - 星座早見盤の性質：年じゅう使えるよう、日々位置が移動する「月」や「惑星」は印刷されていない
+    - 星座早見盤の使い方：観察する「月日（外枠）」と「時刻（内枠）」の目盛りをぴったり合わせ、見たい方角を下に持って空にかざす
   `;
 
   const syllabus3rd = `
@@ -573,22 +620,22 @@ export const generateAstronomyTestQuiz = async (grade, answeredIds = [], exclude
       }
     }
   } else {
-    gradePrompt = `天文宇宙検定4級（星空博士・主に中学生や星空に興味がある子供向け）のシラバスや出題傾向に準拠した、月や太陽、星座の動き、基本的な天体観測に関するクイズです。
+    gradePrompt = `天文宇宙検定4級（星空博士・公式テキスト準拠）のシラバスや出題傾向に完全に準拠した、月や太陽、惑星、星座、星空観察に関する基礎クイズです。
+    公式テキストの出題基準・観点に忠実に、確かな知識を問う選択式問題を作成してください。
     ${syllabus4th}`;
 
     if (targetChapter !== null) {
       const chapterNames = {
-        0: '0章：宇宙にのりだそう',
         1: '1章：月と地球',
         2: '2章：太陽と地球',
-        3: '3章：太陽系の世界',
-        4: '4章：星座の世界',
-        5: '5章：星と銀河の世界',
-        6: '6章：天体観察入門'
+        3: '3章：地球の仲間たち（太陽系・惑星・流星群）',
+        4: '4章：夜空は星のキャンバス（四季の星座）',
+        5: '5章：星と銀河の世界（恒星・星団・星雲・銀河）',
+        6: '6章：気軽にスターウォッチング（観察入門）'
       };
       const chapterName = chapterNames[targetChapter];
       if (chapterName) {
-        gradePrompt += `\n【出題指定】今回は必ず【${chapterName}】のトピックに密接に関連する、具体的でやさしい問題を作成してください。`;
+        gradePrompt += `\n【出題指定】今回は必ず【${chapterName}】のトピックに密接に関連する、公式テキストの出題基準に沿った問題を作成してください。`;
       }
     }
   }
@@ -665,13 +712,14 @@ export const generateAstronomyTestQuiz = async (grade, answeredIds = [], exclude
   ${jsonFormatPrompt}
   `;
 
-  let retries = 3;
-  while (retries > 0) {
+  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-3.1-flash-lite'];
+  for (let i = 0; i < candidateModels.length; i++) {
+    const currentModelName = candidateModels[i];
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-3.1-flash-lite',
+        model: currentModelName,
         generationConfig: {
           responseMimeType: 'application/json'
         }
@@ -687,21 +735,21 @@ export const generateAstronomyTestQuiz = async (grade, answeredIds = [], exclude
         quiz.id = `test_${grade}_` + Date.now() + '_' + Math.floor(Math.random() * 1000);
         return quiz;
       } else {
-        console.warn('Test quiz failed validation. Retrying...', quiz);
+        console.warn(`Test quiz from ${currentModelName} failed validation.`, quiz);
       }
     } catch (e) {
-      console.error('Failed to generate test quiz. Retries left: ' + (retries - 1), e);
+      console.warn(`Failed with model ${currentModelName}, trying next...`, e.message || e);
     }
-    retries--;
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 150));
   }
 
-  return getFallbackTestQuiz(grade, answeredIds);
+  return getFallbackTestQuiz(grade, answeredIds, targetChapter);
 };
 
 // 検定クイズ用バリデーション
 const validateTestQuiz = (quiz, targetImage = null) => {
   if (!quiz) return false;
+  sanitizeQuizRubies(quiz);
   if (typeof quiz.question !== 'string' || quiz.question.length < 5) return false;
   if (!Array.isArray(quiz.choices) || quiz.choices.length !== 4) return false;
   if (typeof quiz.answerIndex !== 'number' || quiz.answerIndex < 0 || quiz.answerIndex > 3) return false;
@@ -726,8 +774,17 @@ const validateTestQuiz = (quiz, targetImage = null) => {
 };
 
 // 検定用フォールバック
-const getFallbackTestQuiz = (grade, answeredIds) => {
-  const pool = FALLBACK_TEST_QUIZZES[grade] || FALLBACK_TEST_QUIZZES['4'];
+const getFallbackTestQuiz = (grade, answeredIds = [], targetChapter = null) => {
+  let pool = FALLBACK_TEST_QUIZZES[grade] || FALLBACK_TEST_QUIZZES['4'];
+  
+  // 指定章があればその章のプールを優先
+  if (targetChapter !== null) {
+    const chapterPool = pool.filter(q => q.chapter === targetChapter);
+    if (chapterPool.length > 0) {
+      pool = chapterPool;
+    }
+  }
+
   let available = pool.filter(q => !answeredIds.includes(q.id));
   if (available.length === 0) {
     available = pool;

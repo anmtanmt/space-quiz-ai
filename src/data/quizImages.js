@@ -63,20 +63,18 @@ export const QUIZ_IMAGES = [
     id: 'img_iss',
     path: '/assets/images/quiz/iss.png',
     description: '宇宙空間に浮かぶ巨大な有人宇宙施設、国際宇宙ステーション（ISS）の画像。大きな太陽電池パネルが左右にたくさん広がっている。',
-    grades: ['3', '4'],
+    grades: ['3'],
     chapters: {
-      '3': 6, // 6章：宇宙開発と時事問題
-      '4': 0  // 0章：宇宙にのりだそう
+      '3': 6 // 6章：宇宙開発と時事問題
     }
   },
   {
     id: 'img_rocket_h3',
     path: '/assets/images/quiz/rocket_h3.png',
     description: '宇宙に向かって白い煙と炎を出しながら真っ直ぐ上昇していく日本のH3ロケットの画像。',
-    grades: ['3', '4'],
+    grades: ['3'],
     chapters: {
-      '3': 6, // 6章：宇宙開発と時事問題
-      '4': 0  // 0章：宇宙にのりだそう
+      '3': 6 // 6章：宇宙開発と時事問題
     }
   },
   {
