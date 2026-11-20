@@ -54,7 +54,111 @@ async function pingSupabase() {
   }
 }
 
-async function generateQuiz() {
+// Gemini API (v1beta, JSON mode) を呼び出す共通ヘルパー
+async function callGeminiJson(models, prompt, label = 'Gemini') {
+  for (const model of models) {
+    try {
+      console.log(`[${label}] API試行 (モデル: ${model})...`);
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generation_config: {
+            response_mime_type: 'application/json'
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn(`[${label} / ${model}] HTTP ${response.status}: ${errorText.substring(0, 120)}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+      const cleanJson = rawText.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+      const parsed = JSON.parse(cleanJson);
+      return { parsed, model };
+    } catch (err) {
+      console.warn(`[${label} / ${model}] 試行失敗:`, err.message);
+    }
+  }
+  return null;
+}
+
+// 選択肢の順序をランダムにシャッフルし、①②③の番号を付け直す
+function shuffleChoicesWithNumbers(quiz) {
+  const prefixes = ['① ', '② ', '③ '];
+  const stripped = quiz.choices.map((c, idx) => ({
+    text: String(c).replace(/^[①②③123１２３][.\s．、　]*/, '').trim(),
+    isCorrect: idx === quiz.answerIndex
+  }));
+
+  for (let i = stripped.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [stripped[i], stripped[j]] = [stripped[j], stripped[i]];
+  }
+
+  return {
+    ...quiz,
+    choices: stripped.map((item, idx) => `${prefixes[idx]}${item.text}`),
+    answerIndex: stripped.findIndex(item => item.isCorrect)
+  };
+}
+
+// 2段階ファクトチェック：正解と解説を隠した状態で別モデルに問題を解かせ、科学的正しさと一意性を検証
+async function verifyQuizWithAI(quiz) {
+  const verifierModels = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-2.5-flash-lite'];
+  const verifyPrompt = `
+あなたは天文学の専門家であり、クイズの厳格な校閲者（ファクトチェッカー）です。
+以下の3択クイズについて、科学的な正確性と選択肢の妥当性を厳しく検証してください。
+
+【検証対象クイズ】
+問題文: ${quiz.question}
+選択肢:
+0: ${quiz.choices[0]}
+1: ${quiz.choices[1]}
+2: ${quiz.choices[2]}
+
+【厳格なチェック基準】
+1. 問題文の前提が天文学・理科の事実として正確か。
+2. 3つの選択肢の中に、科学的に正しい「唯一の正解」が厳密に1つだけ存在するか。
+   - 正解が選択肢の中に無い場合は絶対に isValid: false にすること。
+   - 複数の選択肢が正解になり得る、または曖昧で誤解を招く場合も isValid: false にすること。
+3. よくある誤概念の混同がないか（例：「月の満ち欠け＝地球の影」は誤りで月食との混同、「夏と冬の原因＝太陽との距離」は誤りで地軸の傾き、等）。
+
+【出力JSONフォーマット】
+{
+  "isValid": true または false,
+  "solvedIndex": あなたが導き出した正解の番号（0, 1, 2 のいずれか。正解が存在しない場合は -1）,
+  "reason": "判定理由と科学的根拠（50文字以内）"
+}
+`;
+
+  const result = await callGeminiJson(verifierModels, verifyPrompt, 'FactCheck');
+  if (!result || !result.parsed) {
+    return { passed: false, reason: '検証APIの応答取得に失敗' };
+  }
+
+  const v = result.parsed;
+  if (v.isValid !== true) {
+    return { passed: false, reason: `検証AIがNG判定: ${v.reason}` };
+  }
+  if (typeof v.solvedIndex !== 'number' || v.solvedIndex !== quiz.answerIndex) {
+    return {
+      passed: false,
+      reason: `正解不一致 (生成側: ${quiz.answerIndex}, 検証側: ${v.solvedIndex}) / 理由: ${v.reason}`
+    };
+  }
+
+  console.log(`✅ ファクトチェック合格 (${result.model}): ${v.reason}`);
+  return { passed: true, reason: v.reason };
+}
+
+export async function generateQuiz() {
   const topics = [
     '第1章：月と地球（月の直径比1/4、新幹線で約53日、月面に降り立った12人、重力1/6、満ち欠け周期30日、夕方の西の空の三日月など）',
     '第2章：太陽と地球（自転で真南に戻る24時間、冬至に部屋の奥まで届く日差し、太陽表面温度6000℃・黒点4500℃、皆既日食のコロナ、日食・月食の天体配置など）',
@@ -63,24 +167,32 @@ async function generateQuiz() {
     '第5章：星と銀河の世界（太陽の900倍の超巨星ベテルギウス、星の色と表面温度（青い星は高温・赤い星は低温）、散開星団すばる、オリオン大星雲、天の川銀河など）',
     '第6章：気軽にスターウォッチング（観察の7つ道具・懐中電灯に赤セロファン、暗闇に目を慣らす15分、月や惑星が載っていない星座早見盤など）'
   ];
-  const chosenTopic = topics[Math.floor(Math.random() * topics.length)];
 
-  const prompt = `
+  const promptTemplate = (topic) => `
 あなたは宇宙知育Webアプリ「宇宙クイズ-AI」の公式アンバサダーAIです。
-Twitter/Xで毎朝配信する、【天文宇宙検定4級（星博士ジュニア）】の対策になる良問の宇宙クイズを1問作成してください。
+X（旧Twitter）で毎朝配信する、【天文宇宙検定4級（星空博士）】レベルのオリジナル宇宙クイズを1問作成してください。
 
 【テーマ】
-${chosenTopic}
+${topic}
 
-【条件】
-1. 天文宇宙検定4級（小学生〜一般向け）レベル。大人も思わず「へぇ！」となるような面白い天文学の事実を題材にしてください。
-2. 選択肢は必ず3つ。正解は1つ。
-3. Xの文字数制限があるため、【問題文は45文字以内】、【選択肢は各15文字以内】、【解説は60〜75文字】を厳守してください。
-4. 以下のJSONフォーマットのみで出力してください。Markdownコードブロックなどは付けないでください。
+【作成手順と厳守事項（ハルシネーション絶対防止）】
+1. まず最初に、出題する天文学の正しい科学的根拠（fact_basis）を自分の頭の中で整理し、JSONの最初に出力してください。
+2. 特定のテキストや問題集の文章をそのままコピー（丸写し）せず、テーマのエッセンスを活かしたオリジナルの問いかけを作成してください。
+3. よくある誤解・混同を絶対に正解にしないでください：
+   - 月の満ち欠けの理由は「地球の影（それは月食）」ではなく、「月の公転によって、太陽に照らされた面を地球から見る角度が変わるから」です。
+   - 季節の変化の理由は「太陽との距離」ではなく、「地球の地軸の傾き」です。
+   - 流れ星の正体は「星が落ちる」のではなく、「宇宙の塵が大気と衝突して光る現象」です。
+4. 選択肢は必ず3つ。科学的に正しい唯一の正解が1つだけあり、残り2つは明確に誤りであるように作ってください。
+5. Xの文字数制限があるため、以下を目安にしてください：
+   - 問題文：45文字以内
+   - 選択肢：各22文字以内（無理に削って意味が不正確にならないよう注意）
+   - 解説：60〜75文字
+6. 以下のJSONフォーマットのみで出力してください。
 
 {
+  "fact_basis": "この問題で扱う天文学の正確な事実と根拠（解説と選択肢が矛盾しないように先に確定させる）",
   "question": "短く魅力的な問題文",
-  "choices": ["① 選択肢1", "② 選択肢2", "③ 選択肢3"],
+  "choices": ["選択肢A", "選択肢B", "選択肢C"],
   "answerIndex": 0,
   "explanation": "60〜75文字の短い解説"
 }
@@ -119,51 +231,57 @@ ${chosenTopic}
     }
   ];
 
-  const models = ['gemini-2.5-flash-lite', 'gemini-3.1-flash-lite'];
+  const generatorModels = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
   const maxAttempts = 3;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    for (const model of models) {
-      try {
-        console.log(`Gemini API試行 (${attempt}回目 / モデル: ${model})...`);
-        const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
-          })
-        });
+    const chosenTopic = topics[Math.floor(Math.random() * topics.length)];
+    console.log(`\n--- クイズ生成サイクル (${attempt}/${maxAttempts}回目) ---`);
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.warn(`[${model}] HTTP ${response.status}: ${errorText.substring(0, 100)}`);
-          continue; // 次のモデルを試行
-        }
+    const genResult = await callGeminiJson(generatorModels, promptTemplate(chosenTopic), 'Generator');
+    if (!genResult || !genResult.parsed) {
+      continue;
+    }
 
-        const data = await response.json();
-        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-        const cleanJson = rawText.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
-        const parsed = JSON.parse(cleanJson);
+    const parsed = genResult.parsed;
+    if (
+      !parsed.question ||
+      !Array.isArray(parsed.choices) ||
+      parsed.choices.length !== 3 ||
+      typeof parsed.answerIndex !== 'number' ||
+      parsed.answerIndex < 0 ||
+      parsed.answerIndex > 2 ||
+      !parsed.explanation
+    ) {
+      console.warn('⚠️ 生成JSONの形式が不正のためスキップします:', parsed);
+      continue;
+    }
 
-        if (parsed.question && Array.isArray(parsed.choices) && parsed.choices.length === 3 && parsed.explanation) {
-          console.log(`✅ Gemini (${model}) での天文宇宙検定4級クイズ生成に成功！`);
-          return parsed;
-        }
-      } catch (err) {
-        console.warn(`[${model}] 試行失敗:`, err.message);
-      }
+    // 選択肢の重複チェック
+    if (new Set(parsed.choices).size !== 3) {
+      console.warn('⚠️ 選択肢に重複があるためスキップします');
+      continue;
+    }
+
+    // 選択肢をシャッフルして ①②③ を付与
+    const normalizedQuiz = shuffleChoicesWithNumbers(parsed);
+
+    // 2段階目：正解・解説を隠したブラインド検証
+    const verification = await verifyQuizWithAI(normalizedQuiz);
+    if (verification.passed) {
+      console.log(`🎉 [${genResult.model}] 生成＋ブラインド検証を完全パスしました！`);
+      return normalizedQuiz;
+    } else {
+      console.warn(`❌ ファクトチェック不合格（破棄して再生成）: ${verification.reason}`);
     }
 
     if (attempt < maxAttempts) {
-      const waitMs = attempt * 1500;
-      console.log(`再試行まで ${waitMs}ms 待機します...`);
-      await new Promise(r => setTimeout(r, waitMs));
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
 
-  console.warn('⚠️ Gemini APIが全て応答しなかったため、厳選フォールバッククイズを使用します。');
-  return fallbackQuizzes[Math.floor(Math.random() * fallbackQuizzes.length)];
+  console.warn('⚠️ 生成または検証に連続失敗したため、安全のため検証済みフォールバッククイズを使用します。');
+  return shuffleChoicesWithNumbers(fallbackQuizzes[Math.floor(Math.random() * fallbackQuizzes.length)]);
 }
 
 function getTwitterWeight(text) {
