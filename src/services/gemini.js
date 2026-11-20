@@ -337,7 +337,7 @@ export const generateQuizFromAI = async (difficulty, answeredIds = [], excludeQu
   }
   `;
 
-  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite'];
   for (let i = 0; i < candidateModels.length; i++) {
     const currentModelName = candidateModels[i];
     try {
@@ -723,7 +723,7 @@ export const generateAstronomyTestQuiz = async (grade, answeredIds = [], exclude
   ${jsonFormatPrompt}
   `;
 
-  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite'];
   for (let i = 0; i < candidateModels.length; i++) {
     const currentModelName = candidateModels[i];
     try {

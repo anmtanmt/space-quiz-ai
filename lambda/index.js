@@ -188,7 +188,7 @@ async function generateQuiz(difficulty, answeredIds, excludeQuestions = [], rece
   }
   `;
 
-  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite'];
   for (let i = 0; i < candidateModels.length; i++) {
     const currentModelName = candidateModels[i];
     try {
@@ -200,8 +200,12 @@ async function generateQuiz(difficulty, answeredIds, excludeQuestions = [], rece
           headers: {
             'Content-Type': 'application/json'
           },
+          signal: AbortSignal.timeout(12000),
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
+            contents: [{ parts: [{ text: prompt }] }],
+            generation_config: {
+              response_mime_type: 'application/json'
+            }
           })
         }
       );
@@ -448,7 +452,7 @@ async function generateTestQuiz(grade, answeredIds, excludeQuestions = [], recen
   ${jsonFormatPrompt}
   `;
 
-  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite'];
   for (let i = 0; i < candidateModels.length; i++) {
     const currentModelName = candidateModels[i];
     try {
@@ -459,8 +463,12 @@ async function generateTestQuiz(grade, answeredIds, excludeQuestions = [], recen
           headers: {
             'Content-Type': 'application/json'
           },
+          signal: AbortSignal.timeout(12000),
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
+            contents: [{ parts: [{ text: prompt }] }],
+            generation_config: {
+              response_mime_type: 'application/json'
+            }
           })
         }
       );
