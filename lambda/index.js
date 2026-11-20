@@ -168,6 +168,10 @@ async function generateQuiz(difficulty, answeredIds, excludeQuestions = [], rece
   ${difficultyConstraint}
   ${exclusionPrompt}
 
+  - 【科学的正しさの厳守（ハルシネーション防止）】
+    - まず最初に、出題する天文学の正確な事実と根拠（fact_basis）をJSONの先頭に記述し、その事実と選択肢・正解・解説が100%一致するように作成してください。
+    - 選択肢の中に「科学的に正しい唯一の正解」が必ず1つだけ存在し、他の選択肢は明確に誤りであるようにしてください。
+    - よくある誤解や混同を絶対に正解にしないでください（例：「月の満ち欠けの理由は地球の影」は誤りで月食との混同、「季節の変化は太陽との距離」は誤りで地軸の傾き、「流れ星は星が落ちる」は誤りで宇宙の塵の発光）。
   - 選択肢は必ず3つ。正解は1つ。
   - 回答後の解説(explanation)は、子どもが読んで楽しく理解できる、やさしい表現にしてください。
   - 解説に含まれる漢字にも、上記と同様のルビ（ふりがな）ルールを適用してください（easyの場合は漢字禁止、medium/hardの場合はルビ必須）。
@@ -176,6 +180,7 @@ async function generateQuiz(difficulty, answeredIds, excludeQuestions = [], rece
   必ず以下のJSONフォーマットのみで出力してください。Markdownのコードブロックなども一切付けないでください。
 
   {
+    "fact_basis": "この問題で扱う天文学の正確な事実と根拠（1文）",
     "question": "問題文（ルビルール適用）",
     "choices": ["選択肢1（ルビルール適用）", "選択肢2（ルビルール適用）", "選択肢3（ルビルール適用）"],
     "answerIndex": 0,
@@ -183,7 +188,7 @@ async function generateQuiz(difficulty, answeredIds, excludeQuestions = [], rece
   }
   `;
 
-  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-3.1-flash-lite'];
+  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash'];
   for (let i = 0; i < candidateModels.length; i++) {
     const currentModelName = candidateModels[i];
     try {
@@ -394,6 +399,7 @@ async function generateTestQuiz(grade, answeredIds, excludeQuestions = [], recen
   let imagePrompt = '';
   let jsonFormatPrompt = `
   {
+    "fact_basis": "この問題で扱う天文学の正確な事実と根拠（1文）",
     "question": "問題文（ルビ必須）",
     "choices": ["選択肢1（ルビ必須）", "選択肢2（ルビ必須）", "選択肢3（ルビ必須）", "選択肢4（ルビ必須）"],
     "answerIndex": 0, // 正解のインデックス（0, 1, 2, 3 のいずれか）
@@ -411,6 +417,7 @@ async function generateTestQuiz(grade, answeredIds, excludeQuestions = [], recen
 
     jsonFormatPrompt = `
   {
+    "fact_basis": "この問題で扱う天文学の正確な事実と根拠（1文）",
     "question": "問題文（ルビ必須、画像に言及する）",
     "choices": ["選択肢1（ルビ必須）", "選択肢2（ルビ必須）", "選択肢3（ルビ必須）", "選択肢4（ルビ必須）"],
     "answerIndex": 0, // 正解のインデックス（0, 1, 2, 3 のいずれか）
@@ -423,10 +430,14 @@ async function generateTestQuiz(grade, answeredIds, excludeQuestions = [], recen
   ${gradePrompt}を1問、JSONフォーマットで生成してください。
   以下のルールを厳密に守ってください。
 
+  - 【科学的正しさの厳守（ハルシネーション防止）】
+    - まず最初に、出題する天文学の正確な事実と根拠（fact_basis）をJSONの先頭に記述し、その事実と選択肢・正解・解説が100%一致するように作成してください。
+    - 選択肢の中に「科学的に正しい唯一の正解」が必ず1つだけ存在し、他の選択肢は明確に誤りであるようにしてください。
+    - よくある誤解や混同を絶対に正解にしないでください（例：「月の満ち欠けの理由は地球の影」は誤りで月食との混同、「季節の変化は太陽との距離」は誤りで地軸の傾き、「流れ星は星が落ちる」は誤りで宇宙の塵の発光）。
   - 【超重要】選択肢は必ず【4つ】生成してください。
   - 【超重要】難易度に関わらず、すべての漢字にHTML形式のルビ（ふりがな）を振ること。
     ルビの書き方例: <ruby>望遠鏡<rt>ぼうえんきょう</rt></ruby> のように記述してください。ひらがなやカタカナ、数字にルビを振る必要はありません。
-  - 選択肢(choices), および解説(explanation)に含まれる漢字にも必ず同様のルビルールを適用してください。
+  - 選択肢(choices)、および解説(explanation)に含まれる漢字にも必ず同様のルビルールを適用してください。
   - 解説は子供（小学校低学年でも読める）向けに、優しくロマンがある表現で記述してください。
   ${exclusionPrompt}
   ${imagePrompt}
@@ -437,7 +448,7 @@ async function generateTestQuiz(grade, answeredIds, excludeQuestions = [], recen
   ${jsonFormatPrompt}
   `;
 
-  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-3.1-flash-lite'];
+  const candidateModels = ['gemini-2.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash'];
   for (let i = 0; i < candidateModels.length; i++) {
     const currentModelName = candidateModels[i];
     try {
