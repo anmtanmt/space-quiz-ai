@@ -34,6 +34,7 @@ async function pingSupabase() {
         'Content-Type': 'application/json',
         'Prefer': 'return=representation'
       },
+      signal: AbortSignal.timeout(5000),
       body: JSON.stringify({ last_ping_at: nowIso })
     });
 
@@ -46,7 +47,8 @@ async function pingSupabase() {
         headers: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        }
+        },
+        signal: AbortSignal.timeout(5000)
       });
     }
   } catch (err) {
@@ -55,14 +57,21 @@ async function pingSupabase() {
 }
 
 // Gemini API (v1beta, JSON mode) を呼び出す共通ヘルパー
-async function callGeminiJson(models, prompt, label = 'Gemini') {
+async function callGeminiJson(models, prompt, label = 'Gemini', deadlineMs = Infinity, timeoutMs = 10000) {
   for (const model of models) {
+    const remaining = deadlineMs - Date.now();
+    if (remaining < 3000) {
+      console.warn(`[${label}] 全体デッドライン接近のため打ち切り (残り ${remaining}ms)`);
+      return null;
+    }
+
     try {
       console.log(`[${label}] API試行 (モデル: ${model})...`);
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(Math.min(timeoutMs, remaining - 500)),
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generation_config: {
@@ -110,8 +119,8 @@ function shuffleChoicesWithNumbers(quiz) {
 }
 
 // 2段階ファクトチェック：正解と解説を隠した状態で別モデルに問題を解かせ、科学的正しさと一意性を検証
-async function verifyQuizWithAI(quiz) {
-  const verifierModels = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-2.5-flash-lite'];
+async function verifyQuizWithAI(quiz, deadlineMs = Infinity) {
+  const verifierModels = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-3.5-flash-lite'];
   const verifyPrompt = `
 あなたは天文学の専門家であり、クイズの厳格な校閲者（ファクトチェッカー）です。
 以下の3択クイズについて、科学的な正確性と選択肢の妥当性を厳しく検証してください。
@@ -138,7 +147,7 @@ async function verifyQuizWithAI(quiz) {
 }
 `;
 
-  const result = await callGeminiJson(verifierModels, verifyPrompt, 'FactCheck');
+  const result = await callGeminiJson(verifierModels, verifyPrompt, 'FactCheck', deadlineMs);
   if (!result || !result.parsed) {
     return { passed: false, reason: '検証APIの応答取得に失敗' };
   }
@@ -231,14 +240,19 @@ ${topic}
     }
   ];
 
-  const generatorModels = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
+  const generatorModels = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite'];
   const maxAttempts = 3;
+  const deadlineMs = Date.now() + 40000;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    if (Date.now() >= deadlineMs) {
+      console.warn('⚠️ 全体デッドライン(40秒)に到達したため、生成ループを終了します。');
+      break;
+    }
     const chosenTopic = topics[Math.floor(Math.random() * topics.length)];
     console.log(`\n--- クイズ生成サイクル (${attempt}/${maxAttempts}回目) ---`);
 
-    const genResult = await callGeminiJson(generatorModels, promptTemplate(chosenTopic), 'Generator');
+    const genResult = await callGeminiJson(generatorModels, promptTemplate(chosenTopic), 'Generator', deadlineMs);
     if (!genResult || !genResult.parsed) {
       continue;
     }
@@ -267,7 +281,7 @@ ${topic}
     const normalizedQuiz = shuffleChoicesWithNumbers(parsed);
 
     // 2段階目：正解・解説を隠したブラインド検証
-    const verification = await verifyQuizWithAI(normalizedQuiz);
+    const verification = await verifyQuizWithAI(normalizedQuiz, deadlineMs);
     if (verification.passed) {
       console.log(`🎉 [${genResult.model}] 生成＋ブラインド検証を完全パスしました！`);
       return normalizedQuiz;
@@ -275,7 +289,7 @@ ${topic}
       console.warn(`❌ ファクトチェック不合格（破棄して再生成）: ${verification.reason}`);
     }
 
-    if (attempt < maxAttempts) {
+    if (attempt < maxAttempts && deadlineMs - Date.now() > 4000) {
       await new Promise(r => setTimeout(r, 1000));
     }
   }
